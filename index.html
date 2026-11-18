@@ -1,0 +1,1443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hexfront</title>
+<meta name="theme-color" content="#1a1e18">
+<meta name="description" content="A classic hex-and-counter WWII wargame for two players, hotseat or by email.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Hexfront">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Stencil+One&family=Barlow+Condensed:wght@400;500;600;700&family=Barlow:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: a war-room table. Dark olive chrome frames a paper map; the sidebar is the staff officer's clipboard. Single theme by choice. */
+:root {
+  --chrome: #1a1e18;
+  --panel: #232921;
+  --panel-2: #2c3329;
+  --line: #3b4535;
+  --ink: #ece5cf;
+  --muted: #a7a48f;
+  --signal: #e8a83a;
+  --danger: #d4573f;
+  --ok: #93b56b;
+  --display: 'Saira Stencil One', Impact, 'Arial Black', sans-serif;
+  --ui: 'Barlow Condensed', 'Arial Narrow', sans-serif;
+  --body: 'Barlow', system-ui, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--chrome); color: var(--ink); font: 15px/1.4 var(--body); display: grid; grid-template-rows: auto 1fr; overflow: hidden; }
+button { font: 600 15px/1 var(--ui); letter-spacing: .04em; text-transform: uppercase; color: var(--ink); background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 9px 12px; cursor: pointer; }
+button:hover:not(:disabled) { border-color: var(--muted); }
+button:disabled { opacity: .4; cursor: default; }
+button:focus-visible, textarea:focus-visible, input:focus-visible, .card:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+button.primary { background: var(--signal); color: #1d1606; border-color: var(--signal); }
+button.primary:hover:not(:disabled) { background: #f3b84e; }
+button.danger { color: var(--danger); }
+
+/* ---------- top bar ---------- */
+.bar { display: flex; align-items: center; gap: 18px; padding: 10px 16px; border-bottom: 1px solid var(--line); background: #151813; flex-wrap: wrap; }
+.brand { font: 26px/1 var(--display); letter-spacing: .06em; color: var(--signal); }
+.scen { font: 600 15px/1.1 var(--ui); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+.scen b { color: var(--ink); font-weight: 600; display: block; letter-spacing: .04em; font-size: 17px; }
+.turnbox { font: 600 15px/1 var(--ui); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-variant-numeric: tabular-nums; }
+.turnbox b { font: 24px/1 var(--display); color: var(--ink); margin-left: 4px; }
+.sidechip { display: flex; align-items: center; gap: 8px; font: 700 17px/1 var(--ui); text-transform: uppercase; letter-spacing: .05em; padding: 6px 10px 6px 6px; border-radius: 4px; background: var(--panel); border: 1px solid var(--line); }
+.sidechip i { width: 22px; height: 22px; border-radius: 3px; display: block; box-shadow: inset 0 0 0 1px rgba(0,0,0,.35); }
+.phases { display: flex; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+.phases span { font: 600 14px/1 var(--ui); text-transform: uppercase; letter-spacing: .1em; padding: 8px 12px; color: var(--muted); }
+.phases span.on { background: var(--ink); color: var(--chrome); }
+.spacer { flex: 1; }
+#mainBtn { padding: 11px 18px; font-size: 16px; }
+
+/* ---------- main ---------- */
+main { display: grid; grid-template-columns: 1fr 330px; min-height: 0; }
+.mapwrap { position: relative; min-height: 0; background: radial-gradient(ellipse at center, #2a3026 0%, #161a14 85%); }
+#map { width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; user-select: none; }
+#map.panning { cursor: grabbing; }
+.mapctl { position: absolute; left: 12px; bottom: 12px; display: flex; gap: 6px; flex-wrap: wrap; }
+.mapctl button { padding: 8px 10px; background: rgba(26,30,24,.88); }
+.mapctl button[aria-pressed="true"] { border-color: var(--signal); color: var(--signal); }
+.hint { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); background: rgba(21,24,19,.9); border: 1px solid var(--line); border-radius: 4px; padding: 7px 14px; font: 500 16px/1.2 var(--ui); letter-spacing: .03em; max-width: calc(100% - 24px); text-align: center; pointer-events: none; }
+.toast { position: absolute; left: 50%; bottom: 60px; transform: translateX(-50%); background: var(--danger); color: #fff; padding: 8px 14px; border-radius: 4px; font: 600 15px/1.2 var(--ui); opacity: 0; transition: opacity .2s; pointer-events: none; }
+.toast.show { opacity: 1; }
+
+/* ---------- sidebar ---------- */
+aside { border-left: 1px solid var(--line); background: var(--panel); display: flex; flex-direction: column; min-height: 0; overflow-y: auto; }
+aside section { padding: 14px 16px; border-bottom: 1px solid var(--line); }
+aside h3 { margin: 0 0 10px; font: 600 13px/1 var(--ui); text-transform: uppercase; letter-spacing: .14em; color: var(--muted); }
+.score { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.score div { background: var(--panel-2); border-radius: 4px; padding: 8px 10px; border-left: 5px solid; }
+.score small { display: block; font: 600 13px/1.1 var(--ui); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.score b { font: 26px/1.1 var(--display); font-variant-numeric: tabular-nums; }
+.score em { font: 500 13px/1 var(--ui); color: var(--muted); font-style: normal; }
+.objective { margin: 10px 0 0; font-size: 13.5px; color: var(--muted); }
+.detail { display: grid; grid-template-columns: 64px 1fr; gap: 12px; align-items: start; }
+.detail h4 { margin: 0 0 4px; font: 700 19px/1.1 var(--ui); letter-spacing: .02em; }
+.detail p { margin: 2px 0; font-size: 13.5px; color: var(--muted); }
+.tags { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; }
+.tag { font: 600 12px/1 var(--ui); text-transform: uppercase; letter-spacing: .08em; padding: 4px 6px; border-radius: 3px; background: var(--panel-2); color: var(--muted); border: 1px solid var(--line); }
+.tag.warn { color: var(--danger); border-color: var(--danger); }
+.tag.go { color: var(--ok); border-color: rgba(147,181,107,.6); }
+.empty { color: var(--muted); font-size: 14px; margin: 0; }
+.odds { display: flex; align-items: baseline; gap: 10px; margin: 6px 0 10px; }
+.odds b { font: 34px/1 var(--display); color: var(--signal); font-variant-numeric: tabular-nums; }
+.odds span { font: 500 14px/1.3 var(--ui); color: var(--muted); }
+.crtrow { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; margin-bottom: 10px; }
+.crtrow div { text-align: center; background: var(--panel-2); border-radius: 3px; padding: 5px 0 4px; font: 700 15px/1 var(--ui); }
+.crtrow div small { display: block; font: 500 11px/1 var(--ui); color: var(--muted); margin-bottom: 3px; }
+.crtrow .D { color: var(--ok); }
+.crtrow .A { color: var(--danger); }
+.crtrow .E { color: var(--signal); }
+.crtrow div.hit { outline: 2px solid var(--signal); background: #3a3a22; }
+.atklist { list-style: none; padding: 0; margin: 0 0 10px; display: grid; gap: 4px; font: 500 15px/1.2 var(--ui); }
+.atklist li { display: flex; justify-content: space-between; gap: 8px; }
+.atklist li.off { opacity: .45; text-decoration: line-through; }
+.row { display: flex; gap: 8px; flex-wrap: wrap; }
+.row button { flex: 1; }
+.result { background: var(--panel-2); border-radius: 4px; padding: 8px 10px; margin-bottom: 10px; font: 500 15px/1.3 var(--ui); }
+.result b { color: var(--signal); }
+.logsec { flex: 1; min-height: 140px; }
+#log { list-style: none; margin: 0; padding: 0; font: 400 14px/1.35 var(--ui); display: flex; flex-direction: column-reverse; gap: 3px; }
+#log li { color: var(--muted); padding-left: 10px; border-left: 3px solid transparent; }
+#log li.turn { color: var(--ink); font-weight: 700; margin-top: 6px; text-transform: uppercase; letter-spacing: .05em; border-left-color: var(--signal); }
+#log li.combat { color: var(--ink); }
+#log li.capture { color: var(--signal); }
+#log li.end { color: var(--signal); font-weight: 700; }
+.tools { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.tools button { padding: 9px 6px; font-size: 14px; }
+.tools .wide { grid-column: span 2; }
+
+/* ---------- dialogs ---------- */
+dialog { background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 0; max-width: min(760px, calc(100vw - 32px)); width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
+dialog::backdrop { background: rgba(8,10,7,.72); }
+.dlg { padding: 20px 22px; display: grid; gap: 14px; max-height: calc(100vh - 60px); overflow-y: auto; }
+.dlg h2 { margin: 0; font: 30px/1 var(--display); letter-spacing: .03em; text-wrap: balance; }
+.dlg p { margin: 0; color: var(--muted); max-width: 65ch; }
+.dlg textarea { width: 100%; min-height: 130px; background: #141712; color: var(--ink); border: 1px solid var(--line); border-radius: 4px; padding: 10px; font: 12px/1.35 ui-monospace, Menlo, monospace; word-break: break-all; resize: vertical; }
+.dlg .err { color: var(--danger); font: 600 15px/1.2 var(--ui); min-height: 18px; }
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.card { background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 14px; display: grid; gap: 8px; align-content: start; cursor: pointer; text-align: left; text-transform: none; letter-spacing: 0; font: inherit; }
+.card:hover { border-color: var(--signal); }
+.card .set { font: 600 13px/1 var(--ui); text-transform: uppercase; letter-spacing: .12em; color: var(--signal); }
+.card h4 { margin: 0; font: 22px/1.05 var(--display); letter-spacing: .02em; }
+.card p { font-size: 13.5px; margin: 0; color: var(--muted); }
+.card .vs { display: flex; align-items: center; gap: 8px; font: 600 14px/1 var(--ui); }
+.card .vs svg { width: 34px; height: 34px; }
+.rules { display: grid; gap: 14px; }
+.rules h3 { margin: 0 0 6px; font: 600 14px/1 var(--ui); text-transform: uppercase; letter-spacing: .12em; color: var(--signal); }
+.rules ul { margin: 0; padding-left: 18px; color: var(--ink); font-size: 14.5px; display: grid; gap: 4px; }
+table.crt { border-collapse: collapse; font: 600 14px/1 var(--ui); width: 100%; font-variant-numeric: tabular-nums; }
+table.crt th, table.crt td { border: 1px solid var(--line); padding: 6px 4px; text-align: center; }
+table.crt th { color: var(--muted); font-weight: 600; }
+.tblwrap { overflow-x: auto; }
+
+/* ---------- handoff / victory screen ---------- */
+.cover { position: absolute; inset: 0; display: none; place-items: center; background: rgba(14,16,12,.86); backdrop-filter: blur(3px); z-index: 5; padding: 16px; }
+.cover.show { display: grid; }
+.cover .box { text-align: center; display: grid; gap: 14px; justify-items: center; max-width: 520px; }
+.cover .flag { width: 74px; height: 74px; border-radius: 6px; box-shadow: inset 0 0 0 2px rgba(0,0,0,.35), 0 0 0 4px rgba(236,229,207,.08); }
+.cover h2 { margin: 0; font: 44px/1 var(--display); letter-spacing: .03em; text-wrap: balance; }
+.cover p { margin: 0; color: var(--muted); }
+.cover .kicker { font: 600 15px/1 var(--ui); text-transform: uppercase; letter-spacing: .2em; color: var(--signal); }
+
+@media (max-width: 900px) {
+  body { overflow: auto; grid-template-rows: auto auto; }
+  main { grid-template-columns: 1fr; }
+  .mapwrap { height: 64vh; min-height: 380px; }
+  aside { border-left: 0; border-top: 1px solid var(--line); overflow: visible; }
+  .bar { gap: 10px; }
+  .brand { font-size: 22px; }
+}
+@media (max-width: 600px) {
+  .bar { display: grid; grid-template-columns: auto 1fr auto; gap: 8px 10px; padding: 8px 12px; align-items: center; }
+  .brand { font-size: 19px; }
+  .scen { font-size: 11px; grid-column: 2 / 4; text-align: right; }
+  .scen b { font-size: 14px; }
+  .turnbox { font-size: 12px; }
+  .turnbox b { font-size: 18px; }
+  .sidechip { font-size: 14px; padding: 4px 8px 4px 4px; grid-column: 2 / 4; justify-self: end; }
+  .sidechip i { width: 16px; height: 16px; }
+  .phases { grid-column: 1 / 3; justify-self: start; }
+  .phases span { padding: 8px 9px; font-size: 12px; }
+  .spacer { display: none; }
+  #mainBtn { grid-column: 3; padding: 10px 12px; font-size: 14px; }
+  .mapwrap { height: 68vh; min-height: 360px; }
+  .hint { font-size: 13px; padding: 5px 10px; top: 8px; max-width: calc(100% - 16px); }
+  .mapctl { left: 8px; bottom: 8px; gap: 4px; }
+  .mapctl button { padding: 7px 8px; font-size: 12px; }
+  aside section { padding: 12px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+@keyframes pulse { 0%,100% { stroke-opacity: 1; } 50% { stroke-opacity: .35; } }
+.pulse { animation: pulse 1.2s ease-in-out infinite; }
+</style>
+</head>
+<body>
+<header class="bar">
+  <div class="brand">HEXFRONT</div>
+  <div class="scen" id="scenName"></div>
+  <div class="turnbox" id="turnBox"></div>
+  <div class="sidechip" id="sideChip"></div>
+  <div class="phases" id="phases"><span data-p="move">1 Move</span><span data-p="combat">2 Combat</span></div>
+  <div class="spacer"></div>
+  <button id="mainBtn" class="primary" type="button"></button>
+</header>
+<main>
+  <div class="mapwrap" id="mapwrap">
+    <svg id="map" xmlns="http://www.w3.org/2000/svg" aria-label="Hex map">
+      <defs>
+        <pattern id="hatch" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="7" stroke="rgba(110,80,40,.35)" stroke-width="2"/></pattern>
+        <marker id="arrowA" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker>
+      </defs>
+      <g id="gStatic"></g>
+      <g id="gDyn"></g>
+    </svg>
+    <div class="hint" id="hint"></div>
+    <div class="mapctl">
+      <button type="button" id="zIn" aria-label="Zoom in">+</button>
+      <button type="button" id="zOut" aria-label="Zoom out">−</button>
+      <button type="button" id="zFit">Fit</button>
+      <button type="button" id="tTex" aria-pressed="true">Textures</button>
+      <button type="button" id="tZoc" aria-pressed="false">Enemy ZOC</button>
+      <button type="button" id="tSup" aria-pressed="false">Supply</button>
+    </div>
+    <div class="toast" id="toast"></div>
+    <div class="cover" id="cover"><div class="box" id="coverBox"></div></div>
+  </div>
+  <aside>
+    <section><h3>Victory points</h3><div class="score" id="score"></div><p class="objective" id="objective"></p></section>
+    <section id="detailSec"><h3 id="detailTitle">Selection</h3><div id="detail"></div></section>
+    <section id="combatSec" hidden><h3>Attack</h3><div id="combat"></div></section>
+    <section class="logsec"><h3>Field log</h3><ol id="log"></ol></section>
+    <section class="tools">
+      <button type="button" id="undoBtn">Undo move</button>
+      <button type="button" id="rulesBtn">Rules</button>
+      <button type="button" id="sendBtn">Send turn</button>
+      <button type="button" id="loadBtn">Load turn</button>
+      <button type="button" id="newBtn" class="wide">New game</button>
+    </section>
+  </aside>
+</main>
+
+<dialog id="newDlg"><div class="dlg">
+  <h2>Choose a front</h2>
+  <p>Every scenario uses the same rules. Units change colour per front, and some fronts add special units.</p>
+  <div class="cards" id="scenCards"></div>
+  <div class="row"><button type="button" data-close>Cancel</button></div>
+</div></dialog>
+
+<dialog id="sendDlg"><div class="dlg">
+  <h2>Send this turn</h2>
+  <p id="sendInfo">Copy the text below into an email to your opponent. They open Hexfront, choose Load turn and paste it. Dice are stored in the code, so reloading cannot re-roll a battle.</p>
+  <textarea id="sendText" readonly aria-label="Turn code"></textarea>
+  <div class="err" id="sendMsg" aria-live="polite"></div>
+  <div class="row"><button type="button" class="primary" id="copyMail">Copy email text</button><button type="button" id="copyCode">Copy code only</button><button type="button" data-close>Close</button></div>
+</div></dialog>
+
+<dialog id="loadDlg"><div class="dlg">
+  <h2>Load a turn</h2>
+  <p>Paste the code (or the whole email) from your opponent, or choose a saved .txt file.</p>
+  <textarea id="loadText" aria-label="Paste turn code" placeholder="HXF1.…"></textarea>
+  <input type="file" id="loadFile" accept=".txt,.json,text/plain,application/json">
+  <div class="err" id="loadErr" aria-live="polite"></div>
+  <div class="row"><button type="button" class="primary" id="loadGo">Load</button><button type="button" data-close>Cancel</button></div>
+</div></dialog>
+
+<dialog id="rulesDlg"><div class="dlg">
+  <h2>Field manual</h2>
+  <div class="rules" id="rulesBody"></div>
+  <div class="row"><button type="button" data-close>Close</button></div>
+</div></dialog>
+
+<script>
+// ===================== HEXFRONT ENGINE =====================
+// Pure rules: no DOM. State is plain JSON so it can be saved, emailed,
+// sent over a network, or searched by a future AI opponent.
+const Engine = (() => {
+  const K = (c, r) => c + ',' + r;
+  const P = k => k.split(',').map(Number);
+  const other = s => (s === 'A' ? 'B' : 'A');
+
+  // ---------- hex math (flat-top, odd-q offset) ----------
+  function toCube(c, r) { const x = c, z = r - (c - (c & 1)) / 2; return [x, -x - z, z]; }
+  function fromCube(x, y, z) { return [x, z + (x - (x & 1)) / 2]; }
+  function dist(a, b) {
+    const A = toCube(a[0], a[1]), B = toCube(b[0], b[1]);
+    return Math.max(Math.abs(A[0] - B[0]), Math.abs(A[1] - B[1]), Math.abs(A[2] - B[2]));
+  }
+  const DIRS = [[1, -1, 0], [1, 0, -1], [0, 1, -1], [-1, 1, 0], [-1, 0, 1], [0, -1, 1]];
+  function nbrs(m, c, r) {
+    const [x, y, z] = toCube(c, r);
+    return DIRS.map(d => fromCube(x + d[0], y + d[1], z + d[2]))
+      .filter(([cc, rr]) => cc >= 0 && rr >= 0 && cc < m.W && rr < m.H);
+  }
+  function cubeRound(x, y, z) {
+    let rx = Math.round(x), ry = Math.round(y), rz = Math.round(z);
+    const dx = Math.abs(rx - x), dy = Math.abs(ry - y), dz = Math.abs(rz - z);
+    if (dx > dy && dx > dz) rx = -ry - rz; else if (dy > dz) ry = -rx - rz; else rz = -rx - ry;
+    return [rx, ry, rz];
+  }
+  function hexLine(a, b) {
+    const n = dist(a, b), A = toCube(a[0], a[1]), B = toCube(b[0], b[1]), out = [];
+    for (let i = 0; i <= n; i++) {
+      const t = n ? i / n : 0, e = 1e-6;
+      out.push(fromCube(...cubeRound(A[0] + (B[0] - A[0]) * t + e, A[1] + (B[1] - A[1]) * t + e, A[2] + (B[2] - A[2]) * t - 2 * e)));
+    }
+    return out;
+  }
+  function path(pts) {
+    let out = [];
+    for (let i = 0; i < pts.length - 1; i++) { const seg = hexLine(pts[i], pts[i + 1]); if (i) seg.shift(); out = out.concat(seg); }
+    return out;
+  }
+
+  // ---------- rules data ----------
+  const TERRAIN = {
+    '.': { name: 'Clear', mp: 1, shift: 0 },
+    f: { name: 'Forest', mp: 2, shift: 1 },
+    h: { name: 'Hills', mp: 2, shift: 1 },
+    m: { name: 'Mountains', mp: 3, shift: 2 },
+    s: { name: 'Marsh', mp: 3, shift: 0 },
+    w: { name: 'Sea', mp: Infinity, shift: 0, impass: true },
+    x: { name: 'Impassable', mp: Infinity, shift: 0, impass: true },
+  };
+  const TYPES = {
+    inf: { name: 'Infantry', a: 3, d: 4, m: 3, sym: 'inf' },
+    mech: { name: 'Mechanized', a: 4, d: 4, m: 5, sym: 'mech' },
+    arm: { name: 'Armor', a: 6, d: 3, m: 6, sym: 'arm' },
+    art: { name: 'Artillery', a: 4, d: 2, m: 3, sym: 'art', range: 2, note: 'Can join attacks from 2 hexes away.' },
+    abn: { name: 'Airborne', a: 3, d: 3, m: 3, sym: 'abn', airdrop: 8, note: 'Airdrop once per game: land in any empty hex up to 8 away that is not next to the enemy.' },
+    hvy: { name: 'Heavy Panzer', a: 8, d: 5, m: 4, sym: 'hvy', note: 'Tiger battalion. Hardest-hitting unit on the map.' },
+    dak: { name: 'DAK Panzer', a: 7, d: 4, m: 7, sym: 'arm', note: 'Afrika Korps armor: faster and stronger than standard armor.' },
+    rcn: { name: 'LRDG Recon', a: 1, d: 2, m: 8, sym: 'rcn', ignoresZoc: true, note: 'Long Range Desert Group: ignores zones of control.' },
+  };
+  // Combat results table. Columns by odds; die 1-6 (low is good for the attacker).
+  const COLS = ['1:3', '1:2', '1:1', '2:1', '3:1', '4:1', '5:1', '6:1'];
+  const THR = [1 / 3, 1 / 2, 1, 2, 3, 4, 5, 6];
+  const CRT = [
+    ['A1', 'A1', 'AE', 'AE', 'AE', 'AE'],
+    ['DR', 'A1', 'A1', 'AE', 'AE', 'AE'],
+    ['DR', 'DR', 'EX', 'A1', 'A1', 'AE'],
+    ['D1', 'DR', 'DR', 'EX', 'A1', 'A1'],
+    ['DE', 'D1', 'DR', 'DR', 'EX', 'A1'],
+    ['DE', 'DE', 'D1', 'DR', 'DR', 'EX'],
+    ['DE', 'DE', 'D1', 'D1', 'DR', 'DR'],
+    ['DE', 'DE', 'DE', 'D1', 'D1', 'DR'],
+  ];
+  const RESULT_TEXT = {
+    AE: 'Attacker repulsed: every adjacent attacker loses a step',
+    A1: 'Attack stalls: strongest attacker loses a step',
+    EX: 'Exchange: defender and strongest attacker each lose a step',
+    DR: 'Defender retreats one hex',
+    D1: 'Defender loses a step and retreats',
+    DE: 'Defender eliminated',
+  };
+
+  // ---------- scenarios ----------
+  const SCEN = {
+    generic: {
+      id: 'generic', name: 'Border War', setting: 'Base game',
+      blurb: 'Two evenly matched powers race for the river crossing at Midbridge. Capture the enemy capital to win at once, or hold the most victory points after 12 turns.',
+      maxTurns: 12, victory: { type: 'more' }, supplyRange: Infinity, theme: 'temperate',
+      sides: {
+        A: { name: 'Azure League', short: 'Azure', color: '#3f6ea5', ink: '#f6f1e2', edge: 'W' },
+        B: { name: 'Crimson Pact', short: 'Crimson', color: '#a6423a', ink: '#f6f1e2', edge: 'E' },
+      },
+      rows: [
+        '..ff....hhmmmmhh....ff..',
+        '.fff.....hmmmmh.....fff.',
+        '.ff........hmh........f.',
+        '......f.......f.........',
+        '....fff.......ff........',
+        '...ffff......fff....hh..',
+        '....ff.......ff....hhh..',
+        '..............f.....h...',
+        '.hh.....................',
+        'hhh.......ss..........ff',
+        '.h.......ssss........fff',
+        '........sssss.........ff',
+        '....ff...sss............',
+        '...fff..............wwww',
+        '..ff..............wwwwww',
+        '................wwwwwwww',
+      ],
+      rivers: [[[12, 3], [12, 14], [13, 14], [15, 15]]],
+      roads: [
+        [[0, 7], [2, 7], [9, 7], [12, 7], [15, 7], [21, 7], [23, 7]],
+        [[6, 0], [6, 3], [6, 12], [6, 15]],
+        [[18, 0], [18, 3], [18, 12], [18, 13]],
+        [[2, 7], [6, 3]], [[2, 7], [6, 12]], [[21, 7], [18, 3]], [[21, 7], [18, 12]],
+      ],
+      cities: [
+        { name: 'Azurehold', c: 2, r: 7, vp: 3, cap: true, supply: true, owner: 'A' },
+        { name: 'Westmark', c: 6, r: 3, vp: 1, owner: 'A' },
+        { name: 'Fenwick', c: 6, r: 12, vp: 1, supply: true, owner: 'A' },
+        { name: 'Lindau', c: 9, r: 7, vp: 1, owner: 'A' },
+        { name: 'Midbridge', c: 12, r: 7, vp: 2, owner: null },
+        { name: 'Brennhof', c: 15, r: 7, vp: 1, owner: 'B' },
+        { name: 'Ostrava', c: 18, r: 3, vp: 1, owner: 'B' },
+        { name: 'Redhaven', c: 18, r: 12, vp: 1, supply: true, owner: 'B' },
+        { name: 'Karmagrad', c: 21, r: 7, vp: 3, cap: true, supply: true, owner: 'B' },
+      ],
+      units: [
+        ['A', 'inf', 10, 2], ['A', 'inf', 10, 4], ['A', 'inf', 10, 6], ['A', 'inf', 10, 8], ['A', 'inf', 8, 13],
+        ['A', 'arm', 7, 5], ['A', 'arm', 7, 8], ['A', 'mech', 8, 10], ['A', 'art', 8, 6], ['A', 'art', 8, 3],
+        ['B', 'inf', 14, 2], ['B', 'inf', 14, 4], ['B', 'inf', 14, 6], ['B', 'inf', 14, 8], ['B', 'inf', 16, 13],
+        ['B', 'arm', 17, 5], ['B', 'arm', 17, 8], ['B', 'mech', 16, 10], ['B', 'art', 16, 6], ['B', 'art', 16, 3],
+      ],
+    },
+    europe: {
+      id: 'europe', name: 'Road to the Rhine', setting: 'Europe 1944',
+      blurb: 'The Allies break out of the Normandy beachhead. They need 10 victory points by turn 14 (Paris, Rouen, Brussels and Antwerp will do it). The Axis wins at once by retaking Caen.',
+      maxTurns: 14, victory: { type: 'target', side: 'A', vp: 10 }, supplyRange: Infinity, theme: 'europe',
+      sides: {
+        A: { name: 'Allies', short: 'Allies', color: '#6c7a3a', ink: '#f4efd9', edge: 'W' },
+        B: { name: 'Axis', short: 'Axis', color: '#5c656d', ink: '#f2f2ee', edge: 'E' },
+      },
+      rows: [
+        'wwwwwwwwwwwwwww.........',
+        'wwwwwwwwwwwww..ss.......',
+        'wwwwwwwwwww.............',
+        'wwwwwwwww.........f.....',
+        'wwwww............ff..hh.',
+        'www.............fff.hhh.',
+        'w.........ff...fff..hh..',
+        '..........fff..fff......',
+        '.hh.......ff...ff....h..',
+        '..hh...............hhh..',
+        '..h..........f.....hhh..',
+        '............ff......hhm.',
+        '.....f.....fff.....hhmm.',
+        '....fff....ff......hmm..',
+        '...ff...............mmm.',
+        '....................mmmm',
+      ],
+      rivers: [
+        [[5, 4], [8, 10], [10, 13], [13, 15]],
+        [[13, 2], [13, 7], [14, 11], [15, 15]],
+        [[17, 0], [20, 4], [22, 8], [22, 15]],
+      ],
+      roads: [
+        [[0, 7], [3, 7], [6, 5], [8, 10]],
+        [[1, 6], [3, 7]],
+        [[8, 10], [11, 8], [16, 11], [23, 12]],
+        [[8, 10], [12, 3], [11, 2]],
+        [[12, 3], [18, 6], [21, 3], [23, 3]],
+        [[16, 11], [18, 6]],
+      ],
+      cities: [
+        { name: 'Bayeux', c: 1, r: 6, vp: 1, supply: true, owner: 'A' },
+        { name: 'Caen', c: 3, r: 7, vp: 1, cap: true, supply: true, owner: 'A' },
+        { name: 'Rouen', c: 6, r: 5, vp: 1, owner: 'B' },
+        { name: 'Paris', c: 8, r: 10, vp: 3, owner: 'B' },
+        { name: 'Reims', c: 11, r: 8, vp: 1, owner: 'B' },
+        { name: 'Antwerp', c: 11, r: 2, vp: 2, supply: true, owner: 'B' },
+        { name: 'Brussels', c: 12, r: 3, vp: 2, owner: 'B' },
+        { name: 'Metz', c: 16, r: 11, vp: 1, owner: 'B' },
+        { name: 'Aachen', c: 18, r: 6, vp: 1, owner: 'B' },
+        { name: 'Cologne', c: 21, r: 3, vp: 3, cap: true, supply: true, owner: 'B' },
+        { name: 'Strasbourg', c: 23, r: 12, vp: 1, owner: 'B' },
+      ],
+      units: [
+        ['A', 'inf', 4, 5], ['A', 'inf', 4, 7], ['A', 'inf', 4, 9], ['A', 'inf', 4, 11], ['A', 'inf', 3, 13],
+        ['A', 'arm', 2, 6], ['A', 'arm', 3, 10], ['A', 'arm', 2, 12], ['A', 'mech', 3, 14],
+        ['A', 'art', 3, 6], ['A', 'art', 3, 11], ['A', 'abn', 0, 10], ['A', 'abn', 0, 11],
+        ['B', 'inf', 7, 4], ['B', 'inf', 7, 6], ['B', 'inf', 7, 8], ['B', 'inf', 7, 12], ['B', 'inf', 6, 14], ['B', 'inf', 8, 10],
+        ['B', 'arm', 9, 7], ['B', 'hvy', 10, 9], ['B', 'art', 8, 6],
+      ],
+    },
+    desert: {
+      id: 'desert', name: 'Gazala Line', setting: 'North Africa 1942',
+      blurb: 'The Afrika Korps strikes at the Gazala line. Supply runs only 8 hexes from a port or home edge. The Axis needs 9 victory points by turn 12 (Tobruk is the prize) or wins at once by taking Alexandria.',
+      maxTurns: 12, victory: { type: 'target', side: 'A', vp: 9 }, supplyRange: 8, theme: 'desert',
+      sides: {
+        A: { name: 'Axis', short: 'Axis', color: '#8a96a0', ink: '#1b2024', edge: 'W' },
+        B: { name: 'Allies', short: 'Allies', color: '#6e4526', ink: '#f4e7c9', edge: 'E' },
+      },
+      terrainNames: { '.': 'Desert', h: 'Escarpment', s: 'Salt marsh', x: 'Qattara Depression', w: 'Mediterranean' },
+      rows: [
+        'wwwwwwwwwwwwwwwwwwwwwwww',
+        'ww.hhhh.wwwwwwwwwwwwwwww',
+        '...hhh.......wwwwwwwwwww',
+        '.........h........hhh...',
+        '....hhhhh.......hhhh....',
+        '........................',
+        '..ss..........h.........',
+        '......h............h....',
+        '..........hh......xxxxxx',
+        '.................xxxxxxx',
+        '..h.............xxxxxxxx',
+        '...............xxxxxxxxx',
+        '......hh.......xxxxxxxxx',
+        '..............xxxxxxxxxx',
+        '..s..........xxxxxxxxxxx',
+        '.............xxxxxxxxxxx',
+      ],
+      rivers: [],
+      roads: [
+        [[0, 3], [1, 3], [6, 3], [12, 3], [15, 3], [17, 3], [19, 3], [21, 3], [23, 3]],
+        [[12, 3], [12, 8], [11, 13]],
+        [[6, 3], [9, 9]],
+      ],
+      cities: [
+        { name: 'Benghazi', c: 1, r: 3, vp: 3, cap: true, supply: true, owner: 'A' },
+        { name: 'Derna', c: 6, r: 3, vp: 1, supply: true, owner: 'A' },
+        { name: 'Tobruk', c: 12, r: 3, vp: 2, supply: true, owner: 'B' },
+        { name: 'Bir Hakeim', c: 12, r: 8, vp: 1, owner: 'B' },
+        { name: 'Siwa Oasis', c: 11, r: 13, vp: 1, owner: null },
+        { name: 'Bardia', c: 15, r: 3, vp: 1, owner: 'B' },
+        { name: 'Sollum', c: 17, r: 3, vp: 1, owner: 'B' },
+        { name: 'Mersa Matruh', c: 19, r: 3, vp: 1, supply: true, owner: 'B' },
+        { name: 'El Alamein', c: 21, r: 3, vp: 1, owner: 'B' },
+        { name: 'Alexandria', c: 23, r: 3, vp: 3, cap: true, supply: true, owner: 'B' },
+      ],
+      units: [
+        ['A', 'inf', 9, 4], ['A', 'inf', 9, 6], ['A', 'inf', 10, 9], ['A', 'inf', 8, 2],
+        ['A', 'dak', 7, 5], ['A', 'dak', 7, 8], ['A', 'arm', 6, 6], ['A', 'mech', 8, 10], ['A', 'art', 8, 4],
+        ['B', 'inf', 12, 3], ['B', 'inf', 13, 4], ['B', 'inf', 13, 6], ['B', 'inf', 13, 8], ['B', 'inf', 12, 8],
+        ['B', 'arm', 15, 5], ['B', 'arm', 15, 8], ['B', 'art', 14, 5], ['B', 'rcn', 14, 11],
+      ],
+    },
+  };
+  const SCEN_ORDER = ['generic', 'europe', 'desert'];
+
+  // ---------- map build (derived, cached; never saved) ----------
+  const MAPS = {};
+  function getMap(id) {
+    if (MAPS[id]) return MAPS[id];
+    const sc = SCEN[id], H = sc.rows.length, W = sc.rows[0].length, terr = {};
+    for (let r = 0; r < H; r++) for (let c = 0; c < W; c++) terr[K(c, r)] = sc.rows[r][c];
+    const river = new Set(), riverSegs = [], roadEdges = new Set(), roadSegs = [], cities = {};
+    for (const wp of sc.rivers || []) {
+      const p = path(wp);
+      p.forEach(h => river.add(K(h[0], h[1])));
+      for (let i = 0; i < p.length - 1; i++) riverSegs.push([p[i], p[i + 1]]);
+    }
+    for (const wp of sc.roads || []) {
+      const p = path(wp);
+      for (let i = 0; i < p.length - 1; i++) {
+        const a = K(...p[i]), b = K(...p[i + 1]);
+        if (a === b) continue;
+        roadEdges.add(a + '|' + b); roadEdges.add(b + '|' + a); roadSegs.push([p[i], p[i + 1]]);
+      }
+    }
+    for (const ct of sc.cities) cities[K(ct.c, ct.r)] = ct;
+    return (MAPS[id] = { W, H, terr, river, riverSegs, roadEdges, roadSegs, cities });
+  }
+  function terrainName(scId, ch) { const sc = SCEN[scId]; return (sc.terrainNames && sc.terrainNames[ch]) || TERRAIN[ch].name; }
+  function hexInfo(m, k) {
+    const t = TERRAIN[m.terr[k]], city = m.cities[k];
+    let mp = t.mp, shift = t.shift;
+    if (city) { mp = Math.min(mp, 1); shift = Math.max(shift, city.cap ? 2 : 1); }
+    const river = m.river.has(k) && !t.impass;
+    if (river) shift += 1;
+    return { t, city, mp, shift, river, impass: !!t.impass, ch: m.terr[k] };
+  }
+  function moveCost(m, a, b) {
+    const hi = hexInfo(m, b);
+    if (hi.impass) return Infinity;
+    if (m.roadEdges.has(a + '|' + b)) return 0.5;
+    return hi.mp + (hi.river ? 1 : 0);
+  }
+
+  // ---------- state helpers ----------
+  function byId(s, id) { return s.units.find(u => u.id === id); }
+  function occMap(s) { const o = new Map(); for (const u of s.units) o.set(K(u.c, u.r), u); return o; }
+  function zocOf(s, side) {
+    const m = getMap(s.scen), z = new Set();
+    for (const u of s.units) if (u.side === side) for (const n of nbrs(m, u.c, u.r)) z.add(K(n[0], n[1]));
+    return z;
+  }
+  function factors(s, u) {
+    const t = TYPES[u.type];
+    let a = t.a, d = t.d, m = t.m;
+    if (u.steps < 2) { a = Math.ceil(a / 2); d = Math.ceil(d / 2); }
+    if (u.oos && u.side === s.active) { a = Math.max(1, Math.floor(a / 2)); m = Math.ceil(m / 2); }
+    return { a, d, m };
+  }
+  function log(s, kind, text) {
+    s.log.push({ turn: s.turn, side: s.active, kind, text });
+    if (s.log.length > 120) s.log.splice(0, s.log.length - 120);
+  }
+  function roll(s) {
+    let t = (s.rng = (s.rng + 0x6D2B79F5) | 0);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return Math.floor((((t ^ (t >>> 14)) >>> 0) / 4294967296) * 6) + 1;
+  }
+  function unitLabel(s, u) { return `${SCEN[s.scen].sides[u.side].short} ${TYPES[u.type].name}`; }
+
+  // ---------- new game ----------
+  function newGame(scenId, seed) {
+    const sc = SCEN[scenId];
+    let id = 1;
+    const units = sc.units.map(([side, type, c, r]) => ({ id: id++, side, type, c, r, steps: 2, moved: false, attacked: false, dropped: false, oos: false }));
+    const owner = {};
+    sc.cities.forEach(ct => { if (ct.owner) owner[K(ct.c, ct.r)] = ct.owner; });
+    const s = { v: 1, scen: scenId, turn: 1, active: 'A', phase: 'move', rng: seed | 0, units, owner, log: [], trails: [], prevTrails: [], attacked: [], pending: null, winner: null, dead: [], lastCombat: null };
+    refreshSupply(s);
+    log(s, 'turn', `Turn 1: ${sc.sides.A.name} to move`);
+    return s;
+  }
+
+  // ---------- movement ----------
+  function reachable(s, u) {
+    const res = new Map();
+    if (!u || u.moved || u.side !== s.active || s.phase !== 'move' || s.pending || s.winner) return res;
+    const m = getMap(s.scen), def = TYPES[u.type], f = factors(s, u), occ = occMap(s);
+    const enemyZoc = zocOf(s, other(u.side));
+    const ez = def.ignoresZoc ? new Set() : enemyZoc;
+    const start = K(u.c, u.r), startInZoc = ez.has(start);
+    const best = new Map([[start, 0]]), q = [[0, start]];
+    while (q.length) {
+      q.sort((a, b) => a[0] - b[0]);
+      const [cost, k] = q.shift();
+      if (cost > best.get(k)) continue;
+      if (k !== start && ez.has(k)) continue; // entering enemy ZOC ends movement
+      const [c, r] = P(k);
+      for (const [nc, nr] of nbrs(m, c, r)) {
+        const nk = K(nc, nr), o = occ.get(nk);
+        if (o && o.side !== u.side) continue;
+        if (k === start && startInZoc && ez.has(nk)) continue; // no ZOC-to-ZOC
+        const c2 = cost + moveCost(m, k, nk);
+        if (c2 > f.m) continue;
+        if (best.has(nk) && best.get(nk) <= c2) continue;
+        best.set(nk, c2); q.push([c2, nk]);
+      }
+    }
+    for (const [k, c] of best) if (k !== start && !occ.get(k)) res.set(k, { cost: c });
+    // Any unit may always move one hex (unless ZOC-to-ZOC or impassable).
+    for (const [nc, nr] of nbrs(m, u.c, u.r)) {
+      const nk = K(nc, nr);
+      if (res.has(nk) || occ.get(nk) || hexInfo(m, nk).impass) continue;
+      if (startInZoc && ez.has(nk)) continue;
+      res.set(nk, { cost: f.m, minimum: true });
+    }
+    if (def.airdrop && !u.dropped) {
+      for (let r = 0; r < m.H; r++) for (let c = 0; c < m.W; c++) {
+        const k = K(c, r);
+        if (res.has(k) || occ.get(k) || hexInfo(m, k).impass || enemyZoc.has(k)) continue;
+        if (dist([u.c, u.r], [c, r]) <= def.airdrop) res.set(k, { cost: 0, drop: true });
+      }
+    }
+    return res;
+  }
+
+  // ---------- supply ----------
+  function supplyNet(s, side) {
+    const m = getMap(s.scen), sc = SCEN[s.scen], occ = occMap(s), ez = zocOf(s, other(side));
+    const range = sc.supplyRange ?? Infinity;
+    const ok = k => {
+      if (hexInfo(m, k).impass) return false;
+      const o = occ.get(k);
+      if (o && o.side !== side) return false;
+      if (ez.has(k) && !(o && o.side === side)) return false;
+      return true;
+    };
+    const d = new Map(), q = [];
+    const edgeCol = sc.sides[side].edge === 'W' ? 0 : m.W - 1;
+    for (let r = 0; r < m.H; r++) { const k = K(edgeCol, r); if (ok(k)) { d.set(k, 0); q.push(k); } }
+    for (const ct of sc.cities) { const k = K(ct.c, ct.r); if (ct.supply && s.owner[k] === side && ok(k) && !d.has(k)) { d.set(k, 0); q.push(k); } }
+    for (let i = 0; i < q.length; i++) {
+      const k = q[i], dk = d.get(k);
+      if (dk >= range) continue;
+      const [c, r] = P(k);
+      for (const [nc, nr] of nbrs(m, c, r)) { const nk = K(nc, nr); if (!d.has(nk) && ok(nk)) { d.set(nk, dk + 1); q.push(nk); } }
+    }
+    return d;
+  }
+  function refreshSupply(s) {
+    const net = supplyNet(s, s.active);
+    for (const u of s.units) if (u.side === s.active) u.oos = !net.has(K(u.c, u.r));
+  }
+
+  // ---------- combat ----------
+  function eligibleAttackers(s, tk) {
+    const tgt = occMap(s).get(tk);
+    if (!tgt || tgt.side === s.active || s.phase !== 'combat' || s.pending || s.winner) return [];
+    if (s.attacked.includes(tk)) return [];
+    return s.units.filter(u => {
+      if (u.side !== s.active || u.attacked) return false;
+      const d = dist([u.c, u.r], [tgt.c, tgt.r]), t = TYPES[u.type];
+      return d === 1 || (t.range && d <= t.range);
+    }).map(u => u.id);
+  }
+  function oddsFor(s, tk, ids) {
+    const m = getMap(s.scen), tgt = occMap(s).get(tk);
+    if (!tgt) return { valid: false, why: 'No unit there.' };
+    const us = ids.map(id => byId(s, id)).filter(Boolean);
+    const att = us.reduce((a, u) => a + factors(s, u).a, 0), def = factors(s, tgt).d;
+    const ratio = def ? att / def : 99;
+    let col = -1;
+    THR.forEach((t, i) => { if (ratio >= t - 1e-9) col = i; });
+    const hi = hexInfo(m, tk), shift = hi.shift;
+    const fin = col < 0 ? -1 : Math.max(0, col - shift);
+    const adj = us.some(u => dist([u.c, u.r], [tgt.c, tgt.r]) === 1);
+    let why = '';
+    if (!us.length) why = 'Pick at least one attacker.';
+    else if (!adj) why = 'At least one attacker must be next to the target.';
+    else if (col < 0) why = 'Odds below 1:3 are not allowed.';
+    else if (s.attacked.includes(tk)) why = 'That hex was already attacked this turn.';
+    return { att, def, ratio, col, shift, fin, adj, hi, valid: !why, why };
+  }
+  function loseStep(s, u) {
+    u.steps -= 1;
+    if (u.steps <= 0) {
+      s.units = s.units.filter(x => x !== u);
+      s.dead.push({ side: u.side, type: u.type, turn: s.turn });
+      log(s, 'loss', `${unitLabel(s, u)} eliminated`);
+      return true;
+    }
+    log(s, 'loss', `${unitLabel(s, u)} reduced`);
+    return false;
+  }
+  function alive(s, u) { return s.units.includes(u); }
+  function retreat(s, u) {
+    const m = getMap(s.scen), occ = occMap(s), ez = zocOf(s, other(u.side));
+    const home = SCEN[s.scen].sides[u.side].edge;
+    let best = null, bestScore = -Infinity;
+    for (const [c, r] of nbrs(m, u.c, u.r)) {
+      const k = K(c, r);
+      if (occ.get(k) || hexInfo(m, k).impass || ez.has(k)) continue;
+      const score = (home === 'W' ? -c : c) * 10 + (hexInfo(m, k).shift);
+      if (score > bestScore) { bestScore = score; best = [c, r]; }
+    }
+    if (!best) return false;
+    s.trails.push({ side: u.side, from: [u.c, u.r], to: best, retreat: true });
+    u.c = best[0]; u.r = best[1];
+    log(s, 'move', `${unitLabel(s, u)} retreats`);
+    return true;
+  }
+  function enter(s, u) {
+    const m = getMap(s.scen), k = K(u.c, u.r), ct = m.cities[k];
+    if (ct && s.owner[k] !== u.side) {
+      s.owner[k] = u.side;
+      log(s, 'capture', `${SCEN[s.scen].sides[u.side].name} capture ${ct.name}`);
+    }
+  }
+
+  // ---------- victory ----------
+  function vp(s, side) {
+    return SCEN[s.scen].cities.reduce((t, ct) => t + (s.owner[K(ct.c, ct.r)] === side ? ct.vp : 0), 0);
+  }
+  function checkWin(s) {
+    if (s.winner) return;
+    const sc = SCEN[s.scen];
+    for (const side of ['A', 'B']) {
+      const cap = sc.cities.find(ct => ct.cap && ct.owner === other(side));
+      if (cap && s.owner[K(cap.c, cap.r)] === side) { s.winner = { side, reason: `${sc.sides[side].name} captured ${cap.name}` }; break; }
+      if (!s.units.some(u => u.side === other(side))) { s.winner = { side, reason: `${sc.sides[other(side)].name} has no units left` }; break; }
+    }
+    if (s.winner) log(s, 'end', `Game over: ${s.winner.reason}`);
+  }
+  function endOfGame(s) {
+    const sc = SCEN[s.scen], va = vp(s, 'A'), vb = vp(s, 'B'), v = sc.victory;
+    if (v.type === 'more') {
+      if (va === vb) s.winner = { side: null, reason: `Draw on ${va} victory points each` };
+      else { const w = va > vb ? 'A' : 'B'; s.winner = { side: w, reason: `${sc.sides[w].name} hold more cities (${Math.max(va, vb)} to ${Math.min(va, vb)} VP)` }; }
+    } else {
+      const got = vp(s, v.side);
+      s.winner = got >= v.vp
+        ? { side: v.side, reason: `${sc.sides[v.side].name} reached ${got} of ${v.vp} VP` }
+        : { side: other(v.side), reason: `${sc.sides[v.side].name} fell short with ${got} of ${v.vp} VP` };
+    }
+    log(s, 'end', `Game over: ${s.winner.reason}`);
+  }
+
+  // ---------- actions ----------
+  // Every change goes through apply(). Returns {ok} or {error}. Errors never mutate.
+  function apply(s, a) {
+    const sc = SCEN[s.scen];
+    if (s.winner) return { error: 'The game is over.' };
+    switch (a.t) {
+      case 'move': {
+        if (s.phase !== 'move') return { error: 'Movement is over for this turn.' };
+        if (s.pending) return { error: 'Finish the advance after combat first.' };
+        const u = byId(s, a.unit);
+        if (!u || u.side !== s.active) return { error: 'That is not your unit.' };
+        if (u.moved) return { error: 'That unit has already moved.' };
+        const r = reachable(s, u).get(K(a.to[0], a.to[1]));
+        if (!r) return { error: 'That unit cannot reach that hex.' };
+        s.trails.push({ side: u.side, from: [u.c, u.r], to: a.to.slice(), drop: !!r.drop });
+        u.c = a.to[0]; u.r = a.to[1]; u.moved = true;
+        if (r.drop) { u.dropped = true; log(s, 'move', `${unitLabel(s, u)} airdrops`); }
+        enter(s, u); checkWin(s);
+        return { ok: true };
+      }
+      case 'phase': {
+        if (s.phase !== 'move') return { error: 'Already in combat.' };
+        s.phase = 'combat';
+        return { ok: true };
+      }
+      case 'attack': {
+        if (s.phase !== 'combat') return { error: 'Attacks happen in the combat phase.' };
+        if (s.pending) return { error: 'Finish the advance after combat first.' };
+        const tk = K(a.target[0], a.target[1]), elig = eligibleAttackers(s, tk);
+        if (!a.attackers.length || a.attackers.some(id => !elig.includes(id))) return { error: 'One of those units cannot attack that hex.' };
+        const o = oddsFor(s, tk, a.attackers);
+        if (!o.valid) return { error: o.why };
+        const tgt = occMap(s).get(tk), us = a.attackers.map(id => byId(s, id));
+        const die = roll(s), res = CRT[o.fin][die - 1];
+        us.forEach(u => (u.attacked = true));
+        s.attacked.push(tk);
+        log(s, 'combat', `${us.length > 1 ? us.length + ' units' : unitLabel(s, us[0])} attack ${unitLabel(s, tgt)} at ${COLS[o.fin]}: rolled ${die}, ${res}`);
+        const adjAtt = us.filter(u => dist([u.c, u.r], [tgt.c, tgt.r]) === 1);
+        const strongest = adjAtt.slice().sort((x, y) => factors(s, y).a - factors(s, x).a)[0];
+        const from = [tgt.c, tgt.r];
+        switch (res) {
+          case 'A1': loseStep(s, strongest); break;
+          case 'AE': adjAtt.forEach(u => loseStep(s, u)); break;
+          case 'EX': loseStep(s, tgt); loseStep(s, strongest); break;
+          case 'DR': if (!retreat(s, tgt)) { log(s, 'loss', 'No line of retreat'); loseStep(s, tgt); } break;
+          case 'D1': if (!loseStep(s, tgt) && !retreat(s, tgt)) { log(s, 'loss', 'No line of retreat'); loseStep(s, tgt); } break;
+          case 'DE': while (alive(s, tgt)) loseStep(s, tgt); break;
+        }
+        const vacated = !alive(s, tgt) || tgt.c !== from[0] || tgt.r !== from[1];
+        s.lastCombat = { target: from, die, res, col: o.fin, att: o.att, def: o.def, vacated };
+        if (vacated) {
+          const adv = adjAtt.filter(u => alive(s, u)).map(u => u.id);
+          if (adv.length && !occMap(s).get(tk)) s.pending = { hex: from, units: adv };
+        }
+        checkWin(s);
+        if (s.winner) s.pending = null;
+        return { ok: true, die, res };
+      }
+      case 'advance': {
+        if (!s.pending) return { error: 'Nothing to advance into.' };
+        if (a.unit == null) { s.pending = null; return { ok: true }; }
+        if (!s.pending.units.includes(a.unit)) return { error: 'That unit cannot advance.' };
+        const u = byId(s, a.unit);
+        s.trails.push({ side: u.side, from: [u.c, u.r], to: s.pending.hex.slice(), advance: true });
+        u.c = s.pending.hex[0]; u.r = s.pending.hex[1];
+        s.pending = null;
+        log(s, 'move', `${unitLabel(s, u)} advances`);
+        enter(s, u); checkWin(s);
+        return { ok: true };
+      }
+      case 'endTurn': {
+        if (s.pending) return { error: 'Advance or skip first.' };
+        s.units.forEach(u => { u.moved = false; u.attacked = false; });
+        s.prevTrails = s.trails; s.trails = []; s.attacked = []; s.lastCombat = null;
+        if (s.active === 'B') {
+          if (s.turn >= sc.maxTurns) { endOfGame(s); return { ok: true }; }
+          s.turn++;
+        }
+        s.active = other(s.active); s.phase = 'move';
+        refreshSupply(s);
+        const oos = s.units.filter(u => u.side === s.active && u.oos).length;
+        log(s, 'turn', `Turn ${s.turn}: ${sc.sides[s.active].name} to move${oos ? ` (${oos} out of supply)` : ''}`);
+        return { ok: true };
+      }
+    }
+    return { error: 'Unknown action.' };
+  }
+
+  // For a future AI: every legal non-combat move for the active side.
+  function legalMoves(s) {
+    const out = [];
+    for (const u of s.units) if (u.side === s.active) for (const k of reachable(s, u).keys()) out.push({ t: 'move', unit: u.id, to: P(k) });
+    return out;
+  }
+
+  return { K, P, other, dist, nbrs, toCube, fromCube, TERRAIN, TYPES, COLS, CRT, RESULT_TEXT, SCEN, SCEN_ORDER, getMap, hexInfo, terrainName, newGame, apply, reachable, eligibleAttackers, oddsFor, factors, supplyNet, zocOf, occMap, byId, vp, legalMoves };
+})();
+if (typeof module !== 'undefined') module.exports = Engine;
+
+</script>
+<script>
+// ===================== HEXFRONT UI =====================
+(() => {
+  const E = Engine, K = E.K, P = E.P;
+  const S = 30, SQ3 = Math.sqrt(3), SAVE_KEY = 'hexfront.v1';
+  const THEMES = {
+    temperate: { '.': '#e2d9b4', f: '#a9b47d', h: '#d3bc88', m: '#bba887', s: '#c4cda8', w: '#87a9ba', x: '#c8b285', frame: '#cfc39f', tree: '#6a7b47', hill: '#8f6c3d', mount: '#62513d', marsh: '#5c8797', grid: 'rgba(64,52,30,.30)', road: '#6c4a2b', river: '#4a82a9', label: '#2a2316' },
+    europe: { '.': '#dbdab5', f: '#97ac6e', h: '#cfbb89', m: '#b3a184', s: '#bfcaa6', w: '#7d9db0', x: '#c8b285', frame: '#c9c7a2', tree: '#566c3b', hill: '#8a6b3f', mount: '#5f513f', marsh: '#5a8494', grid: 'rgba(56,58,34,.30)', road: '#6a4a2c', river: '#4a7fa6', label: '#262418' },
+    desert: { '.': '#ebd29b', f: '#bcc27c', h: '#d8ab6b', m: '#bb905f', s: '#ede4cb', w: '#6b9cb1', x: '#d8bf8b', frame: '#d9bf88', tree: '#6a7b47', hill: '#925f2d', mount: '#62513d', marsh: '#a39b82', grid: 'rgba(110,78,36,.26)', road: '#7a542f', river: '#4a82a9', label: '#2f220f' },
+  };
+  // Terrain textures: square seamless JPGs in images/, named {set}_{terrain}_{variant}.jpg.
+  // Number = how many variants exist. Missing terrain falls back to flat colour + drawn symbols.
+  const TEX = {
+    base: { clear: 3, forest: 3, hills: 3, mountains: 3, marsh: 3, sea: 3 },
+    europe: { clear: 3, forest: 3, hills: 3, mountains: 3, marsh: 3, sea: 3 },
+    desert: { clear: 3, hills: 3, marsh: 3, sea: 3, impassable: 3 },
+  };
+  const TEX_SET = { temperate: 'base', europe: 'europe', desert: 'desert' };
+  const TEX_NAME = { '.': 'clear', f: 'forest', h: 'hills', m: 'mountains', s: 'marsh', w: 'sea', x: 'impassable' };
+  const TEX_SIZE = 170, TEX_MARGIN = 16; // map units one texture covers; edge band to avoid
+  let useTex = true;
+  try { useTex = localStorage.getItem('hexfront.tex') !== '0'; } catch (e) { /* default on */ }
+  const TOUCH = (() => { try { return matchMedia('(pointer: coarse)').matches; } catch (e) { return false; } })();
+  const $ = id => document.getElementById(id);
+  const svg = $('map'), gStatic = $('gStatic'), gDyn = $('gDyn');
+
+  let state = null, sel = null, target = null, atk = new Set(), info = null, undo = [];
+  let showZoc = false, showSup = false, vb = null, mapW = 0, mapH = 0, staticFor = null, hoverEl = null;
+
+  // ---------- geometry ----------
+  const center = (c, r) => [S + 1.5 * S * c, S * SQ3 / 2 + S * SQ3 * (r + 0.5 * (c & 1))];
+  function hexPts(x, y, s = S) {
+    let p = '';
+    for (let i = 0; i < 6; i++) { const a = Math.PI / 3 * i; p += (x + s * Math.cos(a)).toFixed(1) + ',' + (y + s * Math.sin(a)).toFixed(1) + ' '; }
+    return p.trim();
+  }
+  function pixelToHex(x, y) {
+    const xx = x - S, yy = y - S * SQ3 / 2;
+    const q = (2 / 3 * xx) / S, rr = (-1 / 3 * xx + SQ3 / 3 * yy) / S;
+    let cx = q, cz = rr, cy = -cx - cz;
+    let rx = Math.round(cx), ry = Math.round(cy), rz = Math.round(cz);
+    const dx = Math.abs(rx - cx), dy = Math.abs(ry - cy), dz = Math.abs(rz - cz);
+    if (dx > dy && dx > dz) rx = -ry - rz; else if (dy > dz) ry = -rx - rz; else rz = -rx - ry;
+    return E.fromCube(rx, ry, rz);
+  }
+  const hash = (c, r, i) => { let h = (c * 374761393 + r * 668265263 + i * 2246822519) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; };
+  const esc = t => String(t).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+  const sc = () => E.SCEN[state.scen];
+  const sideOf = s => sc().sides[s];
+
+  // ---------- counters ----------
+  function symbol(type, bw, bh, ink) {
+    const t = E.TYPES[type].sym, x0 = -bw / 2, y0 = -bh / 2;
+    const st = `stroke="${ink}" fill="none"`;
+    const box = `<rect x="${x0}" y="${y0}" width="${bw}" height="${bh}" ${st} stroke-width="1.4"/>`;
+    const X = `<path d="M${x0} ${y0}L${-x0} ${-y0}M${x0} ${-y0}L${-x0} ${y0}" ${st} stroke-width="1.2"/>`;
+    const O = `<ellipse rx="${bw / 2 - 3.6}" ry="${bh / 2 - 2.7}" ${st} stroke-width="1.3"/>`;
+    switch (t) {
+      case 'inf': return box + X;
+      case 'arm': return box + O;
+      case 'mech': return box + O + X;
+      case 'art': return box + `<circle r="2.7" fill="${ink}"/>`;
+      case 'abn': return box + X + `<path d="M-5 ${-y0 - 1}q2.5 -4 5 0q2.5 -4 5 0" ${st} stroke-width="1.2"/>`;
+      case 'hvy': return box + O + `<ellipse rx="${bw / 2 - 6.4}" ry="${Math.max(1.2, bh / 2 - 5)}" ${st} stroke-width="1.1"/>`;
+      case 'rcn': return box + `<path d="M${x0} ${-y0}L${-x0} ${y0}" ${st} stroke-width="1.3"/>`;
+    }
+    return box;
+  }
+  function counterSVG(scenId, u, x, y, z = 40, opts = {}) {
+    const side = E.SCEN[scenId].sides[u.side], h = z / 2, ink = side.ink;
+    const f = opts.f || (() => { const t = E.TYPES[u.type]; return u.steps < 2 ? { a: Math.ceil(t.a / 2), d: Math.ceil(t.d / 2), m: t.m } : t; })();
+    const fs = (z * 0.3).toFixed(1);
+    let g = `<g transform="translate(${x.toFixed(1)},${y.toFixed(1)})" opacity="${opts.dim ? 0.5 : 1}">`;
+    g += `<rect x="${-h + 1.6}" y="${-h + 2.6}" width="${z}" height="${z}" rx="3" fill="rgba(0,0,0,.38)"/>`;
+    g += `<rect x="${-h}" y="${-h}" width="${z}" height="${z}" rx="3" fill="${side.color}" stroke="rgba(10,8,4,.85)" stroke-width="1.4"/>`;
+    g += `<rect x="${-h + 1.5}" y="${-h + 1.5}" width="${z - 3}" height="${z - 3}" rx="2" fill="none" stroke="rgba(255,255,255,.18)"/>`;
+    if (u.steps < 2) g += `<path d="M${h - z * 0.3} ${-h}H${h - 3}Q${h} ${-h} ${h} ${-h + 3}V${-h + z * 0.3}Z" fill="${ink}" opacity=".8"/>`;
+    g += `<g transform="translate(0,${(-z * 0.14).toFixed(1)})">${symbol(u.type, z * 0.56, z * 0.35, ink)}</g>`;
+    g += `<text y="${(h - z * 0.1).toFixed(1)}" text-anchor="middle" font-family="Barlow Condensed, Arial Narrow, sans-serif" font-weight="700" font-size="${fs}" fill="${ink}" letter-spacing=".5">${f.a}-${f.d}-${f.m}</text>`;
+    if (opts.oos) g += `<g transform="translate(${-h + 1},${-h + 1})"><circle r="6.5" fill="#c4412d" stroke="#1a1e18" stroke-width="1.2"/><text y="3.4" text-anchor="middle" font-family="Barlow Condensed, sans-serif" font-weight="700" font-size="10" fill="#fff">S</text></g>`;
+    return g + '</g>';
+  }
+
+  // ---------- static map layer ----------
+  function renderStatic() {
+    const m = E.getMap(state.scen), th = THEMES[sc().theme];
+    mapW = S * 2 + 1.5 * S * (m.W - 1); mapH = S * SQ3 * (m.H + 0.5);
+    let o = `<rect x="-22" y="-22" width="${mapW + 44}" height="${mapH + 44}" rx="6" fill="${th.frame}" stroke="#0d0f0b" stroke-width="3"/>`;
+    let hexes = '', glyph = '', ids = '', tex = '', grid = '';
+    const set = TEX_SET[sc().theme];
+    for (let r = 0; r < m.H; r++) for (let c = 0; c < m.W; c++) {
+      const k = K(c, r), ch = m.terr[k], [x, y] = center(c, r);
+      hexes += `<polygon points="${hexPts(x, y)}" fill="${th[ch]}"/>`;
+      grid += `<polygon points="${hexPts(x, y)}"/>`;
+      const tname = TEX_NAME[ch], nv = useTex && set && TEX[set] && TEX[set][tname];
+      if (nv) {
+        // Each hex shows its own crop from the texture's interior, away from the soft seam bands at the edges.
+        const v = 1 + Math.floor(hash(c, r, 21) * nv);
+        const px = TEX_MARGIN + S + hash(c, r, 22) * (TEX_SIZE - 2 * TEX_MARGIN - 2 * S);
+        const py = TEX_MARGIN + S + hash(c, r, 23) * (TEX_SIZE - 2 * TEX_MARGIN - 2 * S);
+        tex += `<g transform="translate(${x.toFixed(1)},${y.toFixed(1)})" clip-path="url(#hexclip)"><image href="images/${set}_${tname}_${v}.jpg" x="${(-px).toFixed(1)}" y="${(-py).toFixed(1)}" width="${TEX_SIZE}" height="${TEX_SIZE}" preserveAspectRatio="none"/></g>`;
+        continue;
+      }
+      if (ch === 'f') for (let i = 0; i < 4; i++) { const a = hash(c, r, i) * 6.28, d = 6 + hash(c, r, i + 9) * 9; glyph += `<circle cx="${(x + Math.cos(a) * d).toFixed(1)}" cy="${(y + Math.sin(a) * d * 0.8).toFixed(1)}" r="${(4.5 + hash(c, r, i + 3) * 2.5).toFixed(1)}" fill="${th.tree}" opacity=".75"/>`; }
+      if (ch === 'h') for (let i = 0; i < 2; i++) { const ox = x - 12 + i * 12 + hash(c, r, i) * 6, oy = y - 6 + i * 9 + hash(c, r, i + 4) * 4; glyph += `<path d="M${(ox - 8).toFixed(1)} ${oy.toFixed(1)}q8 -11 16 0" fill="none" stroke="${th.hill}" stroke-width="1.8" stroke-linecap="round" opacity=".8"/>`; }
+      if (ch === 'm') for (let i = 0; i < 2; i++) { const ox = x - 9 + i * 14, oy = y + 4 - i * 9 + hash(c, r, i) * 4; glyph += `<path d="M${ox - 9} ${oy + 6}L${ox} ${oy - 9}L${ox + 9} ${oy + 6}Z" fill="${th.mount}" opacity=".55"/><path d="M${ox - 3} ${oy - 4}L${ox} ${oy - 9}L${ox + 3} ${oy - 4}" fill="#f4efe0" opacity=".7"/>`; }
+      if (ch === 's') for (let i = 0; i < 3; i++) { const ox = x - 10 + hash(c, r, i) * 14, oy = y - 10 + i * 9; glyph += `<path d="M${ox.toFixed(1)} ${oy}h9M${(ox + 3).toFixed(1)} ${oy - 4}v4M${(ox + 6).toFixed(1)} ${oy - 3}v3" stroke="${th.marsh}" stroke-width="1.4" stroke-linecap="round" opacity=".8"/>`; }
+      if (ch === 'x') glyph += `<polygon points="${hexPts(x, y)}" fill="url(#hatch)"/>`;
+      if (ch === 'w' && hash(c, r, 7) < 0.25) glyph += `<path d="M${x - 9} ${y}q3 -3 6 0t6 0t6 0" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="1.2"/>`;
+      if (ch !== 'w') ids += `<text x="${x.toFixed(1)}" y="${(y - S * 0.62).toFixed(1)}" text-anchor="middle" font-size="6.5" font-family="Barlow Condensed, sans-serif" fill="${th.label}" opacity=".38">${String(c + 1).padStart(2, '0')}${String(r + 1).padStart(2, '0')}</text>`;
+    }
+    let rivers = '', roads = '';
+    for (const [a, b] of m.riverSegs) { const [x1, y1] = center(...a), [x2, y2] = center(...b); rivers += `<line x1="${x1}" y1="${y1.toFixed(1)}" x2="${x2}" y2="${y2.toFixed(1)}"/>`; }
+    for (const [a, b] of m.roadSegs) { const [x1, y1] = center(...a), [x2, y2] = center(...b); roads += `<line x1="${x1}" y1="${y1.toFixed(1)}" x2="${x2}" y2="${y2.toFixed(1)}"/>`; }
+    o += `<defs><clipPath id="hexclip"><polygon points="${hexPts(0, 0, S + 0.6)}"/></clipPath></defs>`;
+    o += hexes + tex + glyph + `<g fill="none" stroke="${useTex ? 'rgba(30,26,16,.38)' : th.grid}" stroke-width="1">${grid}</g>`;
+    o += `<g stroke="${th.river}" stroke-width="6.5" stroke-linecap="round" opacity=".9">${rivers}</g>`;
+    o += `<g stroke="rgba(255,250,230,.55)" stroke-width="5.5" stroke-linecap="round">${roads}</g><g stroke="${th.road}" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="7 3">${roads}</g>`;
+    o += ids;
+    // supply edges
+    const A = sc().sides.A, B = sc().sides.B;
+    const edgeLbl = (side, x) => `<text transform="translate(${x},${mapH / 2}) rotate(-90)" text-anchor="middle" font-family="Barlow Condensed, sans-serif" font-weight="700" font-size="11" letter-spacing="2" fill="${th.label}" opacity=".7">${esc(side.name.toUpperCase())} SUPPLY EDGE</text>`;
+    o += edgeLbl(A.edge === 'W' ? A : B, -9) + edgeLbl(A.edge === 'W' ? B : A, mapW + 15);
+    gStatic.innerHTML = o;
+    staticFor = state.scen;
+  }
+
+  // ---------- dynamic layer ----------
+  function arrow(from, to, color, opts = {}) {
+    const [x1, y1] = center(...from), [x2, y2] = center(...to);
+    const dx = x2 - x1, dy = y2 - y1, L = Math.hypot(dx, dy) || 1, sh = Math.min(16, L / 3);
+    const ex = x2 - dx / L * sh, ey = y2 - dy / L * sh;
+    const dash = opts.dash ? `stroke-dasharray="${opts.dash}"` : '';
+    return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${ex.toFixed(1)}" y2="${ey.toFixed(1)}" stroke="rgba(15,15,10,.55)" stroke-width="${(opts.w || 3) + 2.5}" stroke-linecap="round" ${dash}/>` +
+      `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${ex.toFixed(1)}" y2="${ey.toFixed(1)}" stroke="${color}" stroke-width="${opts.w || 3}" stroke-linecap="round" marker-end="url(#arrowA)" ${dash}/>`;
+  }
+  function renderDyn() {
+    const m = E.getMap(state.scen), th = THEMES[sc().theme], occ = E.occMap(state);
+    let o = '';
+    if (showZoc) {
+      const z = E.zocOf(state, E.other(state.active));
+      for (const k of z) { if (E.hexInfo(m, k).impass) continue; const [x, y] = center(...P(k)); o += `<polygon points="${hexPts(x, y, S - 1)}" fill="rgba(200,60,40,.17)"/>`; }
+    }
+    if (showSup) {
+      const net = E.supplyNet(state, state.active);
+      for (const k of net.keys()) { const [x, y] = center(...P(k)); o += `<circle cx="${x}" cy="${(y + S * 0.55).toFixed(1)}" r="2.6" fill="#3d7a35" opacity=".8"/>`; }
+    }
+    // reachable hexes
+    const su = sel != null ? E.byId(state, sel) : null;
+    if (su) {
+      for (const [k, r] of E.reachable(state, su)) {
+        const [x, y] = center(...P(k));
+        o += r.drop
+          ? `<polygon points="${hexPts(x, y, S - 2)}" fill="rgba(90,170,200,.22)" stroke="rgba(40,110,150,.75)" stroke-width="1.5" stroke-dasharray="4 3"/>`
+          : `<polygon points="${hexPts(x, y, S - 2)}" fill="rgba(232,168,58,.36)" stroke="rgba(150,95,10,.7)" stroke-width="1.5"/>`;
+      }
+    }
+    // cities
+    for (const ct of sc().cities) {
+      const k = K(ct.c, ct.r), [x, y] = center(ct.c, ct.r), own = state.owner[k], col = own ? sideOf(own).color : '#8a8572';
+      o += `<rect x="${x - 11}" y="${y - 11}" width="22" height="22" rx="2" fill="#4b4132" stroke="${col}" stroke-width="3"/>`;
+      o += `<path d="M${x - 7} ${y + 6}v-7h4v-4h4v6h5v5z" fill="#efe6cc" opacity=".85"/>`;
+      const label = `${ct.cap ? '★ ' : ''}${ct.name.toUpperCase()}`;
+      const ly = y + S * 0.72;
+      o += `<text x="${x}" y="${ly.toFixed(1)}" text-anchor="middle" font-family="Barlow Condensed, sans-serif" font-weight="700" font-size="9.5" letter-spacing=".6" fill="${th.label}" stroke="${th['.']}" stroke-width="3" paint-order="stroke">${esc(label)}</text>`;
+      o += `<g transform="translate(${x + 15},${y - 15})"><circle r="7" fill="${col}" stroke="#1a1e18" stroke-width="1.2"/><text y="3.5" text-anchor="middle" font-family="Barlow Condensed, sans-serif" font-weight="700" font-size="10" fill="#fff">${ct.vp}</text></g>`;
+    }
+    // trails: opponent's last turn, then this turn
+    for (const t of state.prevTrails) o += arrow(t.from, t.to, sideOf(t.side).color, { w: 3.2, dash: t.retreat ? '5 4' : (t.drop ? '2 5' : '') });
+    for (const t of state.trails) o += arrow(t.from, t.to, '#e8a83a', { w: 2, dash: '4 3' });
+    // combat marks
+    if (state.lastCombat && !state.pending) {
+      const [x, y] = center(...state.lastCombat.target);
+      o += `<polygon points="${hexPts(x, y, S - 3)}" fill="none" stroke="#d4573f" stroke-width="2" stroke-dasharray="3 3"/>`;
+    }
+    if (state.pending) {
+      const [x, y] = center(...state.pending.hex);
+      o += `<polygon class="pulse" points="${hexPts(x, y, S - 2)}" fill="rgba(147,181,107,.3)" stroke="#4e7a2a" stroke-width="3"/>`;
+    }
+    const combatOn = state.phase === 'combat' && !state.pending && !state.winner;
+    if (combatOn && !target) {
+      for (const u of state.units) if (u.side !== state.active && E.eligibleAttackers(state, K(u.c, u.r)).length) {
+        const [x, y] = center(u.c, u.r);
+        o += `<polygon points="${hexPts(x, y, S - 2)}" fill="rgba(212,87,63,.18)" stroke="#b9432d" stroke-width="2" stroke-dasharray="5 3"/>`;
+      }
+    }
+    // units
+    let units = '';
+    for (const u of state.units) {
+      const [x, y] = center(u.c, u.r), k = K(u.c, u.r);
+      const mine = u.side === state.active;
+      const dim = mine && ((state.phase === 'move' && u.moved) || (state.phase === 'combat' && u.attacked));
+      let ring = '';
+      if (sel === u.id) ring = `<rect x="${x - 24}" y="${y - 24}" width="48" height="48" rx="5" fill="none" stroke="#e8a83a" stroke-width="3"/>`;
+      if (target === k) ring = `<rect class="pulse" x="${x - 25}" y="${y - 25}" width="50" height="50" rx="5" fill="none" stroke="#e0412a" stroke-width="3.5"/>`;
+      if (target && atk.has(u.id)) ring = `<rect x="${x - 24}" y="${y - 24}" width="48" height="48" rx="5" fill="none" stroke="#e8a83a" stroke-width="3"/>`;
+      else if (target && mine && E.eligibleAttackers(state, target).includes(u.id)) ring = `<rect x="${x - 24}" y="${y - 24}" width="48" height="48" rx="5" fill="none" stroke="#e8a83a" stroke-width="1.5" stroke-dasharray="4 3"/>`;
+      if (state.pending && state.pending.units.includes(u.id)) ring = `<rect class="pulse" x="${x - 24}" y="${y - 24}" width="48" height="48" rx="5" fill="none" stroke="#e8a83a" stroke-width="3"/>`;
+      units += ring + counterSVG(state.scen, u, x, y, 40, { dim, oos: u.oos && mine, f: E.factors(state, u) });
+    }
+    o += units;
+    o += `<polygon id="hoverHex" points="${hexPts(0, 0, S - 1)}" fill="none" stroke="rgba(255,252,235,.9)" stroke-width="2" visibility="hidden"/>`;
+    gDyn.innerHTML = o;
+    hoverEl = $('hoverHex');
+  }
+
+  // ---------- sidebar ----------
+  function terrainLine(k) {
+    const m = E.getMap(state.scen), hi = E.hexInfo(m, k), [c, r] = P(k);
+    const parts = [];
+    const tname = E.terrainName(state.scen, hi.ch);
+    if (hi.impass) return `<p>${esc(tname)}: impassable.</p>`;
+    parts.push(`${esc(tname)}, ${hi.mp} MP`);
+    if (hi.river) parts.push('river (+1 MP)');
+    const roads = E.nbrs(m, c, r).some(([nc, nr]) => m.roadEdges.has(k + '|' + K(nc, nr)));
+    if (roads) parts.push('road (½ MP along it)');
+    let s = `<p>Hex ${String(c + 1).padStart(2, '0')}${String(r + 1).padStart(2, '0')} · ${parts.join(' · ')}</p>`;
+    s += `<p>Defender shifts odds ${hi.shift} column${hi.shift === 1 ? '' : 's'} left.</p>`;
+    if (hi.city) {
+      const own = state.owner[k];
+      s += `<p><b style="color:var(--ink)">${esc(hi.city.name)}</b>${hi.city.cap ? ' (capital)' : ''} · ${hi.city.vp} VP · ${own ? esc(sideOf(own).name) : 'Unclaimed'}${hi.city.supply ? ' · supply source' : ''}</p>`;
+    }
+    return s;
+  }
+  function renderDetail() {
+    const k = sel != null && E.byId(state, sel) ? K(E.byId(state, sel).c, E.byId(state, sel).r) : info;
+    const el = $('detail');
+    if (!k) { el.innerHTML = `<p class="empty">Click a unit or hex to see its details. Counters read attack-defense-move.</p>`; return; }
+    const u = E.occMap(state).get(k);
+    if (!u) { $('detailTitle').textContent = 'Terrain'; el.innerHTML = terrainLine(k); return; }
+    $('detailTitle').textContent = 'Unit';
+    const t = E.TYPES[u.type], f = E.factors(state, u), side = sideOf(u.side), mine = u.side === state.active;
+    const tags = [];
+    if (u.steps < 2) tags.push('<span class="tag warn">Reduced</span>');
+    if (mine && u.oos) tags.push('<span class="tag warn">Out of supply</span>');
+    if (mine && u.moved) tags.push('<span class="tag">Moved</span>');
+    if (mine && u.attacked) tags.push('<span class="tag">Attacked</span>');
+    if (E.zocOf(state, E.other(u.side)).has(k)) tags.push('<span class="tag">In enemy ZOC</span>');
+    if (t.airdrop) tags.push(u.dropped ? '<span class="tag">Drop used</span>' : '<span class="tag go">Drop ready</span>');
+    el.innerHTML = `<div class="detail"><svg viewBox="-32 -32 64 64" width="64" height="64">${counterSVG(state.scen, u, 0, 0, 52, { f, oos: mine && u.oos })}</svg>
+      <div><h4>${esc(t.name)}</h4><p>${esc(side.name)} · attack ${f.a} · defense ${f.d} · move ${f.m}</p>${t.note ? `<p>${esc(t.note)}</p>` : ''}<div class="tags">${tags.join('')}</div></div></div>${terrainLine(k)}`;
+  }
+  function crtCells(col, hitDie) {
+    return E.CRT[col].map((res, i) => `<div class="${res[0]}${hitDie === i + 1 ? ' hit' : ''}" title="${esc(E.RESULT_TEXT[res])}"><small>${i + 1}</small>${res}</div>`).join('');
+  }
+  function renderCombat() {
+    const sec = $('combatSec'), el = $('combat');
+    if (state.pending) {
+      sec.hidden = false;
+      const btns = state.pending.units.map(id => { const u = E.byId(state, id); return `<button type="button" data-adv="${id}">Advance ${esc(E.TYPES[u.type].name)}</button>`; }).join('');
+      el.innerHTML = `${lastResultHTML()}<p class="empty" style="margin-bottom:10px">The defender's hex is empty. Move one attacker in, or stay put.</p><div class="row">${btns}<button type="button" data-adv="none">Stay put</button></div>`;
+      return;
+    }
+    if (state.phase !== 'combat' || state.winner) { sec.hidden = true; return; }
+    sec.hidden = false;
+    if (!target) {
+      el.innerHTML = state.lastCombat ? lastResultHTML() + `<p class="empty">Pick the next target, or end your turn.</p>` : `<p class="empty">Click an enemy unit outlined in red. Each unit attacks once per turn and each enemy hex can be attacked once.</p>`;
+      return;
+    }
+    const elig = E.eligibleAttackers(state, target), ids = [...atk].filter(id => elig.includes(id));
+    const o = E.oddsFor(state, target, ids), tgt = E.occMap(state).get(target);
+    const list = elig.map(id => { const u = E.byId(state, id), f = E.factors(state, u), rng = E.dist([u.c, u.r], [tgt.c, tgt.r]) > 1; return `<li class="${atk.has(id) ? '' : 'off'}"><span>${esc(E.TYPES[u.type].name)}${rng ? ' (ranged)' : ''}${u.oos ? ' · halved' : ''}</span><b>${f.a}</b></li>`; }).join('');
+    const base = o.col >= 0 ? E.COLS[o.col] : '—', fin = o.fin >= 0 ? E.COLS[o.fin] : '—';
+    el.innerHTML = `<ul class="atklist">${list}<li style="border-top:1px solid var(--line);padding-top:4px"><span>Total attack vs ${esc(E.TYPES[tgt.type].name)} defense</span><b>${o.att} : ${o.def}</b></li></ul>
+      <div class="odds"><b>${fin}</b><span>${base} odds${o.shift ? `, shifted ${o.shift} left for ${o.hi.city ? 'city' : 'terrain'}${o.hi.river ? '/river' : ''}` : ''}</span></div>
+      ${o.fin >= 0 ? `<div class="crtrow">${crtCells(o.fin)}</div>` : ''}
+      ${o.valid ? '' : `<p class="empty" style="color:var(--danger);margin-bottom:10px">${esc(o.why)}</p>`}
+      <div class="row"><button type="button" class="primary" id="resolveBtn" ${o.valid ? '' : 'disabled'}>Roll the die</button><button type="button" id="cancelAtk">Cancel</button></div>`;
+  }
+  function lastResultHTML() {
+    const lc = state.lastCombat;
+    if (!lc) return '';
+    return `<div class="result">Rolled <b>${lc.die}</b> at ${E.COLS[lc.col]} (${lc.att} vs ${lc.def}): <b>${lc.res}</b>. ${esc(E.RESULT_TEXT[lc.res])}.</div><div class="crtrow">${crtCells(lc.col, lc.die)}</div>`;
+  }
+  function renderSide() {
+    const s = sc();
+    $('scenName').innerHTML = `${esc(s.setting)}<b>${esc(s.name)}</b>`;
+    $('turnBox').innerHTML = `Turn<b>${state.turn}</b> / ${s.maxTurns}`;
+    const side = sideOf(state.active);
+    $('sideChip').innerHTML = `<i style="background:${side.color}"></i>${esc(side.name)}`;
+    document.querySelectorAll('#phases span').forEach(sp => sp.classList.toggle('on', sp.dataset.p === state.phase && !state.winner));
+    const mb = $('mainBtn');
+    mb.disabled = false;
+    if (state.winner) mb.textContent = 'New game';
+    else if (state.pending) { mb.textContent = 'Advance or stay'; mb.disabled = true; }
+    else mb.textContent = state.phase === 'move' ? 'Go to combat' : 'End turn';
+    $('score').innerHTML = ['A', 'B'].map(sd => {
+      const sdd = sideOf(sd), n = state.units.filter(u => u.side === sd).length;
+      return `<div style="border-left-color:${sdd.color}"><small>${esc(sdd.name)}</small><b>${E.vp(state, sd)}</b> <em>VP · ${n} units</em></div>`;
+    }).join('');
+    const v = s.victory;
+    $('objective').textContent = v.type === 'more'
+      ? `Most VP after turn ${s.maxTurns} wins. Taking the enemy capital (★) wins at once.`
+      : `${s.sides[v.side].name} need ${v.vp} VP by the end of turn ${s.maxTurns}. Taking the enemy capital (★) wins at once.`;
+    $('log').innerHTML = state.log.slice(-60).map(l => `<li class="${l.kind}">${esc(l.text)}</li>`).join('');
+    $('undoBtn').disabled = !undo.length;
+    let hint;
+    if (state.winner) hint = `Game over. ${state.winner.reason}.`;
+    else if (state.pending) hint = 'Advance after combat: click a glowing unit to move it into the empty hex, or choose Stay put.';
+    else if (state.phase === 'move') hint = sel != null ? (E.TYPES[E.byId(state, sel)?.type]?.airdrop && !E.byId(state, sel).dropped ? 'Click a lit hex to move there, or a blue dashed hex to airdrop.' : 'Click a lit hex to move there.') : 'Movement: click one of your units. Units must stop when they enter an enemy zone of control.';
+    else hint = target ? 'Click your units to add or remove them, then roll the die.' : 'Combat: click an enemy unit outlined in red.';
+    if (TOUCH) hint = hint.replace(/\bclick\b/g, 'tap').replace(/\bClick\b/g, 'Tap');
+    $('hint').textContent = hint;
+  }
+  function render() {
+    if (staticFor !== state.scen) { renderStatic(); smartFit(); }
+    renderDyn(); renderSide(); renderDetail(); renderCombat();
+  }
+
+  // ---------- actions ----------
+  function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 2200); }
+  function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch (e) { /* storage unavailable */ } }
+  function act(a) {
+    const before = JSON.stringify(state);
+    const r = E.apply(state, a);
+    if (r.error) { toast(r.error); return r; }
+    if (a.t === 'move') undo.push(before); else undo = [];
+    if (a.t === 'attack' || a.t === 'phase' || a.t === 'endTurn') { target = null; atk.clear(); sel = null; }
+    if (a.t === 'move') { info = K(a.to[0], a.to[1]); sel = null; }
+    persist(); render();
+    if (state.winner) showWinner();
+    else if (a.t === 'endTurn') showHandoff();
+    return r;
+  }
+  function onHex(c, r) {
+    if (!state || state.winner) { info = K(c, r); render(); return; }
+    const k = K(c, r), u = E.occMap(state).get(k);
+    if (state.pending) {
+      if (u && state.pending.units.includes(u.id)) act({ t: 'advance', unit: u.id });
+      else if (k === K(...state.pending.hex) && state.pending.units.length === 1) act({ t: 'advance', unit: state.pending.units[0] });
+      else { info = k; render(); }
+      return;
+    }
+    if (state.phase === 'move') {
+      if (sel != null) {
+        const su = E.byId(state, sel);
+        if (su && E.reachable(state, su).has(k)) { act({ t: 'move', unit: sel, to: [c, r] }); return; }
+      }
+      if (u && u.side === state.active && !u.moved) sel = sel === u.id ? null : u.id;
+      else { sel = null; if (u && u.side === state.active && u.moved) toast('That unit has already moved this turn.'); }
+      info = k; render(); return;
+    }
+    // combat
+    if (u && u.side !== state.active) {
+      const el = E.eligibleAttackers(state, k);
+      if (el.length) { if (target === k) { target = null; atk.clear(); } else { target = k; atk = new Set(el); } }
+      else { target = null; atk.clear(); toast(state.attacked.includes(k) ? 'That hex was already attacked this turn.' : 'None of your units can reach that enemy.'); }
+    } else if (u && target && E.eligibleAttackers(state, target).includes(u.id)) {
+      atk.has(u.id) ? atk.delete(u.id) : atk.add(u.id);
+    }
+    info = k; render();
+  }
+  function mainButton() {
+    if (state.winner) { openNew(); return; }
+    if (state.phase === 'move') {
+      const unmoved = state.units.filter(u => u.side === state.active && !u.moved).length;
+      act({ t: 'phase' });
+      if (unmoved) toast(`${unmoved} unit${unmoved > 1 ? 's' : ''} did not move.`);
+    } else act({ t: 'endTurn' });
+  }
+
+  // ---------- cover screens ----------
+  function cover(html) { $('coverBox').innerHTML = html; $('cover').classList.add('show'); const b = $('coverBox').querySelector('button'); if (b) b.focus(); }
+  function hideCover() { $('cover').classList.remove('show'); if (svg.getBoundingClientRect().width < 700) smartFit(); }
+  function showHandoff(kicker) {
+    const side = sideOf(state.active), oos = state.units.filter(u => u.side === state.active && u.oos).length;
+    cover(`<div class="kicker">${esc(kicker || `Turn ${state.turn} of ${sc().maxTurns}`)}</div><div class="flag" style="background:${side.color}"></div><h2>${esc(side.name)}</h2>
+      <p>Playing on one screen? Hand it over. Playing by email? Send the turn code instead.${oos ? ` ${oos} of your units are out of supply.` : ''} Arrows on the map show the other side's last moves.</p>
+      <div class="row"><button type="button" class="primary" data-cv="start">Start ${esc(side.short)} turn</button><button type="button" data-cv="send">Send turn by email</button></div>`);
+  }
+  function showWinner() {
+    const w = state.winner, side = w.side ? sideOf(w.side) : null;
+    cover(`<div class="kicker">Game over</div>${side ? `<div class="flag" style="background:${side.color}"></div>` : ''}<h2>${side ? esc(side.name) + ' win' : 'Draw'}</h2><p>${esc(w.reason)}. Final score ${E.vp(state, 'A')}–${E.vp(state, 'B')} VP.</p>
+      <div class="row"><button type="button" class="primary" data-cv="new">New game</button><button type="button" data-cv="start">View the map</button></div>`);
+  }
+
+  // ---------- PBEM codes ----------
+  const b64u = bytes => { let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
+  const unb64u = str => { const s = atob(str.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((str.length + 3) % 4)); const b = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) b[i] = s.charCodeAt(i); return b; };
+  async function encode(s) {
+    const bytes = new TextEncoder().encode(JSON.stringify(s));
+    try {
+      const buf = await new Response(new Blob([bytes]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer();
+      return 'HXF1.' + b64u(new Uint8Array(buf)) + '~';
+    } catch (e) { return 'HXF0.' + b64u(bytes) + '~'; }
+  }
+  async function decode(text) {
+    const mt = /HXF([01])\.([A-Za-z0-9_\-\s>]+?)~/.exec(text);
+    if (!mt) throw new Error('No turn code found. It starts with HXF1. and ends with ~');
+    let bytes = unb64u(mt[2].replace(/[\s>]/g, ''));
+    if (mt[1] === '1') bytes = new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer());
+    const s = JSON.parse(new TextDecoder().decode(bytes));
+    if (!s || !E.SCEN[s.scen] || !Array.isArray(s.units)) throw new Error('That code is not a Hexfront game.');
+    return s;
+  }
+  let lastMail = '', lastCode = '';
+  async function openSend() {
+    $('sendMsg').textContent = '';
+    lastCode = await encode(state);
+    const s = sc(), turnIdx = state.log.map((l, i) => l.kind === 'turn' ? i : -1).filter(i => i >= 0);
+    const fromIdx = turnIdx.length >= 2 ? turnIdx[turnIdx.length - 2] + 1 : 0;
+    const recent = state.log.slice(fromIdx, turnIdx[turnIdx.length - 1] ?? state.log.length).filter(l => l.kind !== 'turn').map(l => `- ${l.text}`);
+    const status = state.winner ? `Game over: ${state.winner.reason}.` : `Turn ${state.turn}: ${sideOf(state.active).name} to ${state.phase === 'move' ? 'move' : 'fight'}.`;
+    lastMail = `HEXFRONT · ${s.name} (${s.setting})\n${status}\nScore: ${s.sides.A.name} ${E.vp(state, 'A')} VP, ${s.sides.B.name} ${E.vp(state, 'B')} VP.\n\n` +
+      (recent.length ? `Last turn:\n${recent.join('\n')}\n\n` : '') +
+      `To play: open Hexfront, choose Load turn, and paste this whole email.\n\n${lastCode}\n`;
+    $('sendText').value = lastMail;
+    $('sendDlg').showModal();
+  }
+  async function copy(text) {
+    try { await navigator.clipboard.writeText(text); $('sendMsg').style.color = 'var(--ok)'; $('sendMsg').textContent = 'Copied. Paste it into your email.'; }
+    catch (e) { $('sendText').select(); $('sendMsg').style.color = 'var(--danger)'; $('sendMsg').textContent = 'Copy was blocked here. The text is selected: press Ctrl+C or ⌘C.'; }
+  }
+  async function doLoad() {
+    $('loadErr').textContent = '';
+    try {
+      const s = await decode($('loadText').value);
+      setState(s); persist();
+      $('loadDlg').close(); $('loadText').value = '';
+      if (state.winner) showWinner(); else showHandoff(`Loaded · Turn ${state.turn}`);
+    } catch (e) { $('loadErr').textContent = e.message || 'That code could not be read.'; }
+  }
+
+  // ---------- dialogs ----------
+  function openNew() {
+    $('scenCards').innerHTML = E.SCEN_ORDER.map(id => {
+      const s = E.SCEN[id];
+      const special = [...new Set(s.units.map(u => u[1]))].filter(t => !['inf', 'mech', 'arm', 'art'].includes(t)).map(t => E.TYPES[t].name);
+      const mini = side => `<svg viewBox="-20 -20 40 40">${counterSVG(id, { side, type: side === 'A' ? 'arm' : 'inf', steps: 2 }, 0, 0, 34)}</svg>`;
+      return `<button type="button" class="card" data-scen="${id}"><span class="set">${esc(s.setting)}</span><h4>${esc(s.name)}</h4>
+        <div class="vs">${mini('A')}${esc(s.sides.A.name)} <span style="color:var(--muted)">vs</span> ${mini('B')}${esc(s.sides.B.name)}</div>
+        <p>${esc(s.blurb)}</p><p>${s.maxTurns} turns${special.length ? ` · Special units: ${esc(special.join(', '))}` : ''}${s.supplyRange !== Infinity ? ` · Supply range ${s.supplyRange}` : ''}</p></button>`;
+    }).join('');
+    $('newDlg').showModal();
+  }
+  function seed() { try { return crypto.getRandomValues(new Int32Array(1))[0]; } catch (e) { return (Math.random() * 2 ** 31) | 0; } }
+  function setState(s) {
+    state = s; sel = null; target = null; atk.clear(); info = null; undo = [];
+    staticFor = null; render();
+  }
+  function rulesHTML() {
+    const tr = Object.entries(E.TERRAIN).map(([ch, t]) => `<tr><td style="text-align:left">${t.name}</td><td>${t.impass ? '—' : t.mp}</td><td>${t.impass ? '—' : t.shift}</td></tr>`).join('');
+    const crt = `<tr><th>Die</th>${E.COLS.map(c => `<th>${c}</th>`).join('')}</tr>` + [0, 1, 2, 3, 4, 5].map(d => `<tr><th>${d + 1}</th>${E.CRT.map(col => `<td>${col[d]}</td>`).join('')}</tr>`).join('');
+    const units = Object.entries(E.TYPES).map(([k, t]) => `<tr><td style="text-align:left">${t.name}</td><td>${t.a}-${t.d}-${t.m}</td><td style="text-align:left">${t.note || ''}</td></tr>`).join('');
+    return `<div><h3>Turn</h3><ul><li>Each turn, one side moves, then fights, then hands over. Then the other side does the same.</li><li>Units have two steps. A reduced unit (corner tab) has its attack and defense halved. Losing a second step eliminates it.</li><li>One unit per hex.</li></ul></div>
+    <div><h3>Movement</h3><ul><li>Spend movement points (MP) by terrain. Moving along a road costs ½ MP per hex. Entering a river hex costs +1 MP.</li><li>The six hexes around an enemy unit are its zone of control (ZOC). A unit entering one must stop, and cannot move directly from one enemy ZOC hex to another.</li><li>A unit can always move at least one hex.</li></ul></div>
+    <div><h3>Combat</h3><ul><li>Add up the attack factors of the units you choose and compare them with the defender's defense to get the odds (rounded down). Terrain, cities and rivers shift the odds column left.</li><li>Roll one die: AE all adjacent attackers lose a step · A1 the strongest attacker loses a step · EX both sides lose a step · DR the defender retreats · D1 the defender loses a step and retreats · DE the defender is eliminated. A defender that cannot retreat loses a step instead.</li><li>If the defender's hex empties, one adjacent attacker may advance into it.</li></ul></div>
+    <div><h3>Supply</h3><ul><li>At the start of your turn, units that cannot trace a path to your home map edge or a friendly supply city (blocked by enemy units and by enemy ZOC unless a friendly unit is there) are out of supply. They move and attack at half strength.</li><li>In the desert, supply only reaches 8 hexes.</li></ul></div>
+    <div><h3>Play by email</h3><ul><li>Finish your turn, choose Send turn and paste the text into an email. Your opponent chooses Load turn and pastes it in. The dice are stored in the code, so reloading cannot change a roll.</li></ul></div>
+    <div class="tblwrap"><h3>Terrain</h3><table class="crt"><tr><th style="text-align:left">Terrain</th><th>MP</th><th>Odds shift</th></tr>${tr}<tr><td style="text-align:left">City / capital</td><td>1</td><td>1 / 2</td></tr><tr><td style="text-align:left">River hex</td><td>+1</td><td>+1</td></tr></table></div>
+    <div class="tblwrap"><h3>Combat results table</h3><table class="crt">${crt}</table></div>
+    <div class="tblwrap"><h3>Units</h3><table class="crt"><tr><th style="text-align:left">Unit</th><th>A-D-M</th><th style="text-align:left">Notes</th></tr>${units}</table></div>`;
+  }
+
+  // ---------- view: pan & zoom ----------
+  function setVB() { svg.setAttribute('viewBox', `${vb.x} ${vb.y} ${vb.w} ${vb.h}`); }
+  function fit() { vb = { x: -30, y: -30, w: mapW + 60, h: mapH + 60 }; setVB(); }
+  // On phones, start zoomed in on the active side's units so counters are big enough to tap.
+  function smartFit() {
+    const r = svg.getBoundingClientRect();
+    if (!r.width || r.width >= 700 || !state) { fit(); return; }
+    const mine = state.units.filter(u => u.side === state.active);
+    let cx = mapW / 2, cy = mapH / 2;
+    if (mine.length) { cx = mine.reduce((t, u) => t + center(u.c, u.r)[0], 0) / mine.length; cy = mine.reduce((t, u) => t + center(u.c, u.r)[1], 0) / mine.length; }
+    const w = Math.max(mapW * 0.42, r.width * 1.6), h = w * r.height / r.width;
+    vb = { x: Math.min(Math.max(cx - w / 2, -30), mapW + 30 - w), y: Math.min(Math.max(cy - h / 2, -30), mapH + 30 - h), w, h };
+    setVB();
+  }
+  function svgPt(e) { const p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; return p.matrixTransform(svg.getScreenCTM().inverse()); }
+  function zoomAt(px, py, f) {
+    const nw = Math.min(mapW * 1.6, Math.max(mapW * 0.22, vb.w * f)), k = nw / vb.w;
+    vb.x = px - (px - vb.x) * k; vb.y = py - (py - vb.y) * k; vb.w = nw; vb.h *= k; setVB();
+  }
+  svg.addEventListener('wheel', e => { e.preventDefault(); const p = svgPt(e); zoomAt(p.x, p.y, Math.exp(e.deltaY * 0.0015)); }, { passive: false });
+  let down = null, pinch = null;
+  const pts = new Map();
+  const startPinch = () => {
+    const [a, b] = [...pts.values()];
+    const mid = svgPt({ clientX: (a.x + b.x) / 2, clientY: (a.y + b.y) / 2 });
+    pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, vb: { ...vb }, mid };
+    down = null;
+  };
+  svg.addEventListener('pointerdown', e => {
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    try { svg.setPointerCapture(e.pointerId); } catch (er) { /* ignore */ }
+    if (pts.size === 2) { startPinch(); return; }
+    if (pts.size > 2 || pinch) return;
+    down = { x: e.clientX, y: e.clientY, vx: vb.x, vy: vb.y, moved: false };
+  });
+  const endPointer = e => {
+    pts.delete(e.pointerId);
+    if (pinch && pts.size < 2) { pinch = null; down = null; svg.classList.remove('panning'); return true; }
+    return false;
+  };
+  svg.addEventListener('pointercancel', e => { endPointer(e); down = null; svg.classList.remove('panning'); });
+  svg.addEventListener('pointermove', e => {
+    if (pts.has(e.pointerId)) pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinch && pts.size === 2) {
+      const [a, b] = [...pts.values()];
+      vb = { ...pinch.vb };
+      zoomAt(pinch.mid.x, pinch.mid.y, pinch.d / (Math.hypot(a.x - b.x, a.y - b.y) || 1));
+      return;
+    }
+    if (down) {
+      const dx = e.clientX - down.x, dy = e.clientY - down.y;
+      if (!down.moved && Math.hypot(dx, dy) > 6) { down.moved = true; svg.classList.add('panning'); }
+      if (down.moved) { const m = svg.getScreenCTM(); vb.x = down.vx - dx / m.a; vb.y = down.vy - dy / m.d; setVB(); }
+      return;
+    }
+    if (!state || !hoverEl) return;
+    const p = svgPt(e), [c, r] = pixelToHex(p.x, p.y), m = E.getMap(state.scen);
+    if (c < 0 || r < 0 || c >= m.W || r >= m.H) { hoverEl.setAttribute('visibility', 'hidden'); return; }
+    const [x, y] = center(c, r);
+    hoverEl.setAttribute('transform', `translate(${x},${y})`); hoverEl.setAttribute('visibility', 'visible');
+  });
+  svg.addEventListener('pointerup', e => {
+    if (endPointer(e) || pts.size) return;
+    if (down && !down.moved) {
+      const p = svgPt(e), [c, r] = pixelToHex(p.x, p.y), m = E.getMap(state.scen);
+      if (c >= 0 && r >= 0 && c < m.W && r < m.H) onHex(c, r);
+    }
+    down = null; svg.classList.remove('panning');
+  });
+  svg.addEventListener('pointerleave', () => { if (hoverEl) hoverEl.setAttribute('visibility', 'hidden'); });
+
+  // ---------- wiring ----------
+  $('mainBtn').addEventListener('click', mainButton);
+  $('zIn').addEventListener('click', () => zoomAt(vb.x + vb.w / 2, vb.y + vb.h / 2, 0.8));
+  $('zOut').addEventListener('click', () => zoomAt(vb.x + vb.w / 2, vb.y + vb.h / 2, 1.25));
+  $('zFit').addEventListener('click', fit);
+  $('tZoc').addEventListener('click', e => { showZoc = !showZoc; e.currentTarget.setAttribute('aria-pressed', showZoc); renderDyn(); });
+  $('tTex').setAttribute('aria-pressed', useTex);
+  $('tTex').addEventListener('click', e => { useTex = !useTex; e.currentTarget.setAttribute('aria-pressed', useTex); try { localStorage.setItem('hexfront.tex', useTex ? '1' : '0'); } catch (er) { /* ignore */ } renderStatic(); });
+  $('tSup').addEventListener('click', e => { showSup = !showSup; e.currentTarget.setAttribute('aria-pressed', showSup); renderDyn(); });
+  $('undoBtn').addEventListener('click', () => { if (!undo.length) return; state = JSON.parse(undo.pop()); sel = null; persist(); render(); });
+  $('newBtn').addEventListener('click', openNew);
+  $('rulesBtn').addEventListener('click', () => { $('rulesBody').innerHTML = rulesHTML(); $('rulesDlg').showModal(); });
+  $('sendBtn').addEventListener('click', openSend);
+  $('loadBtn').addEventListener('click', () => { $('loadErr').textContent = ''; $('loadDlg').showModal(); });
+  $('loadGo').addEventListener('click', doLoad);
+  $('loadFile').addEventListener('change', async e => { const f = e.target.files[0]; if (f) { $('loadText').value = await f.text(); doLoad(); } });
+  $('copyMail').addEventListener('click', () => copy(lastMail));
+  $('copyCode').addEventListener('click', () => copy(lastCode));
+  document.querySelectorAll('dialog [data-close]').forEach(b => b.addEventListener('click', () => b.closest('dialog').close()));
+  $('scenCards').addEventListener('click', e => {
+    const card = e.target.closest('[data-scen]'); if (!card) return;
+    setState(E.newGame(card.dataset.scen, seed())); persist();
+    $('newDlg').close(); showHandoff('Turn 1 · New game');
+  });
+  $('combat').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (b.id === 'resolveBtn') { const [c, r] = P(target); act({ t: 'attack', target: [c, r], attackers: [...atk] }); }
+    else if (b.id === 'cancelAtk') { target = null; atk.clear(); render(); }
+    else if (b.dataset.adv) act({ t: 'advance', unit: b.dataset.adv === 'none' ? null : Number(b.dataset.adv) });
+  });
+  $('combat').addEventListener('click', e => {
+    const li = e.target.closest('.atklist li'); if (!li || !target) return;
+    const idx = [...li.parentNode.children].indexOf(li), elig = E.eligibleAttackers(state, target);
+    if (idx < elig.length) { const id = elig[idx]; atk.has(id) ? atk.delete(id) : atk.add(id); render(); }
+  });
+  $('coverBox').addEventListener('click', e => {
+    const b = e.target.closest('[data-cv]'); if (!b) return;
+    hideCover();
+    if (b.dataset.cv === 'send') openSend();
+    if (b.dataset.cv === 'new') openNew();
+  });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && !document.querySelector('dialog[open]')) { sel = null; target = null; atk.clear(); render(); }
+  });
+  window.addEventListener('resize', () => { if (vb) setVB(); });
+
+  // ---------- boot ----------
+  function start(data) {
+    let s = data && data.state;
+    if (!s) { try { const raw = localStorage.getItem(SAVE_KEY); if (raw) s = JSON.parse(raw); } catch (e) { /* no storage */ } }
+    if (!s || !E.SCEN[s.scen]) s = E.newGame('generic', seed());
+    setState(s);
+  }
+  window.claude?.hot?.snapshot?.(() => ({ state }));
+  window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
+  window.Hexfront = { get state() { return state; }, act, setState };
+})();
+
+</script>
+</body>
+</html>
