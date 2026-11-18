@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="70%">
+      <stop offset="0" stop-color="#2f3729"/>
+      <stop offset="1" stop-color="#151912"/>
+    </radialGradient>
+    <clipPath id="hexclip"><polygon points="436,256 346,412 166,412 76,256 166,100 346,100"/></clipPath>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <!-- map hex -->
+  <polygon points="436,256 346,412 166,412 76,256 166,100 346,100" fill="#e2d6ad"/>
+  <g clip-path="url(#hexclip)">
+    <!-- faint grid of smaller hexes -->
+    <g fill="none" stroke="#8c7a4e" stroke-width="3" opacity=".35">
+      <polygon points="166,100 136,152 76,152 46,100 76,48 136,48"/>
+      <polygon points="166,204 136,256 76,256 46,204 76,152 136,152"/>
+      <polygon points="166,308 136,360 76,360 46,308 76,256 136,256"/>
+      <polygon points="166,412 136,464 76,464 46,412 76,360 136,360"/>
+      <polygon points="466,100 436,152 376,152 346,100 376,48 436,48"/>
+      <polygon points="466,204 436,256 376,256 346,204 376,152 436,152"/>
+      <polygon points="466,308 436,360 376,360 346,308 376,256 436,256"/>
+      <polygon points="466,412 436,464 376,464 346,412 376,360 436,360"/>
+      <polygon points="256,152 226,204 166,204 136,152 166,100 226,100"/>
+      <polygon points="316,152 286,204 226,204 196,152 226,100 286,100"/>
+    </g>
+    <!-- river -->
+    <path d="M300 96 C 280 170, 340 230, 318 300 S 290 380, 316 420" fill="none" stroke="#4a82a9" stroke-width="16" stroke-linecap="round"/>
+    <!-- advance arrow -->
+    <path d="M150 330 L 232 286" stroke="#1a1e18" stroke-width="22" stroke-linecap="round" opacity=".35"/>
+  </g>
+  <!-- hex border -->
+  <polygon points="436,256 346,412 166,412 76,256 166,100 346,100" fill="none" stroke="#e8a83a" stroke-width="14" stroke-linejoin="round"/>
+  <!-- enemy counter -->
+  <g transform="translate(330,190) rotate(6)">
+    <rect x="-46" y="-46" width="92" height="92" rx="8" fill="#000" opacity=".35" transform="translate(5,7)"/>
+    <rect x="-46" y="-46" width="92" height="92" rx="8" fill="#a6423a" stroke="#1a0f0c" stroke-width="3"/>
+    <rect x="-27" y="-24" width="54" height="34" fill="none" stroke="#f6f1e2" stroke-width="4.5"/>
+    <path d="M-27 -24 L27 10 M-27 10 L27 -24" stroke="#f6f1e2" stroke-width="4"/>
+    <rect x="-24" y="22" width="48" height="8" rx="2" fill="#f6f1e2" opacity=".85"/>
+  </g>
+  <!-- friendly armor counter -->
+  <g transform="translate(212,290) rotate(-4)">
+    <rect x="-62" y="-62" width="124" height="124" rx="10" fill="#000" opacity=".4" transform="translate(7,9)"/>
+    <rect x="-62" y="-62" width="124" height="124" rx="10" fill="#3f6ea5" stroke="#0e1a28" stroke-width="4"/>
+    <rect x="-37" y="-34" width="74" height="46" fill="none" stroke="#f6f1e2" stroke-width="6"/>
+    <ellipse cx="0" cy="-11" rx="26" ry="13" fill="none" stroke="#f6f1e2" stroke-width="6"/>
+    <rect x="-34" y="28" width="68" height="11" rx="3" fill="#f6f1e2" opacity=".9"/>
+  </g>
+</svg>
