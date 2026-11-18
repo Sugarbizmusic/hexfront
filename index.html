@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Hexfront</title>
 <meta name="theme-color" content="#1a1e18">
 <meta name="description" content="A classic hex-and-counter WWII wargame for two players, hotseat or by email.">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Hexfront">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
@@ -46,7 +46,7 @@ button.primary:hover:not(:disabled) { background: #f3b84e; }
 button.danger { color: var(--danger); }
 
 /* ---------- top bar ---------- */
-.bar { display: flex; align-items: center; gap: 18px; padding: 10px 16px; border-bottom: 1px solid var(--line); background: #151813; flex-wrap: wrap; }
+.bar { display: flex; align-items: center; gap: 18px; padding: calc(10px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 10px calc(16px + env(safe-area-inset-left)); border-bottom: 1px solid var(--line); background: #151813; flex-wrap: wrap; }
 .brand { font: 26px/1 var(--display); letter-spacing: .06em; color: var(--signal); }
 .scen { font: 600 15px/1.1 var(--ui); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
 .scen b { color: var(--ink); font-weight: 600; display: block; letter-spacing: .04em; font-size: 17px; }
@@ -114,7 +114,18 @@ aside h3 { margin: 0 0 10px; font: 600 13px/1 var(--ui); text-transform: upperca
 #log li.combat { color: var(--ink); }
 #log li.capture { color: var(--signal); }
 #log li.end { color: var(--signal); font-weight: 700; }
-.tools { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.tools { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding-bottom: calc(14px + env(safe-area-inset-bottom)) !important; }
+#menuBtn { display: flex; align-items: center; gap: 8px; padding: 10px 12px; }
+#menuBtn svg { width: 18px; height: 18px; }
+.menu { display: grid; gap: 8px; }
+.menu button { text-align: left; padding: 14px 16px; font-size: 17px; display: flex; justify-content: space-between; align-items: center; }
+.menu button small { font: 500 13px/1.2 var(--body); text-transform: none; letter-spacing: 0; color: var(--muted); }
+.howto { display: grid; gap: 16px; }
+.howto ol { margin: 0; padding-left: 22px; display: grid; gap: 8px; }
+.howto li { color: var(--ink); max-width: 65ch; }
+.howto h3 { margin: 0 0 6px; font: 600 14px/1 var(--ui); text-transform: uppercase; letter-spacing: .12em; color: var(--signal); }
+.howto p { color: var(--ink); }
+.howto .kbd { display: inline-block; font: 700 13px/1 var(--ui); text-transform: uppercase; letter-spacing: .06em; padding: 3px 6px; border: 1px solid var(--line); border-radius: 3px; background: var(--panel-2); }
 .tools button { padding: 9px 6px; font-size: 14px; }
 .tools .wide { grid-column: span 2; }
 
@@ -160,9 +171,11 @@ table.crt th { color: var(--muted); font-weight: 600; }
   .brand { font-size: 22px; }
 }
 @media (max-width: 600px) {
-  .bar { display: grid; grid-template-columns: auto 1fr auto; gap: 8px 10px; padding: 8px 12px; align-items: center; }
+  .bar { display: grid; grid-template-columns: auto 1fr auto; gap: 8px 10px; padding: calc(22px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) 10px calc(12px + env(safe-area-inset-left)); align-items: center; }
+  #menuBtn { grid-column: 3; grid-row: 1; justify-self: end; padding: 8px 10px; font-size: 13px; }
+  .scen b { white-space: nowrap; }
   .brand { font-size: 19px; }
-  .scen { font-size: 11px; grid-column: 2 / 4; text-align: right; }
+  .scen { font-size: 11px; grid-column: 2; grid-row: 1; text-align: right; }
   .scen b { font-size: 14px; }
   .turnbox { font-size: 12px; }
   .turnbox b { font-size: 18px; }
@@ -172,6 +185,9 @@ table.crt th { color: var(--muted); font-weight: 600; }
   .phases span { padding: 8px 9px; font-size: 12px; }
   .spacer { display: none; }
   #mainBtn { grid-column: 3; padding: 10px 12px; font-size: 14px; }
+  .sidechip { grid-row: 2; }
+  .turnbox { grid-row: 2; }
+  .phases, #mainBtn { grid-row: 3; }
   .mapwrap { height: 68vh; min-height: 360px; }
   .hint { font-size: 13px; padding: 5px 10px; top: 8px; max-width: calc(100% - 16px); }
   .mapctl { left: 8px; bottom: 8px; gap: 4px; }
@@ -192,6 +208,7 @@ table.crt th { color: var(--muted); font-weight: 600; }
   <div class="phases" id="phases"><span data-p="move">1 Move</span><span data-p="combat">2 Combat</span></div>
   <div class="spacer"></div>
   <button id="mainBtn" class="primary" type="button"></button>
+  <button id="menuBtn" type="button" aria-haspopup="dialog" aria-label="Menu"><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M2 4h14M2 9h14M2 14h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Menu</button>
 </header>
 <main>
   <div class="mapwrap" id="mapwrap">
@@ -229,6 +246,51 @@ table.crt th { color: var(--muted); font-weight: 600; }
     </section>
   </aside>
 </main>
+
+<dialog id="menuDlg"><div class="dlg">
+  <h2>Menu</h2>
+  <div class="menu">
+    <button type="button" data-menu="new">New game <small>Choose a front</small></button>
+    <button type="button" data-menu="how">How to play <small>A turn, step by step</small></button>
+    <button type="button" data-menu="send">Send turn by email <small>Copy a turn code</small></button>
+    <button type="button" data-menu="load">Load turn <small>Paste a code from your opponent</small></button>
+    <button type="button" data-menu="rules">Rules and tables <small>Terrain, combat results, units</small></button>
+  </div>
+  <div class="row"><button type="button" data-close>Close</button></div>
+</div></dialog>
+
+<dialog id="howDlg"><div class="dlg">
+  <h2>How to play</h2>
+  <div class="howto">
+    <div><h3>The goal</h3><p>Two players command opposing armies on a hex map. Win by capturing the enemy capital (★), or by holding enough victory-point cities when the last turn ends. The panel under the map shows the score and what each side needs.</p></div>
+    <div><h3>Reading a counter</h3><ol>
+      <li>The three numbers are <b>attack – defense – movement</b>. A 6-3-6 armor unit hits hard, defends weakly and moves far.</li>
+      <li>The symbol shows the unit type: ✕ infantry, oval armor, oval with ✕ mechanized, dot artillery.</li>
+      <li>A light corner tab means the unit is <b>reduced</b> (one more loss destroys it). A red <b>S</b> means it is <b>out of supply</b> and fights and moves at half strength.</li>
+    </ol></div>
+    <div><h3>Your turn, step by step</h3><ol>
+      <li><b>Move.</b> Tap one of your units. Lit hexes show where it can go; tap one to move there. Each unit moves once. Roads are fast; forest, hills and marsh are slow. A unit that moves next to an enemy must stop there.</li>
+      <li>Made a mistake? <span class="kbd">Undo move</span> takes back moves until you start fighting.</li>
+      <li>Tap <span class="kbd">Go to combat</span> when you have finished moving.</li>
+      <li><b>Attack.</b> Enemy units you can reach are outlined in red. Tap one. Your neighbouring units join the attack automatically; tap any of them to leave it out. Artillery can join from two hexes away.</li>
+      <li>Check the odds in the panel. Higher odds (3:1 and up) usually win; forests, hills, cities and rivers make the defender tougher. Then tap <span class="kbd">Roll the die</span>.</li>
+      <li>If the defender is destroyed or retreats, you may move one attacker into the empty hex. Tap the glowing unit, or choose <span class="kbd">Stay put</span>.</li>
+      <li>Each enemy hex can be attacked once and each of your units attacks once. When you are done, tap <span class="kbd">End turn</span>.</li>
+    </ol></div>
+    <div><h3>Handing over</h3><ol>
+      <li><b>Same device:</b> pass the phone to the other player and they tap <span class="kbd">Start turn</span>.</li>
+      <li><b>By email:</b> choose <span class="kbd">Send turn by email</span>, copy the text and email it. Your opponent opens Hexfront, chooses <span class="kbd">Load turn</span> from the menu and pastes it in. Arrows on the map show what you did.</li>
+    </ol></div>
+    <div><h3>Tips</h3><ol>
+      <li>Gang up: two or three units on one defender give much better odds than attacking alone.</li>
+      <li>Keep a path back to your home edge or a supply city. Units cut off by enemy units or their zones of control lose half their strength.</li>
+      <li>Defend in forests, hills and cities. Attack in the open.</li>
+      <li>Turn on <span class="kbd">Enemy ZOC</span> to see where enemy units will stop your movement, and <span class="kbd">Supply</span> to see your supply network.</li>
+      <li>Drag to pan the map and pinch (or use + and −) to zoom.</li>
+    </ol></div>
+  </div>
+  <div class="row"><button type="button" class="primary" data-close>Got it</button></div>
+</div></dialog>
 
 <dialog id="newDlg"><div class="dlg">
   <h2>Choose a front</h2>
@@ -1391,6 +1453,17 @@ if (typeof module !== 'undefined') module.exports = Engine;
   $('tSup').addEventListener('click', e => { showSup = !showSup; e.currentTarget.setAttribute('aria-pressed', showSup); renderDyn(); });
   $('undoBtn').addEventListener('click', () => { if (!undo.length) return; state = JSON.parse(undo.pop()); sel = null; persist(); render(); });
   $('newBtn').addEventListener('click', openNew);
+  $('menuBtn').addEventListener('click', () => $('menuDlg').showModal());
+  $('menuDlg').addEventListener('click', e => {
+    const b = e.target.closest('[data-menu]'); if (!b) return;
+    $('menuDlg').close();
+    const what = b.dataset.menu;
+    if (what === 'new') openNew();
+    else if (what === 'how') $('howDlg').showModal();
+    else if (what === 'send') openSend();
+    else if (what === 'load') { $('loadErr').textContent = ''; $('loadDlg').showModal(); }
+    else if (what === 'rules') { $('rulesBody').innerHTML = rulesHTML(); $('rulesDlg').showModal(); }
+  });
   $('rulesBtn').addEventListener('click', () => { $('rulesBody').innerHTML = rulesHTML(); $('rulesDlg').showModal(); });
   $('sendBtn').addEventListener('click', openSend);
   $('loadBtn').addEventListener('click', () => { $('loadErr').textContent = ''; $('loadDlg').showModal(); });
