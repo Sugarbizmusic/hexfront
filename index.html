@@ -145,6 +145,16 @@ dialog::backdrop { background: rgba(8,10,7,.72); }
 .card p { font-size: 13.5px; margin: 0; color: var(--muted); }
 .card .vs { display: flex; align-items: center; gap: 8px; font: 600 14px/1 var(--ui); }
 .card .vs svg { width: 34px; height: 34px; }
+.card[aria-pressed="true"] { border-color: var(--signal); box-shadow: 0 0 0 1px var(--signal); }
+.setup { display: grid; gap: 10px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 14px; }
+.setup h3 { margin: 0; font: 600 14px/1 var(--ui); text-transform: uppercase; letter-spacing: .12em; color: var(--signal); }
+.who { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.who .nm { display: flex; align-items: center; gap: 8px; font: 700 17px/1 var(--ui); }
+.who .nm i { width: 18px; height: 18px; border-radius: 3px; display: block; }
+.seg { display: flex; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; padding: 9px 12px; background: transparent; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--chrome); }
+.cpu { font: 600 12px/1 var(--ui); letter-spacing: .08em; color: var(--signal); margin-left: 4px; }
 .rules { display: grid; gap: 14px; }
 .rules h3 { margin: 0 0 6px; font: 600 14px/1 var(--ui); text-transform: uppercase; letter-spacing: .12em; color: var(--signal); }
 .rules ul { margin: 0; padding-left: 18px; color: var(--ink); font-size: 14.5px; display: grid; gap: 4px; }
@@ -163,15 +173,18 @@ table.crt th { color: var(--muted); font-weight: 600; }
 .cover .kicker { font: 600 15px/1 var(--ui); text-transform: uppercase; letter-spacing: .2em; color: var(--signal); }
 
 @media (max-width: 900px) {
-  body { overflow: auto; grid-template-rows: auto auto; }
-  main { grid-template-columns: 1fr; }
+  /* App shell: the page itself never scrolls (so iOS draws no fade under the status bar); only main scrolls. */
+  html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
+  body { display: flex; flex-direction: column; height: 100dvh; }
+  .bar { flex: none; }
+  main { flex: 1; min-height: 0; display: block; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
   .mapwrap { height: 64vh; min-height: 380px; }
   aside { border-left: 0; border-top: 1px solid var(--line); overflow: visible; }
   .bar { gap: 10px; }
   .brand { font-size: 22px; }
 }
 @media (max-width: 600px) {
-  .bar { display: grid; grid-template-columns: auto 1fr auto; gap: 8px 10px; padding: calc(22px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) 10px calc(12px + env(safe-area-inset-left)); align-items: center; }
+  .bar { display: grid; grid-template-columns: auto 1fr auto; gap: 8px 10px; padding: calc(6px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) 10px calc(12px + env(safe-area-inset-left)); align-items: center; }
   #menuBtn { grid-column: 3; grid-row: 1; justify-self: end; padding: 8px 10px; font-size: 13px; }
   .scen b { white-space: nowrap; }
   .brand { font-size: 19px; }
@@ -296,7 +309,8 @@ table.crt th { color: var(--muted); font-weight: 600; }
   <h2>Choose a front</h2>
   <p>Every scenario uses the same rules. Units change colour per front, and some fronts add special units.</p>
   <div class="cards" id="scenCards"></div>
-  <div class="row"><button type="button" data-close>Cancel</button></div>
+  <div id="setup" hidden></div>
+  <div class="row" id="newRow"><button type="button" data-close>Cancel</button></div>
 </div></dialog>
 
 <dialog id="sendDlg"><div class="dlg">
@@ -461,7 +475,7 @@ const Engine = (() => {
     },
     europe: {
       id: 'europe', name: 'Road to the Rhine', setting: 'Europe 1944',
-      blurb: 'The Allies break out of the Normandy beachhead. They need 10 victory points by turn 14 (Paris, Rouen, Brussels and Antwerp will do it). The Axis wins at once by retaking Caen.',
+      blurb: 'The Allies break out of the Normandy beachhead. They need 10 victory points by turn 14 (Paris, Rouen, Brussels and Antwerp will do it). The Axis wins at once by taking Bayeux, the beachhead.',
       maxTurns: 14, victory: { type: 'target', side: 'A', vp: 10 }, supplyRange: Infinity, theme: 'europe',
       sides: {
         A: { name: 'Allies', short: 'Allies', color: '#6c7a3a', ink: '#f4efd9', edge: 'W' },
@@ -499,8 +513,8 @@ const Engine = (() => {
         [[16, 11], [18, 6]],
       ],
       cities: [
-        { name: 'Bayeux', c: 1, r: 6, vp: 1, supply: true, owner: 'A' },
-        { name: 'Caen', c: 3, r: 7, vp: 1, cap: true, supply: true, owner: 'A' },
+        { name: 'Bayeux', c: 1, r: 6, vp: 1, cap: true, supply: true, owner: 'A' },
+        { name: 'Caen', c: 3, r: 7, vp: 1, supply: true, owner: 'A' },
         { name: 'Rouen', c: 6, r: 5, vp: 1, owner: 'B' },
         { name: 'Paris', c: 8, r: 10, vp: 3, owner: 'B' },
         { name: 'Reims', c: 11, r: 8, vp: 1, owner: 'B' },
@@ -857,12 +871,13 @@ const Engine = (() => {
         const adjAtt = us.filter(u => dist([u.c, u.r], [tgt.c, tgt.r]) === 1);
         const strongest = adjAtt.slice().sort((x, y) => factors(s, y).a - factors(s, x).a)[0];
         const from = [tgt.c, tgt.r];
+        const tcity = getMap(s.scen).cities[tk], inCap = !!(tcity && tcity.cap);
         switch (res) {
           case 'A1': loseStep(s, strongest); break;
           case 'AE': adjAtt.forEach(u => loseStep(s, u)); break;
           case 'EX': loseStep(s, tgt); loseStep(s, strongest); break;
-          case 'DR': if (!retreat(s, tgt)) { log(s, 'loss', 'No line of retreat'); loseStep(s, tgt); } break;
-          case 'D1': if (!loseStep(s, tgt) && !retreat(s, tgt)) { log(s, 'loss', 'No line of retreat'); loseStep(s, tgt); } break;
+          case 'DR': if (inCap) { log(s, 'loss', 'Capital holds: no retreat'); loseStep(s, tgt); } else if (!retreat(s, tgt)) { log(s, 'loss', 'No line of retreat'); loseStep(s, tgt); } break;
+          case 'D1': if (!loseStep(s, tgt)) { if (inCap) log(s, 'loss', 'Capital holds: no retreat'); else if (!retreat(s, tgt)) { log(s, 'loss', 'No line of retreat'); loseStep(s, tgt); } } break;
           case 'DE': while (alive(s, tgt)) loseStep(s, tgt); break;
         }
         const vacated = !alive(s, tgt) || tgt.c !== from[0] || tgt.r !== from[1];
@@ -912,9 +927,463 @@ const Engine = (() => {
     return out;
   }
 
-  return { K, P, other, dist, nbrs, toCube, fromCube, TERRAIN, TYPES, COLS, CRT, RESULT_TEXT, SCEN, SCEN_ORDER, getMap, hexInfo, terrainName, newGame, apply, reachable, eligibleAttackers, oddsFor, factors, supplyNet, zocOf, occMap, byId, vp, legalMoves };
+  return { K, P, other, dist, nbrs, toCube, fromCube, TERRAIN, TYPES, COLS, THR, CRT, RESULT_TEXT, SCEN, SCEN_ORDER, getMap, hexInfo, terrainName, newGame, apply, reachable, eligibleAttackers, oddsFor, factors, supplyNet, zocOf, occMap, byId, vp, legalMoves };
 })();
 if (typeof module !== 'undefined') module.exports = Engine;
+
+</script>
+<script>
+// ===================== HEXFRONT AI (Hard) =====================
+// Plays a full turn on a copy of the state through Engine.apply() and returns
+// the list of actions it took. The UI replays those actions on the real game.
+// It never sees dice before rolling: combat is judged by expected value from the CRT.
+const AI_FLAGS = (typeof process !== 'undefined' && process.env && process.env.AIF) ? Object.fromEntries(process.env.AIF.split(',').map(x => [x, true])) : { noGuard: true };
+let DANGER_K = (typeof process !== 'undefined' && process.env && process.env.DK) ? +process.env.DK : 0.7;
+let GUARD_K = (typeof process !== 'undefined' && process.env && process.env.GK) ? +process.env.GK : 0.6;
+const AI = (() => {
+  const E = (typeof Engine !== 'undefined') ? Engine : require('./engine.js');
+  const K = E.K, P = E.P;
+
+  const PROFILES = {
+    hard: { attackThresh: 0.35, planThresh: 0.6, unitCost: 0.12, dangerW: 1.0 },
+  };
+
+  const typeVal = t => t.a + t.d + t.m * 0.5;
+  const unitVal = u => typeVal(E.TYPES[u.type]) * (u.steps < 2 ? 0.62 : 1);
+  const stepVal = u => typeVal(E.TYPES[u.type]) / 2;
+  const lossVal = u => stepVal(u) + (u.steps <= 1 ? typeVal(E.TYPES[u.type]) * 0.35 : 0);
+  // expected defender steps lost per final odds column (retreats count a little)
+  const EXP_LOSS = E.CRT.map(col => col.reduce((t, r) => t + ({ DE: 2, D1: 1.2, EX: 1, DR: 0.3 }[r] || 0), 0) / 6);
+
+  function oddsCol(att, def, shift) {
+    const ratio = def ? att / def : 99;
+    let col = -1;
+    E.THR.forEach((t, i) => { if (ratio >= t - 1e-9) col = i; });
+    return col < 0 ? -1 : Math.max(0, col - shift);
+  }
+
+  // ---------- context: everything the AI precomputes at the start of its turn ----------
+  function buildCtx(s, side) {
+    const m = E.getMap(s.scen), sc = E.SCEN[s.scen], enemy = E.other(side);
+    const keys = Object.keys(m.terr).filter(k => !E.hexInfo(m, k).impass);
+    // walking distance (hex steps over passable terrain) from every city
+    const cityDist = {};
+    for (const ct of sc.cities) {
+      const ck = K(ct.c, ct.r), d = new Map([[ck, 0]]), q = [ck];
+      for (let i = 0; i < q.length; i++) {
+        const [c, r] = P(q[i]);
+        for (const [nc, nr] of E.nbrs(m, c, r)) { const nk = K(nc, nr); if (!d.has(nk) && !E.hexInfo(m, nk).impass) { d.set(nk, d.get(q[i]) + 1); q.push(nk); } }
+      }
+      cityDist[ck] = d;
+    }
+    // role: who must take ground?
+    const v = sc.victory;
+    let role = 'balanced';
+    if (v.type === 'target') role = v.side === side ? 'attacker' : 'defender';
+    const turnsLeft = sc.maxTurns - s.turn;
+    let objW = role === 'attacker' ? 1.25 : role === 'defender' ? 0.35 : 0.85;
+    let defW = role === 'attacker' ? 0.35 : role === 'defender' ? 1.1 : 0.7;
+    if (role === 'attacker' && turnsLeft <= 4 && E.vp(s, side) < v.vp) objW *= 1.5;
+    if (role === 'balanced' && turnsLeft <= 3) { const diff = E.vp(s, side) - E.vp(s, enemy); if (diff <= 0) objW *= 1.4; else defW *= 1.3; }
+
+    // enemy reach & threat (what they could hit next turn, given our current positions)
+    const tmp = { ...s, active: enemy, phase: 'move', pending: null, winner: null, units: s.units.map(u => ({ ...u, moved: false, oos: false })) };
+    const threat = new Map(), threatN = new Map(), threatList = new Map(), enemyNear = new Map(), enemyEnter = new Set();
+    for (const e of tmp.units.filter(u => u.side === enemy)) {
+      const er = E.reachable(tmp, e);
+      for (const k of er.keys()) enemyEnter.add(k);
+      const from = new Set([K(e.c, e.r), ...er.keys()]);
+      const a = E.factors(tmp, e).a, rng = E.TYPES[e.type].range || 1;
+      const hit = new Set();
+      for (const fk of from) {
+        const [fc, fr] = P(fk);
+        for (const [nc, nr] of E.nbrs(m, fc, fr)) hit.add(K(nc, nr));
+        if (rng >= 2) for (const k of keys) if (E.dist([fc, fr], P(k)) === 2) hit.add(k);
+      }
+      for (const k of hit) { threat.set(k, (threat.get(k) || 0) + a); threatN.set(k, (threatN.get(k) || 0) + 1); if (!threatList.has(k)) threatList.set(k, []); threatList.get(k).push({ a, ranged: rng >= 2 }); }
+      // how close is each enemy unit to each hex, measured in its own turns of movement
+      const mv = E.TYPES[e.type].m;
+      for (const k of keys) { const d = E.dist([e.c, e.r], P(k)) / mv * 3; if (d < (enemyNear.get(k) ?? 99)) enemyNear.set(k, d); }
+    }
+    // objective potential per hex
+    const pot = new Map(), guard = new Map();
+    const cityThreat = {};
+    for (const ct of sc.cities) {
+      const ck = K(ct.c, ct.r), own = s.owner[ck];
+      const near = enemyNear.get(ck) ?? 99;
+      cityThreat[ck] = own === side ? Math.max(0, (7 - near) / 7) : 0;
+    }
+    for (const k of keys) {
+      let p = 0, g = 0;
+      for (const ct of sc.cities) {
+        const ck = K(ct.c, ct.r), own = s.owner[ck], d = cityDist[ck].get(k);
+        if (d == null) continue;
+        const w = ct.vp * (ct.cap ? 1.6 : 1);
+        if (own !== side) p += w * Math.pow(0.8, d);
+        else if (cityThreat[ck] > 0) g += w * cityThreat[ck] * Math.pow(0.72, d);
+      }
+      pot.set(k, p); guard.set(k, g);
+    }
+    // material and endgame pressure
+    const myMat = s.units.filter(u => u.side === side).reduce((t, u) => t + unitVal(u), 0);
+    const enMat = s.units.filter(u => u.side === enemy).reduce((t, u) => t + unitVal(u), 0) || 1;
+    const matRatio = myMat / enMat;
+    if (!AI_FLAGS.noAggro && matRatio > 1.35) { objW *= 1 + Math.min(1, (matRatio - 1.35)); }
+    if (!AI_FLAGS.noAggro && turnsLeft <= 4) {
+      const behind = v.type === 'target' ? (v.side === side && E.vp(s, side) < v.vp) : E.vp(s, side) <= E.vp(s, enemy);
+      if (behind) objW *= 2;
+    }
+    const myCap = sc.cities.find(ct => ct.cap && ct.owner === side);
+    const supply = E.supplyNet(s, side);
+    const supplyPen = sc.supplyRange !== Infinity ? 9 : 5;
+    const enemyPos = s.units.filter(u => u.side === enemy).map(u => [u.c, u.r]);
+    return { m, sc, side, enemy, role, enemyEnter, threatList, myCap, matRatio, objW, defW, threat, threatN, pot, guard, cityThreat, supply, supplyPen, enemyPos, cityDist };
+  }
+
+  function minEnemyDist(ctx, h) { let d = 99; for (const p of ctx.enemyPos) d = Math.min(d, E.dist(p, h)); return d; }
+
+  function danger(ctx, u, k, friendsAround) {
+    const list = ctx.threatList.get(k);
+    if (!list) return 0;
+    const hi = E.hexInfo(ctx.m, k), [c, r] = P(k);
+    // only as many units as there are open neighbouring hexes can attack (artillery fires from further back)
+    const free = Math.max(1, E.nbrs(ctx.m, c, r).filter(([nc, nr]) => !E.hexInfo(ctx.m, K(nc, nr)).impass).length - friendsAround);
+    const close = list.filter(x => !x.ranged).map(x => x.a).sort((x, y) => y - x).slice(0, free);
+    const ranged = list.filter(x => x.ranged).map(x => x.a).sort((x, y) => y - x).slice(0, 2);
+    const eff = close.reduce((t, x) => t + x, 0) + (close.length ? ranged.reduce((t, x) => t + x, 0) : 0);
+    const def = Math.ceil(E.TYPES[u.type].d / (u.steps < 2 ? 2 : 1));
+    const col = oddsCol(eff, def, hi.shift);
+    if (col < 0) return 0;
+    return EXP_LOSS[col] * stepVal(u) * (u.steps < 2 ? 1.4 : 1) * DANGER_K;
+  }
+
+  function hexScore(s, ctx, u, k, friendSet) {
+    const [c, r] = P(k), t = E.TYPES[u.type];
+    let sc = 0;
+    const friends = E.nbrs(ctx.m, c, r).filter(([nc, nr]) => friendSet.has(K(nc, nr))).length;
+    sc += ctx.objW * (ctx.pot.get(k) || 0) * (t.range ? 0.5 : 1) * 2.2;
+    sc += ctx.defW * (ctx.guard.get(k) || 0) * 2.2;
+    sc -= danger(ctx, u, k, friends) * PROFILES.hard.dangerW;
+    if (!ctx.supply.has(k)) sc -= ctx.supplyPen;
+    sc += 0.45 * Math.min(friends, 3);
+    const city = ctx.m.cities[k];
+    if (city) {
+      const own = s.owner[k];
+      if (own !== ctx.side) sc += city.vp * 5 + (city.cap ? 400 : 0);
+      else sc += city.vp * 4 * (ctx.cityThreat[k] || 0) * ctx.defW;
+    }
+    if (t.range) { const de = minEnemyDist(ctx, [c, r]); if (de === 1) sc -= 3; else if (de === 2) sc += 1.5; }
+    sc += E.hexInfo(ctx.m, k).shift * 0.25 * ((ctx.threat.get(k) || 0) > 0 ? 1 : 0);
+    return sc;
+  }
+
+  function vacateValue(s, side, k) {
+    const m = E.getMap(s.scen), city = m.cities[k];
+    if (!city || s.owner[k] === side) return 0.6;
+    const sc = E.SCEN[s.scen];
+    if (city.cap && city.owner === E.other(side)) return 500;
+    return 0.6 + city.vp * 4;
+  }
+
+  // Expected value of an attack. members: [{u, adj}] ; canRet: can the defender retreat?
+  function attackEV(s, side, tgt, members, canRet, bonus = 0) {
+    const m = E.getMap(s.scen), tk = K(tgt.c, tgt.r);
+    const adj = members.filter(x => x.adj);
+    if (!adj.length) return { ev: -Infinity };
+    const att = members.reduce((t, x) => t + E.factors(s, x.u).a, 0);
+    const fin = oddsCol(att, E.factors(s, tgt).d, E.hexInfo(m, tk).shift);
+    if (fin < 0) return { ev: -Infinity };
+    const strongest = adj.reduce((b, x) => (E.factors(s, x.u).a > E.factors(s, b.u).a ? x : b)).u;
+    if (m.cities[tk] && m.cities[tk].cap) canRet = false;
+    const vac = vacateValue(s, side, tk);
+    const t1 = lossVal(tgt);
+    const tAll = tgt.steps >= 2 ? stepVal(tgt) + lossVal({ ...tgt, steps: 1 }) : lossVal(tgt);
+    let ev = 0;
+    for (const r of E.CRT[fin]) {
+      switch (r) {
+        case 'AE': ev -= adj.reduce((t, x) => t + lossVal(x.u), 0); break;
+        case 'A1': ev -= lossVal(strongest); break;
+        case 'EX': ev += t1 - lossVal(strongest) + (tgt.steps <= 1 ? vac : 0); break;
+        case 'DR': ev += canRet ? 0.5 + vac : t1 + (tgt.steps <= 1 ? vac : 0); break;
+        case 'D1': ev += tgt.steps <= 1 ? t1 + vac : (m.cities[tk] && m.cities[tk].cap ? stepVal(tgt) : (canRet ? stepVal(tgt) + 0.5 + vac : tAll + vac)); break;
+        case 'DE': ev += tAll + vac; break;
+      }
+    }
+    // bonus for removing a threat: scaled by the chance the defender is destroyed or driven off
+    const pGone = E.CRT[fin].filter(r => r === 'DE' || r === 'DR' || r === 'D1' || (r === 'EX' && tgt.steps <= 1)).length / 6;
+    return { ev: ev / 6 + bonus * pGone, fin };
+  }
+
+  function threatBonus(s, side, tgt) {
+    const sc = E.SCEN[s.scen], cap = sc.cities.find(ct => ct.cap && ct.owner === side);
+    if (!cap || s.owner[K(cap.c, cap.r)] !== side) return 0;
+    const d = E.dist([tgt.c, tgt.r], [cap.c, cap.r]), mv = E.TYPES[tgt.type].m;
+    if (AI_FLAGS.noBonus) return 0;
+    if (d <= mv + 1) return 6;
+    if (d <= mv * 2 + 1) return 2.5;
+    return 0;
+  }
+
+  function canRetreat(s, tgt, blockedSet, myPos) {
+    const m = E.getMap(s.scen);
+    for (const [c, r] of E.nbrs(m, tgt.c, tgt.r)) {
+      const k = K(c, r);
+      if (blockedSet.has(k) || E.hexInfo(m, k).impass) continue;
+      if (myPos.some(p => E.dist(p, [c, r]) === 1)) continue;
+      return true;
+    }
+    return false;
+  }
+
+  // ---------- movement planning ----------
+  function planMoves(s, side, ctx) {
+    const m = ctx.m, P_ = PROFILES.hard;
+    const mine = s.units.filter(u => u.side === side && !u.moved);
+    const enemies = s.units.filter(u => u.side !== side);
+    const reach = new Map(mine.map(u => [u.id, E.reachable(s, u)]));
+    const occAll = E.occMap(s);
+    const used = new Set(), taken = new Set();
+    const plan = new Map(); // unit id -> dest key
+
+    // 1. Garrison threatened cities: the capital always, big cities if the enemy could walk in.
+    const myCities = ctx.sc.cities.filter(ct => s.owner[K(ct.c, ct.r)] === side)
+      .sort((a, b) => (b.cap - a.cap) || (b.vp - a.vp));
+    for (const ct of myCities) {
+      const ck = K(ct.c, ct.r);
+      const canEnter = ctx.enemyEnter.has(ck), threatened = (ctx.threat.get(ck) || 0) > 0;
+      const twoTurns = (ctx.cityThreat[ck] || 0) > 0.15; // an enemy within about two turns' march
+      if (!(ct.cap ? true : (ct.vp >= 2 ? (canEnter || threatened) : (canEnter && ctx.role !== 'attacker')))) continue;
+      const here = occAll.get(ck);
+      if (here && here.side === side) {
+        // swap a weak garrison (artillery, reduced unit) for a better defender if one can get there
+        if (!here.moved) used.add(here.id);
+        continue;
+      }
+      if (here || taken.has(ck)) continue;
+      let best = null;
+      for (const u of mine) {
+        if (used.has(u.id) || !reach.get(u.id).has(ck)) continue;
+        const f = E.factors(s, u), sc = f.d * 2 - f.a * 0.5 - (E.TYPES[u.type].range ? 3 : 0) - (u.steps < 2 ? 2 : 0);
+        if (!best || sc > best.sc) best = { u, sc };
+      }
+      if (best) { used.add(best.u.id); plan.set(best.u.id, ck); taken.add(ck); }
+      else {
+        // nobody can get there this turn: march the best defender toward it
+        let near = null;
+        for (const u of mine) {
+          if (used.has(u.id) || E.TYPES[u.type].range) continue;
+          for (const k of reach.get(u.id).keys()) {
+            if (taken.has(k)) continue;
+            const d = ctx.cityDist[ck].get(k); if (d == null) continue;
+            const sc = -d * 3 + E.factors(s, u).d;
+            if (!near || sc > near.sc) near = { u, k, sc };
+          }
+        }
+        if (near && ct.cap) { used.add(near.u.id); plan.set(near.u.id, near.k); taken.add(near.k); }
+      }
+    }
+
+    // 2. Deny attack hexes around a threatened capital.
+    for (const ct of myCities.filter(c => c.cap)) {
+      const ck = K(ct.c, ct.r);
+      if (!(ctx.enemyEnter.has(ck) || (ctx.threat.get(ck) || 0) > 0)) continue;
+      const ring = E.nbrs(m, ct.c, ct.r).map(([c, r]) => K(c, r))
+        .filter(k => ctx.enemyEnter.has(k) && !taken.has(k) && !occAll.get(k))
+        .sort((a, b) => (ctx.threat.get(b) || 0) - (ctx.threat.get(a) || 0));
+      let placed = E.nbrs(m, ct.c, ct.r).filter(([c, r]) => { const o = occAll.get(K(c, r)); return o && o.side === side; }).length;
+      for (const k of ring) {
+        if (placed >= 4) break;
+        let best = null;
+        for (const u of mine) {
+          if (used.has(u.id) || !reach.get(u.id).has(k) || E.TYPES[u.type].range) continue;
+          const sc = E.factors(s, u).d * 2 + E.hexInfo(m, k).shift * 2 - E.dist([u.c, u.r], [ct.c, ct.r]) * 0.2;
+          if (!best || sc > best.sc) best = { u, sc };
+        }
+        if (best) { used.add(best.u.id); plan.set(best.u.id, k); taken.add(k); placed++; }
+      }
+      // units already next to the capital stay put
+      for (const [c, r] of E.nbrs(m, ct.c, ct.r)) { const o = occAll.get(K(c, r)); if (o && o.side === side && !o.moved && (ctx.threat.get(K(c, r)) || 0) > 0) used.add(o.id); }
+    }
+
+    // 3. Home guard: match the raiders that could hit the capital within about a turn and a half.
+    if (!AI_FLAGS.noGuard && ctx.myCap && s.owner[K(ctx.myCap.c, ctx.myCap.r)] === side) {
+      const cp = [ctx.myCap.c, ctx.myCap.r], ck = K(...cp);
+      let raid = 0;
+      for (const e of enemies) {
+        const d = E.dist([e.c, e.r], cp), mv = E.TYPES[e.type].m;
+        if (d <= mv + 2) raid += 1; else if (d <= mv * 1.6 + 2) raid += 0.5;
+      }
+      const need = Math.min(3, Math.round(raid * GUARD_K));
+      if (need > 0) {
+        const posOf = u => P(plan.get(u.id) || K(u.c, u.r));
+        const guards = s.units.filter(u => u.side === side && !E.TYPES[u.type].range && E.dist(posOf(u), cp) <= 2)
+          .sort((a, b) => E.factors(s, b).d - E.factors(s, a).d);
+        let have = 0;
+        for (const u of guards) { if (have >= need) break; have++; if (!u.moved) used.add(u.id); }
+        const cands = mine.filter(u => !used.has(u.id) && !E.TYPES[u.type].range)
+          .sort((a, b) => E.dist([a.c, a.r], cp) - E.dist([b.c, b.r], cp));
+        for (const u of cands) {
+          if (have >= need) break;
+          let best = null;
+          for (const k of reach.get(u.id).keys()) {
+            if (taken.has(k)) continue;
+            const d = ctx.cityDist[ck].get(k); if (d == null) continue;
+            const sc = -Math.max(0, d - 1) * 4 + E.hexInfo(m, k).shift - (ctx.threat.get(k) ? 0.5 : 0);
+            if (!best || sc > best.sc) best = { k, sc, d };
+          }
+          if (!best || best.d > E.dist([u.c, u.r], cp)) continue;
+          used.add(u.id); plan.set(u.id, best.k); taken.add(best.k);
+          if (best.d <= 2) have++;
+        }
+      }
+    }
+
+    function buildGroup(tgt, extraTaken) {
+      const tk = K(tgt.c, tgt.r);
+      const opts = [];
+      for (const u of mine) {
+        if (used.has(u.id)) continue;
+        const cur = K(u.c, u.r), t = E.TYPES[u.type];
+        const o = [];
+        const dCur = E.dist([u.c, u.r], [tgt.c, tgt.r]);
+        if (dCur === 1) o.push({ k: cur, adj: true, stay: true });
+        else if (t.range && dCur <= t.range) o.push({ k: cur, adj: false, stay: true });
+        for (const [k, rr] of reach.get(u.id)) {
+          if (taken.has(k) || extraTaken.has(k)) continue;
+          const d = E.dist(P(k), [tgt.c, tgt.r]);
+          if (d === 1) o.push({ k, adj: true });
+          else if (t.range && d === 2) o.push({ k, adj: false });
+        }
+        if (o.length) opts.push({ u, o, a: E.factors(s, u).a });
+      }
+      opts.sort((x, y) => (y.o.some(z => z.adj) - x.o.some(z => z.adj)) || (y.a - x.a));
+      const group = [], gTaken = new Set();
+      let best = null;
+      for (const cand of opts) {
+        if (group.length >= 6) break;
+        const free = cand.o.filter(z => z.stay || !gTaken.has(z.k));
+        if (!free.length) continue;
+        free.sort((x, y) => (y.stay ? 1 : 0) - (x.stay ? 1 : 0) || (y.adj - x.adj) ||
+          (E.hexInfo(m, y.k).shift - E.hexInfo(m, x.k).shift) || ((ctx.threat.get(x.k) || 0) - (ctx.threat.get(y.k) || 0)));
+        const pick = free[0];
+        group.push({ u: cand.u, adj: pick.adj, k: pick.k });
+        gTaken.add(pick.k);
+        // can the defender retreat once we are in position?
+        const myPos = s.units.filter(x => x.side === side && !group.some(g => g.u.id === x.id)).map(x => [x.c, x.r]).concat(group.map(g => P(g.k)), [...taken].map(P));
+        const blocked = new Set([...occAll.keys(), ...gTaken, ...taken]);
+        group.forEach(g => { if (!g.stay) blocked.delete(K(g.u.c, g.u.r)); });
+        const r = attackEV(s, side, tgt, group, canRetreat(s, tgt, blocked, myPos), threatBonus(s, side, tgt));
+        const score = r.ev - group.length * P_.unitCost;
+        if (!best || score > best.score) best = { score, ev: r.ev, members: group.slice() };
+      }
+      return best;
+    }
+
+    // order targets by how good an attack on them could be
+    const ranked = enemies.map(t => ({ t, g: buildGroup(t, new Set()) })).filter(x => x.g).sort((a, b) => b.g.score - a.g.score);
+    for (const { t } of ranked) {
+      const g = buildGroup(t, new Set());
+      if (!g || g.score < P_.planThresh) continue;
+      for (const mm of g.members) {
+        used.add(mm.u.id);
+        if (mm.k !== K(mm.u.c, mm.u.r)) { plan.set(mm.u.id, mm.k); taken.add(mm.k); }
+      }
+    }
+
+    // everyone else: best-scoring hex
+    const rest = mine.filter(u => !used.has(u.id)).sort((a, b) => unitVal(b) - unitVal(a));
+    const friendSet = () => {
+      const f = new Set();
+      for (const u of s.units) if (u.side === side && !plan.has(u.id)) f.add(K(u.c, u.r));
+      for (const k of plan.values()) f.add(k);
+      return f;
+    };
+    for (const u of rest) {
+      const cur = K(u.c, u.r), fs = friendSet();
+      fs.delete(cur);
+      let bestK = cur, bestS = hexScore(s, ctx, u, cur, fs);
+      for (const k of reach.get(u.id).keys()) {
+        if (taken.has(k)) continue;
+        const sc = hexScore(s, ctx, u, k, fs);
+        if (sc > bestS + 0.05) { bestS = sc; bestK = k; }
+      }
+      if (bestK !== cur) { plan.set(u.id, bestK); taken.add(bestK); }
+    }
+    return plan;
+  }
+
+  // ---------- combat ----------
+  function bestAttack(s, side) {
+    const P_ = PROFILES.hard;
+    let best = null;
+    const myPos = s.units.filter(u => u.side === side).map(u => [u.c, u.r]);
+    const occ = new Set(E.occMap(s).keys());
+    for (const t of s.units.filter(u => u.side !== side)) {
+      const tk = K(t.c, t.r);
+      const elig = E.eligibleAttackers(s, tk).map(id => E.byId(s, id));
+      if (!elig.length) continue;
+      const pool = elig.sort((a, b) => E.factors(s, b).a - E.factors(s, a).a).slice(0, 8);
+      const cr = canRetreat(s, t, occ, myPos), tb = threatBonus(s, side, t);
+      for (let mask = 1; mask < (1 << pool.length); mask++) {
+        const mem = pool.filter((_, i) => mask & (1 << i)).map(u => ({ u, adj: E.dist([u.c, u.r], [t.c, t.r]) === 1 }));
+        const r = attackEV(s, side, t, mem, cr, tb);
+        if (r.ev === -Infinity) continue;
+        const score = r.ev - mem.length * P_.unitCost;
+        if (!best || score > best.score) best = { score, ev: r.ev, target: [t.c, t.r], attackers: mem.map(x => x.u.id) };
+      }
+    }
+    return best && best.score >= P_.attackThresh ? best : null;
+  }
+
+  function chooseAdvance(s, side) {
+    const pend = s.pending, k = K(...pend.hex);
+    const ctx = buildCtx(s, side);
+    const fs = new Set(s.units.filter(u => u.side === side).map(u => K(u.c, u.r)));
+    let best = null;
+    for (const id of pend.units) {
+      const u = E.byId(s, id), cur = K(u.c, u.r);
+      const f2 = new Set(fs); f2.delete(cur);
+      const delta = hexScore(s, ctx, u, k, f2) - hexScore(s, ctx, u, cur, f2);
+      if (!best || delta > best.delta) best = { id, delta };
+    }
+    return best && best.delta > -0.2 ? best.id : null;
+  }
+
+  // ---------- full turn ----------
+  function takeTurn(real) {
+    const s = JSON.parse(JSON.stringify(real));
+    const side = s.active, actions = [];
+    const doA = a => { const r = E.apply(s, a); if (!r.error) actions.push(a); return r; };
+    if (s.winner) return actions;
+    if (s.pending) doA({ t: 'advance', unit: chooseAdvance(s, side) });
+    if (s.phase === 'move') {
+      const ctx = buildCtx(s, side);
+      const plan = planMoves(s, side, ctx);
+      // execute; retry in rounds in case a destination frees up later
+      let todo = [...plan.entries()];
+      for (let round = 0; round < 3 && todo.length && !s.winner; round++) {
+        const next = [];
+        for (const [id, k] of todo) { const r = doA({ t: 'move', unit: id, to: P(k) }); if (r.error) next.push([id, k]); if (s.winner) break; }
+        todo = next;
+      }
+      if (!s.winner) doA({ t: 'phase' });
+    }
+    let guard = 0;
+    while (!s.winner && s.phase === 'combat' && guard++ < 40) {
+      if (s.pending) { doA({ t: 'advance', unit: chooseAdvance(s, side) }); continue; }
+      const b = bestAttack(s, side);
+      if (!b) break;
+      const r = doA({ t: 'attack', target: b.target, attackers: b.attackers });
+      if (r.error) break;
+    }
+    if (!s.winner && s.pending) doA({ t: 'advance', unit: chooseAdvance(s, side) });
+    if (!s.winner) doA({ t: 'endTurn' });
+    return actions;
+  }
+
+  return { takeTurn, PROFILES, _internals: { buildCtx, attackEV, hexScore } };
+})();
+if (typeof module !== 'undefined') module.exports = AI;
 
 </script>
 <script>
@@ -944,6 +1413,9 @@ if (typeof module !== 'undefined') module.exports = Engine;
   const svg = $('map'), gStatic = $('gStatic'), gDyn = $('gDyn');
 
   let state = null, sel = null, target = null, atk = new Set(), info = null, undo = [];
+  let aiBusy = false, aiToken = 0, pickScen = null, pickWho = { A: 'human', B: 'ai' };
+  const isAI = side => !!(state && state.players && state.players[side] === 'ai');
+  const hasAI = () => isAI('A') || isAI('B');
   let showZoc = false, showSup = false, vb = null, mapW = 0, mapH = 0, staticFor = null, hoverEl = null;
 
   // ---------- geometry ----------
@@ -1144,7 +1616,7 @@ if (typeof module !== 'undefined') module.exports = Engine;
   function renderDetail() {
     const k = sel != null && E.byId(state, sel) ? K(E.byId(state, sel).c, E.byId(state, sel).r) : info;
     const el = $('detail');
-    if (!k) { el.innerHTML = `<p class="empty">Click a unit or hex to see its details. Counters read attack-defense-move.</p>`; return; }
+    if (!k) { el.innerHTML = `<p class="empty">${TOUCH ? "Tap" : "Click"} a unit or hex to see its details. Counters read attack-defense-move.</p>`; return; }
     const u = E.occMap(state).get(k);
     if (!u) { $('detailTitle').textContent = 'Terrain'; el.innerHTML = terrainLine(k); return; }
     $('detailTitle').textContent = 'Unit';
@@ -1196,11 +1668,12 @@ if (typeof module !== 'undefined') module.exports = Engine;
     $('scenName').innerHTML = `${esc(s.setting)}<b>${esc(s.name)}</b>`;
     $('turnBox').innerHTML = `Turn<b>${state.turn}</b> / ${s.maxTurns}`;
     const side = sideOf(state.active);
-    $('sideChip').innerHTML = `<i style="background:${side.color}"></i>${esc(side.name)}`;
+    $('sideChip').innerHTML = `<i style="background:${side.color}"></i>${esc(side.name)}${isAI(state.active) ? '<span class="cpu">CPU</span>' : ''}`;
     document.querySelectorAll('#phases span').forEach(sp => sp.classList.toggle('on', sp.dataset.p === state.phase && !state.winner));
     const mb = $('mainBtn');
     mb.disabled = false;
     if (state.winner) mb.textContent = 'New game';
+    else if (aiBusy || isAI(state.active)) { mb.textContent = 'Computer playing'; mb.disabled = true; }
     else if (state.pending) { mb.textContent = 'Advance or stay'; mb.disabled = true; }
     else mb.textContent = state.phase === 'move' ? 'Go to combat' : 'End turn';
     $('score').innerHTML = ['A', 'B'].map(sd => {
@@ -1212,9 +1685,10 @@ if (typeof module !== 'undefined') module.exports = Engine;
       ? `Most VP after turn ${s.maxTurns} wins. Taking the enemy capital (★) wins at once.`
       : `${s.sides[v.side].name} need ${v.vp} VP by the end of turn ${s.maxTurns}. Taking the enemy capital (★) wins at once.`;
     $('log').innerHTML = state.log.slice(-60).map(l => `<li class="${l.kind}">${esc(l.text)}</li>`).join('');
-    $('undoBtn').disabled = !undo.length;
+    $('undoBtn').disabled = !undo.length || aiBusy;
     let hint;
     if (state.winner) hint = `Game over. ${state.winner.reason}.`;
+    else if (aiBusy || isAI(state.active)) hint = `${sideOf(state.active).name} (computer) is ${state.phase === 'move' ? 'moving' : 'attacking'}…`;
     else if (state.pending) hint = 'Advance after combat: click a glowing unit to move it into the empty hex, or choose Stay put.';
     else if (state.phase === 'move') hint = sel != null ? (E.TYPES[E.byId(state, sel)?.type]?.airdrop && !E.byId(state, sel).dropped ? 'Click a lit hex to move there, or a blue dashed hex to airdrop.' : 'Click a lit hex to move there.') : 'Movement: click one of your units. Units must stop when they enter an enemy zone of control.';
     else hint = target ? 'Click your units to add or remove them, then roll the die.' : 'Combat: click an enemy unit outlined in red.';
@@ -1238,11 +1712,11 @@ if (typeof module !== 'undefined') module.exports = Engine;
     if (a.t === 'move') { info = K(a.to[0], a.to[1]); sel = null; }
     persist(); render();
     if (state.winner) showWinner();
-    else if (a.t === 'endTurn') showHandoff();
+    else if (a.t === 'endTurn') { if (isAI(state.active)) runAI(); else if (hasAI()) { smartFit(); toast2(`Your turn: ${sideOf(state.active).name}`); } else showHandoff(); }
     return r;
   }
   function onHex(c, r) {
-    if (!state || state.winner) { info = K(c, r); render(); return; }
+    if (!state || state.winner || aiBusy || isAI(state.active)) { info = K(c, r); render(); return; }
     const k = K(c, r), u = E.occMap(state).get(k);
     if (state.pending) {
       if (u && state.pending.units.includes(u.id)) act({ t: 'advance', unit: u.id });
@@ -1271,11 +1745,43 @@ if (typeof module !== 'undefined') module.exports = Engine;
   }
   function mainButton() {
     if (state.winner) { openNew(); return; }
+    if (aiBusy || isAI(state.active)) return;
     if (state.phase === 'move') {
       const unmoved = state.units.filter(u => u.side === state.active && !u.moved).length;
       act({ t: 'phase' });
       if (unmoved) toast(`${unmoved} unit${unmoved > 1 ? 's' : ''} did not move.`);
     } else act({ t: 'endTurn' });
+  }
+
+  // ---------- computer player ----------
+  function toast2(msg) { const t = $('toast'); t.style.background = 'var(--panel-2)'; t.textContent = msg; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => { t.classList.remove('show'); t.style.background = ''; }, 2200); }
+  const wait = ms => new Promise(res => setTimeout(res, ms));
+  async function runAI() {
+    if (aiBusy || !state || state.winner || !isAI(state.active)) return;
+    const my = ++aiToken;
+    aiBusy = true; sel = null; target = null; atk.clear(); render();
+    await wait(450);
+    if (my !== aiToken) return;
+    let actions = [];
+    try { actions = AI.takeTurn(state); } catch (e) { console.error(e); actions = [{ t: 'endTurn' }]; }
+    for (const a of actions) {
+      if (my !== aiToken) return;
+      if (a.t === 'move') { info = K(a.to[0], a.to[1]); }
+      if (a.t === 'attack') { info = K(a.target[0], a.target[1]); target = info; atk = new Set(a.attackers); render(); await wait(650); target = null; atk.clear(); }
+      const r = E.apply(state, a);
+      if (r.error) { console.warn('AI action refused', a, r.error); if (a.t !== 'endTurn') continue; }
+      persist(); render();
+      if (state.winner) break;
+      await wait(a.t === 'move' ? 260 : a.t === 'attack' ? 1100 : a.t === 'endTurn' ? 200 : 350);
+    }
+    if (my !== aiToken) return;
+    if (!state.winner && isAI(state.active) && actions.length && actions[actions.length - 1].t !== 'endTurn') E.apply(state, { t: 'endTurn' });
+    aiBusy = false; info = null; undo = [];
+    persist(); render();
+    if (state.winner) { showWinner(); return; }
+    if (isAI(state.active)) { runAI(); return; }
+    smartFit(); render();
+    toast2(`Your turn: ${sideOf(state.active).name}`);
   }
 
   // ---------- cover screens ----------
@@ -1350,12 +1856,17 @@ if (typeof module !== 'undefined') module.exports = Engine;
         <div class="vs">${mini('A')}${esc(s.sides.A.name)} <span style="color:var(--muted)">vs</span> ${mini('B')}${esc(s.sides.B.name)}</div>
         <p>${esc(s.blurb)}</p><p>${s.maxTurns} turns${special.length ? ` · Special units: ${esc(special.join(', '))}` : ''}${s.supplyRange !== Infinity ? ` · Supply range ${s.supplyRange}` : ''}</p></button>`;
     }).join('');
+    pickScen = null; $('setup').hidden = true;
+    $('newRow').innerHTML = '<button type="button" data-close>Cancel</button>';
+    $('newRow').querySelector('[data-close]').addEventListener('click', () => $('newDlg').close());
     $('newDlg').showModal();
   }
   function seed() { try { return crypto.getRandomValues(new Int32Array(1))[0]; } catch (e) { return (Math.random() * 2 ** 31) | 0; } }
   function setState(s) {
+    aiToken++; aiBusy = false;
     state = s; sel = null; target = null; atk.clear(); info = null; undo = [];
     staticFor = null; render();
+    if (isAI(state.active) && !state.winner) runAI();
   }
   function rulesHTML() {
     const tr = Object.entries(E.TERRAIN).map(([ch, t]) => `<tr><td style="text-align:left">${t.name}</td><td>${t.impass ? '—' : t.mp}</td><td>${t.impass ? '—' : t.shift}</td></tr>`).join('');
@@ -1363,7 +1874,7 @@ if (typeof module !== 'undefined') module.exports = Engine;
     const units = Object.entries(E.TYPES).map(([k, t]) => `<tr><td style="text-align:left">${t.name}</td><td>${t.a}-${t.d}-${t.m}</td><td style="text-align:left">${t.note || ''}</td></tr>`).join('');
     return `<div><h3>Turn</h3><ul><li>Each turn, one side moves, then fights, then hands over. Then the other side does the same.</li><li>Units have two steps. A reduced unit (corner tab) has its attack and defense halved. Losing a second step eliminates it.</li><li>One unit per hex.</li></ul></div>
     <div><h3>Movement</h3><ul><li>Spend movement points (MP) by terrain. Moving along a road costs ½ MP per hex. Entering a river hex costs +1 MP.</li><li>The six hexes around an enemy unit are its zone of control (ZOC). A unit entering one must stop, and cannot move directly from one enemy ZOC hex to another.</li><li>A unit can always move at least one hex.</li></ul></div>
-    <div><h3>Combat</h3><ul><li>Add up the attack factors of the units you choose and compare them with the defender's defense to get the odds (rounded down). Terrain, cities and rivers shift the odds column left.</li><li>Roll one die: AE all adjacent attackers lose a step · A1 the strongest attacker loses a step · EX both sides lose a step · DR the defender retreats · D1 the defender loses a step and retreats · DE the defender is eliminated. A defender that cannot retreat loses a step instead.</li><li>If the defender's hex empties, one adjacent attacker may advance into it.</li></ul></div>
+    <div><h3>Combat</h3><ul><li>Add up the attack factors of the units you choose and compare them with the defender's defense to get the odds (rounded down). Terrain, cities and rivers shift the odds column left.</li><li>Roll one die: AE all adjacent attackers lose a step · A1 the strongest attacker loses a step · EX both sides lose a step · DR the defender retreats · D1 the defender loses a step and retreats · DE the defender is eliminated. A defender that cannot retreat loses a step instead.</li><li><b>Capitals hold:</b> a unit defending a capital (★) never retreats. It loses a step instead, so a capital falls only when its garrison is destroyed.</li><li>If the defender's hex empties, one adjacent attacker may advance into it.</li></ul></div>
     <div><h3>Supply</h3><ul><li>At the start of your turn, units that cannot trace a path to your home map edge or a friendly supply city (blocked by enemy units and by enemy ZOC unless a friendly unit is there) are out of supply. They move and attack at half strength.</li><li>In the desert, supply only reaches 8 hexes.</li></ul></div>
     <div><h3>Play by email</h3><ul><li>Finish your turn, choose Send turn and paste the text into an email. Your opponent chooses Load turn and pastes it in. The dice are stored in the code, so reloading cannot change a roll.</li></ul></div>
     <div class="tblwrap"><h3>Terrain</h3><table class="crt"><tr><th style="text-align:left">Terrain</th><th>MP</th><th>Odds shift</th></tr>${tr}<tr><td style="text-align:left">City / capital</td><td>1</td><td>1 / 2</td></tr><tr><td style="text-align:left">River hex</td><td>+1</td><td>+1</td></tr></table></div>
@@ -1451,7 +1962,7 @@ if (typeof module !== 'undefined') module.exports = Engine;
   $('tTex').setAttribute('aria-pressed', useTex);
   $('tTex').addEventListener('click', e => { useTex = !useTex; e.currentTarget.setAttribute('aria-pressed', useTex); try { localStorage.setItem('hexfront.tex', useTex ? '1' : '0'); } catch (er) { /* ignore */ } renderStatic(); });
   $('tSup').addEventListener('click', e => { showSup = !showSup; e.currentTarget.setAttribute('aria-pressed', showSup); renderDyn(); });
-  $('undoBtn').addEventListener('click', () => { if (!undo.length) return; state = JSON.parse(undo.pop()); sel = null; persist(); render(); });
+  $('undoBtn').addEventListener('click', () => { if (!undo.length || aiBusy) return; state = JSON.parse(undo.pop()); sel = null; persist(); render(); });
   $('newBtn').addEventListener('click', openNew);
   $('menuBtn').addEventListener('click', () => $('menuDlg').showModal());
   $('menuDlg').addEventListener('click', e => {
@@ -1472,10 +1983,34 @@ if (typeof module !== 'undefined') module.exports = Engine;
   $('copyMail').addEventListener('click', () => copy(lastMail));
   $('copyCode').addEventListener('click', () => copy(lastCode));
   document.querySelectorAll('dialog [data-close]').forEach(b => b.addEventListener('click', () => b.closest('dialog').close()));
+  function renderSetup() {
+    const box = $('setup');
+    if (!pickScen) { box.hidden = true; return; }
+    const sc2 = E.SCEN[pickScen];
+    box.hidden = false;
+    box.innerHTML = `<div class="setup"><h3>Who commands each side?</h3>${['A', 'B'].map(sd => `<div class="who"><span class="nm"><i style="background:${sc2.sides[sd].color}"></i>${esc(sc2.sides[sd].name)}${sd === 'A' ? ' <small style="color:var(--muted);font-weight:500">moves first</small>' : ''}</span>
+      <div class="seg" role="group" aria-label="${esc(sc2.sides[sd].name)}"><button type="button" data-who="${sd}:human" aria-pressed="${pickWho[sd] === 'human'}">Human</button><button type="button" data-who="${sd}:ai" aria-pressed="${pickWho[sd] === 'ai'}">Computer</button></div></div>`).join('')}
+      <p style="margin:0;font-size:13.5px">Computer opponents play on Hard. Two humans can share this screen or play by email.</p></div>`;
+    $('newRow').innerHTML = `<button type="button" class="primary" id="startGame">Start ${esc(sc2.name)}</button><button type="button" data-close>Cancel</button>`;
+    $('newRow').querySelector('[data-close]').addEventListener('click', () => $('newDlg').close());
+    $('scenCards').querySelectorAll('.card').forEach(c => c.setAttribute('aria-pressed', c.dataset.scen === pickScen));
+  }
   $('scenCards').addEventListener('click', e => {
     const card = e.target.closest('[data-scen]'); if (!card) return;
-    setState(E.newGame(card.dataset.scen, seed())); persist();
-    $('newDlg').close(); showHandoff('Turn 1 · New game');
+    pickScen = card.dataset.scen; renderSetup();
+    $('setup').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  });
+  $('setup').addEventListener('click', e => {
+    const b = e.target.closest('[data-who]'); if (!b) return;
+    const [sd, who] = b.dataset.who.split(':'); pickWho[sd] = who; renderSetup();
+  });
+  $('newRow').addEventListener('click', e => {
+    if (!e.target.closest('#startGame')) return;
+    const g = E.newGame(pickScen, seed());
+    g.players = { A: pickWho.A, B: pickWho.B };
+    $('newDlg').close();
+    setState(g); persist();
+    if (!isAI('A')) { if (hasAI()) { smartFit(); toast2(`Your turn: ${sideOf('A').name}`); } else showHandoff('Turn 1 · New game'); }
   });
   $('combat').addEventListener('click', e => {
     const b = e.target.closest('button'); if (!b) return;
@@ -1503,7 +2038,7 @@ if (typeof module !== 'undefined') module.exports = Engine;
   function start(data) {
     let s = data && data.state;
     if (!s) { try { const raw = localStorage.getItem(SAVE_KEY); if (raw) s = JSON.parse(raw); } catch (e) { /* no storage */ } }
-    if (!s || !E.SCEN[s.scen]) s = E.newGame('generic', seed());
+    if (!s || !E.SCEN[s.scen]) { s = E.newGame('generic', seed()); s.players = { A: 'human', B: 'ai' }; }
     setState(s);
   }
   window.claude?.hot?.snapshot?.(() => ({ state }));

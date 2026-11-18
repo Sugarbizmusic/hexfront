@@ -22,6 +22,10 @@ On a phone, use **Add to Home Screen** to install it with its own icon.
 | `images/` | Terrain textures, named `{set}_{terrain}_{variant}.jpg` |
 | `.nojekyll` | Tells GitHub Pages to serve the files as they are |
 
+## Computer opponent
+
+When starting a new game, choose Human or Computer for each side. The computer plays on Hard: it plans coordinated attacks from the combat odds, garrisons its capital and keeps its supply lines. It never sees a dice roll before it happens.
+
 ## Play by email
 
 Finish your turn, choose **Send turn** and paste the text into an email. Your opponent opens Hexfront, chooses **Load turn** and pastes it. Dice rolls are stored in the code, so reloading cannot change a roll.
