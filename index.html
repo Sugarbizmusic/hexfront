@@ -941,7 +941,7 @@ const Engine = (() => {
       units: { '50th Inf': 'GB', 'Gds Armd': 'GB', 'XXX Art': 'GB', '3rd Can': 'CA', 'Pol Armd': 'PL' }, main: { A: ['US', 'American'], B: ['DE', 'German'] } },
     desert: { nations: { IT: { name: 'Italian', color: '#9a9b85' }, ZA: { name: 'South African', color: '#80583a' }, FR: { name: 'Free French', color: '#5b4a5e' } },
       units: { Trento: 'IT', Brescia: 'IT', Pavia: 'IT', Ariete: 'IT', Trieste: 'IT', '2nd SA': 'ZA', '1st SA': 'ZA', '1st FF': 'FR' }, main: { A: ['DE', 'German'], B: ['GB', 'British'] } },
-    fulda: { nations: { DDR: { name: 'East German', color: '#8a5651' }, BRD: { name: 'West German', color: '#5e6a5e' } },
+    fulda: { nations: { DDR: { name: 'East German', color: '#9a6a63' }, BRD: { name: 'West German', color: '#6a7467' } },
       units: { '4th MRD': 'DDR', '7th PzD': 'DDR', 'PzGrenBde 5': 'BRD', 'PzBde 14': 'BRD', HSchKdo: 'BRD' }, main: { A: ['SU', 'Soviet'], B: ['US', 'American'] } },
     stalingrad: { nations: { RO: { name: 'Romanian', color: '#7a7c66' } }, units: { '1st Rom': 'RO', '2nd Rom': 'RO' }, main: { A: ['DE', 'German'], B: ['SU', 'Soviet'] } },
     kursk: { nations: {}, units: {}, main: { A: ['DE', 'German'], B: ['SU', 'Soviet'] } },
@@ -2026,7 +2026,7 @@ if (typeof module !== 'undefined') module.exports = AI;
 // ===================== HEXFRONT UI =====================
 (() => {
   const E = Engine, K = E.K, P = E.P;
-  const VERSION = '0.14.1', BUILD = '2026-11-19';
+  const VERSION = '0.14.2', BUILD = '2026-11-19';
   const S = 30, SQ3 = Math.sqrt(3), SAVE_KEY = 'hexfront.v1';
   try { console.info(`Hexfront v${VERSION} (${BUILD})`); } catch (e) { /* ignore */ }
   const THEMES = {
