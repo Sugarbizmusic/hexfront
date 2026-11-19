@@ -38,7 +38,7 @@
 }
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
-body { background: var(--chrome); color: var(--ink); font: 15px/1.4 var(--body); display: grid; grid-template-rows: auto 1fr; overflow: hidden; }
+body { background: var(--chrome); color: var(--ink); font: 15px/1.4 var(--body); display: grid; grid-template-columns: 76px 1fr 340px 80px; grid-template-rows: auto 1fr; grid-template-areas: "head head head head" "tools map panel rail"; overflow: hidden; }
 button { -webkit-tap-highlight-color: transparent; font: 600 15px/1 var(--ui); letter-spacing: .04em; text-transform: uppercase; color: var(--ink); background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 9px 12px; cursor: pointer; }
 button:hover:not(:disabled) { border-color: var(--muted); }
 button:disabled { opacity: .4; cursor: default; }
@@ -47,7 +47,7 @@ button.primary { background: var(--signal); color: #1d1606; border-color: var(--
 button.primary:hover:not(:disabled) { background: #f3b84e; }
 
 /* ---------- header ---------- */
-.bar { display: grid; grid-template-columns: auto auto auto 1fr auto auto; grid-template-areas: "brand scen status phases main menu" "tools tools tools tools tools tools"; align-items: center; gap: 10px 18px; padding: calc(8px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 0 calc(16px + env(safe-area-inset-left)); background: var(--bar); border-bottom: 1px solid var(--line); }
+.bar { grid-area: head; display: grid; grid-template-columns: auto auto auto 1fr auto auto; grid-template-areas: "brand scen status phases main menu"; align-items: center; gap: 10px 18px; padding: calc(8px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 8px calc(16px + env(safe-area-inset-left)); background: var(--bar); border-bottom: 1px solid var(--line); }
 .brand { grid-area: brand; display: flex; align-items: center; gap: 10px; }
 .brand img { height: 40px; width: auto; display: block; filter: drop-shadow(0 2px 3px rgba(0,0,0,.5)); }
 .brand span { font: 24px/1 var(--display); letter-spacing: .06em; color: var(--signal); }
@@ -74,11 +74,23 @@ button.primary:hover:not(:disabled) { background: #f3b84e; }
 .cells button[aria-pressed="true"] { color: var(--signal); background: rgba(232,168,58,.08); }
 .cells button[aria-pressed="true"]::before { content: ""; position: absolute; left: 18%; right: 18%; top: 0; height: 2px; background: var(--signal); border-radius: 0 0 2px 2px; }
 .cells button.blank { pointer-events: none; }
-.toolbar { grid-area: tools; grid-template-columns: repeat(8, 1fr); margin: 0 calc(-16px - env(safe-area-inset-right)) 0 calc(-16px - env(safe-area-inset-left)); }
+/* desktop: both button sets run vertically, tools on the left edge, panel buttons on the right edge */
+.toolbar { grid-area: tools; grid-template-columns: 1fr; grid-auto-rows: 66px; align-content: start; border-top: 0; border-right: 1px solid var(--line); overflow-y: auto; }
+.bnav { grid-area: rail; display: grid; grid-template-columns: 1fr; grid-auto-rows: 66px; align-content: start; border-top: 0; border-left: 1px solid var(--line); }
+.toolbar button, .bnav button { border-right: 0; border-bottom: 1px solid var(--line); }
+.bnav button span, .toolbar button span { font-size: 10.5px; letter-spacing: .05em; }
+.toolbar button[aria-pressed="true"]::before { left: auto; right: 0; top: 18%; bottom: 18%; width: 2px; height: auto; border-radius: 2px 0 0 2px; }
+.bnav button[aria-pressed="true"]::before { left: 0; right: auto; top: 18%; bottom: 18%; width: 2px; height: auto; border-radius: 0 2px 2px 0; }
+.tray { grid-area: panel; display: flex; flex-direction: column; min-height: 0; background: var(--panel); border-left: 1px solid var(--line); }
+.trayhead { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 10px; border-bottom: 1px solid var(--line); flex: none; }
+.trayhead h3 { margin: 0; font: 600 14px/1 var(--ui); text-transform: uppercase; letter-spacing: .14em; color: var(--signal); }
+.trayhead button { display: none; }
+.traybody { overflow-y: auto; padding: 14px 16px; flex: 1; min-height: 0; }
+.trayback { display: none; }
 
 /* ---------- main ---------- */
-main { display: grid; grid-template-columns: 1fr 330px; min-height: 0; position: relative; }
-.mapwrap { position: relative; min-height: 0; background: radial-gradient(ellipse at center, #2a3026 0%, #161a14 85%); overflow: hidden; }
+main { grid-area: map; min-height: 0; position: relative; }
+.mapwrap { position: absolute; inset: 0; background: radial-gradient(ellipse at center, #2a3026 0%, #161a14 85%); overflow: hidden; }
 #map { width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; }
 #map.panning { cursor: grabbing; }
 #map .lod-far { display: none; }
@@ -93,7 +105,7 @@ main { display: grid; grid-template-columns: 1fr 330px; min-height: 0; position:
 /* ---------- unit popup ---------- */
 .pop { position: absolute; z-index: 4; width: 250px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 14px 40px rgba(0,0,0,.55); padding: 10px 12px 12px; display: none; }
 .pop.show { display: block; }
-.pop-h { display: grid; grid-template-columns: 44px 1fr auto; gap: 10px; align-items: center; margin-bottom: 8px; }
+.pop-h, .unitcard .pop-h { display: grid; grid-template-columns: 44px 1fr auto; gap: 10px; align-items: center; margin-bottom: 8px; }
 .pop-h b { display: block; font: 700 18px/1.05 var(--ui); }
 .pop-h small { display: block; font: 500 13px/1.2 var(--ui); color: var(--muted); letter-spacing: .03em; }
 .pop-x { background: transparent; border: 0; color: var(--muted); font-size: 20px; padding: 4px 6px; }
@@ -102,10 +114,10 @@ main { display: grid; grid-template-columns: 1fr 330px; min-height: 0; position:
 .stats small { display: block; font: 600 10.5px/1 var(--ui); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
 .stats b { font: 22px/1.1 var(--display); font-variant-numeric: tabular-nums; }
 .stats b.down { color: var(--danger); }
-.pop ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font: 500 14px/1.25 var(--ui); }
-.pop ul li { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); }
-.pop ul li span:last-child { color: var(--ink); text-align: right; }
-.pop .note { font-size: 13px; color: var(--muted); margin: 8px 0 0; }
+.unitcard ul, .pop ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font: 500 14px/1.25 var(--ui); }
+.unitcard ul li, .pop ul li { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); }
+.unitcard ul li span:last-child, .pop ul li span:last-child { color: var(--ink); text-align: right; }
+.unitcard .note, .pop .note { font-size: 13px; color: var(--muted); margin: 8px 0 0; }
 .order { display: grid; gap: 6px; padding: 10px; background: var(--panel-2); border-radius: 5px; margin-top: 6px; }
 .order p { margin: 0; font-size: 13px; color: var(--muted); }
 .order button { width: 100%; }
@@ -159,8 +171,7 @@ aside h3, .pane h3 { margin: 0 0 10px; font: 600 13px/1 var(--ui); text-transfor
 .tools button { padding: 9px 6px; font-size: 14px; }
 .tools .wide { grid-column: span 2; }
 
-/* ---------- trays (phones) ---------- */
-.bnav, .tray, .trayback { display: none; }
+/* ---------- panels ---------- */
 .pane[hidden] { display: none !important; }
 .citylist, .forces { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
 .citylist li { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; padding: 7px 10px; background: var(--panel-2); border-radius: 4px; font: 500 15px/1.2 var(--ui); }
@@ -176,6 +187,54 @@ aside h3, .pane h3 { margin: 0 0 10px; font: 600 13px/1 var(--ui); text-transfor
 .rulelist { margin: 0 0 14px; padding-left: 18px; display: grid; gap: 4px; font-size: 14px; }
 .pane + .pane { margin-top: 0; }
 .pane section { margin-bottom: 16px; }
+
+
+/* die-by-die results, in words */
+.dielist { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 3px; }
+.dielist li { display: flex; align-items: center; gap: 10px; padding: 5px 8px; border-radius: 4px; background: var(--panel-2); font: 500 14.5px/1.2 var(--ui); border-left: 3px solid transparent; }
+.dielist li.good { border-left-color: var(--ok); }
+.dielist li.bad { border-left-color: var(--danger); }
+.dielist li.mid { border-left-color: var(--signal); }
+.dielist li.none { color: var(--muted); }
+.dielist li.hit { outline: 2px solid var(--signal); background: #3a3a22; }
+.dielist .die { flex: none; }
+.forceseg { width: 100%; }
+.forceseg button { flex: 1; }
+#log li.turn { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-left-width: 4px; border-radius: 0 4px 4px 0; }
+#log li.turn svg { width: 16px; height: 18px; flex: none; }
+#log li { border-left-width: 3px; border-left-style: solid; }
+
+
+/* ---------- battle result card ---------- */
+.bm { position: fixed; inset: 0; z-index: 40; display: none; align-items: center; justify-content: center; background: rgba(8,10,7,.55); padding: 16px; }
+.bm.show { display: flex; }
+.bm-card { width: min(520px, 100%); max-height: calc(100dvh - 40px); overflow-y: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 24px 70px rgba(0,0,0,.6); padding: 18px 18px 16px; display: grid; gap: 12px; animation: bmIn .32s cubic-bezier(.2,.8,.2,1); }
+@keyframes bmIn { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
+.bm-k { font: 600 13px/1 var(--ui); letter-spacing: .18em; text-transform: uppercase; color: var(--signal); display: flex; align-items: center; gap: 8px; }
+.bm-k svg { width: 16px; height: 18px; }
+.bm-h { font: 30px/1.05 var(--display); letter-spacing: .02em; margin: 0; text-wrap: balance; }
+.bm-h.good { color: var(--ok); } .bm-h.bad { color: var(--danger); } .bm-h.mid { color: var(--signal); } .bm-h.none { color: var(--muted); }
+.bm-roll { display: flex; align-items: center; gap: 12px; font: 500 15px/1.3 var(--ui); color: var(--muted); }
+.bm-roll b { color: var(--ink); }
+.bm-sides { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.bm-side { background: var(--panel-2); border-radius: 6px; padding: 10px; border-top: 4px solid; display: grid; gap: 6px; align-content: start; }
+.bm-side h4 { margin: 0; font: 600 12px/1 var(--ui); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+.bm-u { display: grid; grid-template-columns: 34px 1fr; gap: 8px; align-items: center; }
+.bm-u b { display: block; font: 600 14.5px/1.15 var(--ui); }
+.bm-u i { font: 700 11px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; font-style: normal; }
+.bm-u i.unharmed { color: var(--muted); } .bm-u i.reduced, .bm-u i.reducedandretreated { color: var(--signal); } .bm-u i.destroyed { color: var(--danger); } .bm-u i.retreated { color: #8fb7d4; }
+.bm-note { margin: 0; font-size: 13.5px; color: var(--muted); }
+.bm .row button { padding: 12px; }
+@media (max-width: 700px) {
+  .bm { align-items: flex-end; padding: 0 0 calc(var(--nav-h) + env(safe-area-inset-bottom)); background: rgba(8,10,7,.45); }
+  .bm-card { width: 100%; border-radius: 12px 12px 0 0; max-height: 70dvh; }
+  .bm-h { font-size: 26px; }
+  .bm-sides { grid-template-columns: 1fr; }
+}
+
+/* version tag */
+.brandver { font: 600 11px/1 var(--ui); letter-spacing: .08em; color: var(--muted); align-self: flex-end; margin: 0 0 3px -4px; }
+.ver { font: 500 12.5px/1 var(--ui) !important; letter-spacing: .08em; color: var(--muted); text-align: center; margin: 0 !important; max-width: none !important; }
 
 /* ---------- dialogs ---------- */
 dialog { background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 0; max-width: min(760px, calc(100vw - 32px)); width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
@@ -235,7 +294,7 @@ table.crt th { color: var(--muted); font-weight: 600; }
 @media (max-width: 700px) {
   html, body { overflow: hidden; overscroll-behavior: none; }
   body { display: flex; flex-direction: column; height: 100dvh; }
-  .bar { flex: none; grid-template-columns: 1fr auto; grid-template-areas: "brand menu" "status main" "tools tools"; gap: 6px 10px; padding: calc(4px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) 0 calc(12px + env(safe-area-inset-left)); }
+  .bar { flex: none; grid-template-columns: 1fr auto; grid-template-areas: "brand menu" "status main"; gap: 6px 10px; padding: calc(4px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) 8px calc(12px + env(safe-area-inset-left)); border-bottom: 0; }
   .brand img { height: 34px; }
   .brand span { font-size: 20px; }
   .scen, .phases { display: none; }
@@ -245,28 +304,30 @@ table.crt th { color: var(--muted); font-weight: 600; }
   #mainBtn { padding: 10px 14px; font-size: 14px; }
   .status b { font-size: 16px; }
   .status small { font-size: 12px; }
-  .toolbar { margin: 4px calc(-12px - env(safe-area-inset-right)) 0 calc(-12px - env(safe-area-inset-left)); }
+  .toolbar { flex: none; grid-template-columns: repeat(8, 1fr); grid-auto-rows: auto; border-top: 1px solid var(--line); border-right: 0; border-bottom: 1px solid var(--line); padding: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left); overflow: visible; }
+  .toolbar button, .bnav button { border-bottom: 0; border-right: 1px solid var(--line); }
+  .toolbar button[aria-pressed="true"]::before, .bnav button[aria-pressed="true"]::before { left: 18%; right: 18%; top: 0; bottom: auto; width: auto; height: 2px; border-radius: 0 0 2px 2px; }
   .cells button { font-size: 10px; padding: 7px 0 6px; }
+  .desk { display: none !important; }
   main { flex: 1; display: block; min-height: 0; }
-  .mapwrap { position: absolute; inset: 0; }
-  aside, .zoomctl { display: none; }
+  .zoomctl { display: none; }
   .hint { font-size: 13px; padding: 5px 10px; top: 8px; max-width: calc(100% - 16px); }
   body.tray-on .hint { display: none; }
   .hint { transition: opacity .4s; }
   .hint.quiet { opacity: 0; }
   .toast { bottom: 16px; }
 
-  .bnav { display: grid; flex: none; grid-template-columns: repeat(5, 1fr); position: relative; z-index: 12; padding-bottom: env(safe-area-inset-bottom); background: var(--cell); }
+  .bnav { display: grid; flex: none; grid-template-columns: repeat(5, 1fr); grid-auto-rows: auto; position: relative; z-index: 12; padding-bottom: env(safe-area-inset-bottom); background: var(--cell); border-left: 0; border-top: 1px solid var(--line); }
   .bnav button { height: var(--nav-h); }
   .trayback { display: block; position: fixed; inset: 0; z-index: 9; pointer-events: none; }
   .trayback.on { pointer-events: auto; }
-  .tray { display: flex; flex-direction: column; position: fixed; left: 0; right: 0; bottom: calc(var(--nav-h) + env(safe-area-inset-bottom)); max-height: min(62dvh, 560px); z-index: 10; background: var(--panel); border-top: 1px solid var(--line); border-radius: 12px 12px 0 0; box-shadow: 0 -12px 40px rgba(0,0,0,.5); transform: translateY(110%); transition: transform .26s cubic-bezier(.2,.8,.2,1), visibility 0s linear .26s; visibility: hidden; }
+  .tray { display: flex; flex-direction: column; border-left: 0; position: fixed; left: 0; right: 0; bottom: calc(var(--nav-h) + env(safe-area-inset-bottom)); max-height: min(62dvh, 560px); z-index: 10; background: var(--panel); border-top: 1px solid var(--line); border-radius: 12px 12px 0 0; box-shadow: 0 -12px 40px rgba(0,0,0,.5); transform: translateY(110%); transition: transform .26s cubic-bezier(.2,.8,.2,1), visibility 0s linear .26s; visibility: hidden; }
   .tray.open { transform: none; visibility: visible; transition: transform .26s cubic-bezier(.2,.8,.2,1); }
-  .trayhead { display: flex; align-items: center; justify-content: space-between; padding: 8px 14px 6px; border-bottom: 1px solid var(--line); flex: none; }
+  .trayhead { padding: 8px 14px 6px; }
   .trayhead::before { content: ""; position: absolute; left: 50%; top: 5px; width: 36px; height: 4px; border-radius: 2px; background: #4a5444; transform: translateX(-50%); }
   .trayhead h3 { margin: 6px 0 0; font: 600 14px/1 var(--ui); text-transform: uppercase; letter-spacing: .14em; color: var(--signal); }
-  .trayhead button { background: transparent; border: 0; color: var(--muted); font-size: 22px; padding: 4px 6px; }
-  .traybody { overflow-y: auto; padding: 12px 14px calc(14px); -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+  .trayhead button { display: block; background: transparent; border: 0; color: var(--muted); font-size: 22px; padding: 4px 6px; }
+  .traybody { flex: initial; padding: 12px 14px 14px; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
   .pop { width: min(250px, calc(100vw - 24px)); }
   .cover h2 { font-size: 36px; }
 }
@@ -275,14 +336,14 @@ table.crt th { color: var(--muted); font-weight: 600; }
 </head>
 <body>
 <header class="bar">
-  <div class="brand"><img src="icons/logo.png" alt=""><span>HEXFRONT</span></div>
+  <div class="brand"><img src="icons/logo.png" alt=""><span>HEXFRONT</span><small class="brandver" id="brandVer"></small></div>
   <div class="scen" id="scenName"></div>
   <div class="status" id="status" aria-live="polite"></div>
   <div class="phases" id="phases"><span data-p="move">1 Move</span><span data-p="combat">2 Combat</span></div>
   <button id="mainBtn" class="primary" type="button"></button>
   <button id="menuBtn" type="button" aria-haspopup="dialog" aria-label="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg><span>Menu</span></button>
-  <nav class="toolbar cells" id="toolbar" aria-label="Map tools"></nav>
 </header>
+<nav class="toolbar cells" id="toolbar" aria-label="Map tools"></nav>
 <main>
   <div class="mapwrap" id="mapwrap">
     <svg id="map" xmlns="http://www.w3.org/2000/svg" aria-label="Hex map">
@@ -292,6 +353,7 @@ table.crt th { color: var(--muted); font-weight: 600; }
       </defs>
       <g id="gStatic"></g>
       <g id="gDyn"></g>
+      <g id="gFx" pointer-events="none"></g>
     </svg>
     <div class="hint" id="hint"></div>
     <div class="zoomctl"><button type="button" id="zIn" aria-label="Zoom in">+</button><button type="button" id="zOut" aria-label="Zoom out">−</button></div>
@@ -299,31 +361,22 @@ table.crt th { color: var(--muted); font-weight: 600; }
     <div class="toast" id="toast"></div>
     <div class="cover" id="cover"><div class="box" id="coverBox"></div></div>
   </div>
-  <aside id="aside">
-    <section id="scoreSec"><h3>Victory points</h3><div class="score" id="score"></div><p class="objective" id="objective"></p></section>
-    <section id="detailSec"><h3 id="detailTitle">Selection</h3><div id="detail"></div></section>
-    <section id="combatSec" hidden><h3>Battle</h3><div id="combat"></div></section>
-    <section class="logsec" id="logSec"><h3>Field log</h3><ol id="log"></ol></section>
-    <section class="tools">
-      <button type="button" id="rulesBtn">Rules</button>
-      <button type="button" id="sendBtn">Send turn</button>
-      <button type="button" id="loadBtn">Load turn</button>
-      <button type="button" id="newBtn">New game</button>
-    </section>
-  </aside>
 </main>
 <div class="trayback" id="trayBack"></div>
 <section class="tray" id="tray" aria-label="Panel">
   <div class="trayhead"><h3 id="trayTitle"></h3><button type="button" id="trayClose" aria-label="Close panel">×</button></div>
   <div class="traybody" id="trayBody">
-    <div class="pane" data-pane="battle" hidden></div>
-    <div class="pane" data-pane="obj" hidden><div id="objExtra"></div></div>
+    <div class="pane" data-pane="unit" hidden><div id="detail"></div></div>
+    <div class="pane" data-pane="battle" hidden><div id="combat"></div></div>
+    <div class="pane" data-pane="obj" hidden><div class="score" id="score"></div><p class="objective" id="objective"></p><div id="objExtra"></div></div>
     <div class="pane" data-pane="forces" hidden><div id="forces"></div></div>
-    <div class="pane" data-pane="log" hidden></div>
+    <div class="pane" data-pane="log" hidden><ol id="log"></ol></div>
     <div class="pane" data-pane="charts" hidden><div id="charts"></div></div>
   </div>
 </section>
 <nav class="bnav cells" id="bnav" aria-label="Panels"></nav>
+
+<div class="bm" id="bm" role="dialog" aria-modal="true" aria-label="Battle result"><div class="bm-card" id="bmCard"></div></div>
 
 <dialog id="menuDlg"><div class="dlg">
   <h2>Menu</h2>
@@ -335,6 +388,7 @@ table.crt th { color: var(--muted); font-weight: 600; }
     <button type="button" data-menu="rules">Rules and tables <small>Full rules, terrain, combat results</small></button>
   </div>
   <div class="row"><button type="button" data-close>Close</button></div>
+  <p class="ver" id="verTag"></p>
 </div></dialog>
 
 <dialog id="howDlg"><div class="dlg">
@@ -487,13 +541,31 @@ const Engine = (() => {
   const RESULT_TEXT = {
     B1: 'Bombardment hits: defender loses a step',
     '-': 'Bombardment misses: no effect',
-    AE: 'Attacker repulsed: every adjacent attacker loses a step',
+    AE: 'Attack repulsed: every adjacent attacker loses a step',
     A1: 'Attack stalls: strongest attacker loses a step',
     EX: 'Exchange: defender and strongest attacker each lose a step',
     DR: 'Defender retreats one hex',
     D1: 'Defender loses a step and retreats',
     DE: 'Defender eliminated',
   };
+
+  // Full unit names, for anywhere there is room to spell them out (counters use the short form).
+  const FULL = {
+    'Gds Armd': 'Guards Armoured Division', 'Pol Armd': '1st Polish Armoured Division', '3rd Can': '3rd Canadian Division',
+    'XXX Art': 'XXX Corps Artillery', 'VII Art': 'VII Corps Artillery', '91st LL': '91st Air Landing Division',
+    'Pz Lehr': 'Panzer Lehr Division', 's.Pz 503': 'Heavy Panzer Battalion 503', '84th Art': 'LXXXIV Corps Artillery',
+    '90th Lt': '90th Light Division', '15th Pz': '15th Panzer Division', '21st Pz': '21st Panzer Division',
+    'Arko 104': 'Artillery Command 104', '2nd SA': '2nd South African Division', '1st SA': '1st South African Division',
+    '150th Bde': '150th Infantry Brigade', '1st FF': '1st Free French Brigade', '7th Med': '7th Medium Regiment',
+    'LRDG': 'Long Range Desert Group', 'Trento': 'Trento Division', 'Brescia': 'Brescia Division', 'Pavia': 'Pavia Division',
+    'Ariete': 'Ariete Armoured Division', 'Trieste': 'Trieste Motorised Division',
+  };
+  const WORDS = { Inf: 'Infantry', Arm: 'Armor', Armd: 'Armored', Mech: 'Mechanized', Art: 'Artillery', Abn: 'Airborne' };
+  function fullName(short) {
+    if (!short) return '';
+    if (FULL[short]) return FULL[short];
+    return short.split(' ').map(w => WORDS[w] || w).join(' ');
+  }
 
   // ---------- scenarios ----------
   const SCEN = {
@@ -727,13 +799,13 @@ const Engine = (() => {
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
     return Math.floor((((t ^ (t >>> 14)) >>> 0) / 4294967296) * 6) + 1;
   }
-  function unitLabel(s, u) { return u.name ? `${SCEN[s.scen].sides[u.side].short} ${u.name}` : `${SCEN[s.scen].sides[u.side].short} ${TYPES[u.type].name}`; }
+  function unitLabel(s, u) { const n = u.full || fullName(u.name); return n ? `${SCEN[s.scen].sides[u.side].short} ${n}` : `${SCEN[s.scen].sides[u.side].short} ${TYPES[u.type].name}`; }
 
   // ---------- new game ----------
   function newGame(scenId, seed, opts = {}) {
     const sc = SCEN[scenId];
     let id = 1;
-    const units = sc.units.map(([side, type, c, r, name]) => ({ id: id++, side, type, c, r, name: name || '', steps: 2, moved: false, attacked: false, dropped: false, oos: false, dig: null }));
+    const units = sc.units.map(([side, type, c, r, name]) => ({ id: id++, side, type, c, r, name: name || '', full: fullName(name), steps: 2, moved: false, attacked: false, dropped: false, oos: false, dig: null }));
     const owner = {};
     sc.cities.forEach(ct => { if (ct.owner) owner[K(ct.c, ct.r)] = ct.owner; });
     const s = { v: 2, scen: scenId, turn: 1, active: 'A', phase: 'move', rng: seed | 0, units, owner, log: [], trails: [], prevTrails: [], attacked: [], bombarded: [], pending: null, winner: null, dead: [], lastCombat: null, fog: !!opts.fog, seen: { A: {}, B: {} } };
@@ -886,7 +958,7 @@ const Engine = (() => {
     u.steps -= 1;
     if (u.steps <= 0) {
       s.units = s.units.filter(x => x !== u);
-      s.dead.push({ side: u.side, type: u.type, name: u.name || '', turn: s.turn });
+      s.dead.push({ side: u.side, type: u.type, name: u.name || '', full: u.full || fullName(u.name), turn: s.turn });
       log(s, 'loss', `${unitLabel(s, u)} eliminated`);
       return true;
     }
@@ -996,21 +1068,31 @@ const Engine = (() => {
         const o = oddsFor(s, tk, a.attackers);
         if (!o.valid) return { error: o.why };
         const tgt = occMap(s).get(tk), us = a.attackers.map(id => byId(s, id));
+        const brief = u => ({ id: u.id, side: u.side, type: u.type, name: u.name, full: u.full || fullName(u.name), steps: u.steps, c: u.c, r: u.r, ranged: dist([u.c, u.r], [tgt.c, tgt.r]) > 1 });
+        const before = [...us, tgt].map(brief);
+        const report = () => before.map(b => {
+          const now = byId(s, b.id);
+          if (!now) return { ...b, outcome: 'destroyed' };
+          if (now.steps < b.steps) return { ...b, outcome: now.c !== b.c || now.r !== b.r ? 'reduced and retreated' : 'reduced' };
+          if (now.c !== b.c || now.r !== b.r) return { ...b, outcome: 'retreated' };
+          return { ...b, outcome: 'unharmed' };
+        });
+        const cityName = (getMap(s.scen).cities[tk] || {}).name || '';
         if (tgt.dig === 'digging') { tgt.dig = null; log(s, 'loss', `${unitLabel(s, tgt)} digging interrupted`); }
         if (o.bombard) {
           const die = roll(s), res = BOMBARD[o.fin][die - 1];
           us.forEach(u => (u.attacked = true));
           s.bombarded.push(tk);
-          log(s, 'combat', `${us.length > 1 ? us.length + ' batteries' : unitLabel(s, us[0])} bombard ${unitLabel(s, tgt)} at ${COLS[o.fin]}: rolled ${die}, ${res === 'B1' ? 'hit' : 'miss'}`);
+          log(s, 'combat', `${us.length > 1 ? us.length + ' batteries' : unitLabel(s, us[0])} bombard ${unitLabel(s, tgt)} at ${COLS[o.fin]} odds: rolled ${die}, ${res === 'B1' ? 'a hit' : 'a miss'}`);
           if (res === 'B1') loseStep(s, tgt);
-          s.lastCombat = { target: [tgt.c, tgt.r], die, res, col: o.fin, att: o.att, def: o.def, vacated: false, bombard: true };
+          s.lastCombat = { target: [tgt.c, tgt.r], die, res, col: o.fin, base: o.col, shift: o.shift, att: o.att, def: o.def, vacated: false, bombard: true, side: s.active, city: cityName, units: report(), turn: s.turn };
           checkWin(s);
           return { ok: true, die, res };
         }
         const die = roll(s), res = CRT[o.fin][die - 1];
         us.forEach(u => (u.attacked = true));
         s.attacked.push(tk);
-        log(s, 'combat', `${us.length > 1 ? us.length + ' units' : unitLabel(s, us[0])} attack ${unitLabel(s, tgt)} at ${COLS[o.fin]}: rolled ${die}, ${res}`);
+        log(s, 'combat', `${us.length > 1 ? us.length + ' units' : unitLabel(s, us[0])} attack ${unitLabel(s, tgt)} at ${COLS[o.fin]} odds: rolled ${die}, ${RESULT_TEXT[res].toLowerCase()}`);
         const adjAtt = us.filter(u => dist([u.c, u.r], [tgt.c, tgt.r]) === 1);
         const strongest = adjAtt.slice().sort((x, y) => factors(s, y).a - factors(s, x).a)[0];
         const from = [tgt.c, tgt.r];
@@ -1024,7 +1106,7 @@ const Engine = (() => {
           case 'DE': while (alive(s, tgt)) loseStep(s, tgt); break;
         }
         const vacated = !alive(s, tgt) || tgt.c !== from[0] || tgt.r !== from[1];
-        s.lastCombat = { target: from, die, res, col: o.fin, att: o.att, def: o.def, vacated };
+        s.lastCombat = { target: from, die, res, col: o.fin, base: o.col, shift: o.shift, att: o.att, def: o.def, vacated, side: s.active, city: cityName, units: report(), turn: s.turn, held: inCap && (res === 'DR' || res === 'D1') };
         if (vacated) {
           const adv = adjAtt.filter(u => alive(s, u)).map(u => u.id);
           if (adv.length && !occMap(s).get(tk)) s.pending = { hex: from, units: adv };
@@ -1071,7 +1153,7 @@ const Engine = (() => {
     return out;
   }
 
-  return { K, P, other, dist, nbrs, toCube, fromCube, TERRAIN, TYPES, COLS, THR, CRT, BOMBARD, RESULT_TEXT, SIGHT, SIGHT_RECON, SCEN, SCEN_ORDER, getMap, hexInfo, terrainName, newGame, apply, reachable, eligibleAttackers, oddsFor, factors, supplyNet, zocOf, occMap, byId, vp, legalMoves, visibleHexes, canSee, fogView, defShift };
+  return { K, P, other, dist, nbrs, toCube, fromCube, TERRAIN, TYPES, COLS, THR, CRT, BOMBARD, RESULT_TEXT, SIGHT, SIGHT_RECON, fullName, SCEN, SCEN_ORDER, getMap, hexInfo, terrainName, newGame, apply, reachable, eligibleAttackers, oddsFor, factors, supplyNet, zocOf, occMap, byId, vp, legalMoves, visibleHexes, canSee, fogView, defShift };
 })();
 if (typeof module !== 'undefined') module.exports = Engine;
 
@@ -1545,7 +1627,9 @@ if (typeof module !== 'undefined') module.exports = AI;
 // ===================== HEXFRONT UI =====================
 (() => {
   const E = Engine, K = E.K, P = E.P;
+  const VERSION = '0.8.0', BUILD = '2026-11-19';
   const S = 30, SQ3 = Math.sqrt(3), SAVE_KEY = 'hexfront.v1';
+  try { console.info(`Hexfront v${VERSION} (${BUILD})`); } catch (e) { /* ignore */ }
   const THEMES = {
     temperate: { '.': '#e2d9b4', f: '#a9b47d', h: '#d3bc88', m: '#bba887', s: '#c4cda8', w: '#87a9ba', x: '#c8b285', frame: '#cfc39f', tree: '#6a7b47', hill: '#8f6c3d', mount: '#62513d', marsh: '#5c8797', grid: 'rgba(64,52,30,.30)', road: '#6c4a2b', river: '#4a82a9', label: '#2a2316' },
     europe: { '.': '#dbdab5', f: '#97ac6e', h: '#cfbb89', m: '#b3a184', s: '#bfcaa6', w: '#7d9db0', x: '#c8b285', frame: '#c9c7a2', tree: '#566c3b', hill: '#8a6b3f', mount: '#5f513f', marsh: '#5a8494', grid: 'rgba(56,58,34,.30)', road: '#6a4a2c', river: '#4a7fa6', label: '#262418' },
@@ -1599,12 +1683,13 @@ if (typeof module !== 'undefined') module.exports = AI;
     obj: ic('<path d="M5 21V4"/><path d="M5 4.5h12l-2.5 4 2.5 4H5"/>'),
     forces: ic('<rect x="3" y="8" width="11" height="11" rx="1.5"/><path d="M7 8V5.5A1.5 1.5 0 0 1 8.5 4h10A1.5 1.5 0 0 1 20 5.5v10a1.5 1.5 0 0 1-1.5 1.5H14"/><path d="M5.5 11.5l6 5M11.5 11.5l-6 5"/>'),
     log: ic('<path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1" fill="currentColor"/><circle cx="4" cy="12" r="1" fill="currentColor"/><circle cx="4" cy="18" r="1" fill="currentColor"/>'),
+    unit: ic('<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 8.5h8v5H8z"/><path d="M8 8.5l8 5M16 8.5l-8 5"/><path d="M8.5 17h7"/>'),
     charts: ic('<rect x="3.5" y="4" width="17" height="16" rx="1.5"/><path d="M3.5 9h17M3.5 14.5h17M9.5 4v16M15 4v16"/>'),
   };
   const TOOLS = [['fit', 'Fit'], ['tex', 'Terrain'], ['zoc', 'ZOC'], ['sup', 'Supply'], ['info', 'Info'], ['orders', 'Orders'], ['undo', 'Undo'], ['next', 'Next']];
-  const TRAYS = [['battle', 'Battle'], ['obj', 'Objectives'], ['forces', 'Forces'], ['log', 'Log'], ['charts', 'Charts']];
+  const TRAYS = [['unit', 'Unit'], ['battle', 'Battle'], ['obj', 'Objectives'], ['forces', 'Forces'], ['log', 'Log'], ['charts', 'Charts']];
   $('toolbar').innerHTML = TOOLS.map(([k, l]) => `<button type="button" data-tool="${k}" aria-label="${l}">${ICONS[k]}<span>${l}</span></button>`).join('');
-  $('bnav').innerHTML = TRAYS.map(([k, l]) => `<button type="button" data-tray="${k}" aria-label="${l}">${ICONS[k]}<span>${l}</span></button>`).join('');
+  $('bnav').innerHTML = TRAYS.map(([k, l]) => `<button type="button" data-tray="${k}" aria-label="${l}"${k === 'unit' ? ' class="desk"' : ''}>${ICONS[k]}<span>${l}</span></button>`).join('');
   function flagSVG(side, big) {
     const sd = side ? E.SCEN[state.scen].sides[side] : { color: '#8a8572', ink: '#fff' };
     return `<svg viewBox="0 0 30 32" ${big ? '' : 'aria-hidden="true"'}><path d="M4 2v29" stroke="#c9c2a8" stroke-width="2" stroke-linecap="round"/><path d="M5 3.5c4-2 8 1.5 12 0s6-1.4 10 .3v14c-4-1.7-6-1.4-10 0s-8-2-12 0z" fill="${sd.color}" stroke="rgba(0,0,0,.45)" stroke-width="1"/><path d="M5 9.5c4-2 8 1.5 12 0s6-1.4 10 .3" stroke="${sd.ink}" stroke-width="1.6" fill="none" opacity=".7"/><circle cx="4" cy="2" r="1.6" fill="#e8a83a"/></svg>`;
@@ -1631,6 +1716,8 @@ if (typeof module !== 'undefined') module.exports = AI;
   const sc = () => E.SCEN[state.scen];
   const sideOf = s => sc().sides[s];
   const hexId = (c, r) => `${String(c + 1).padStart(2, '0')}${String(r + 1).padStart(2, '0')}`;
+  const fname = u => (u && (u.full || E.fullName(u.name))) || (u ? E.TYPES[u.type].name : '');
+  const hexA = (hex, a) => { const n = parseInt(hex.slice(1), 16); return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`; };
   const tapWord = s => (TOUCH ? s.replace(/\bclick\b/g, 'tap').replace(/\bClick\b/g, 'Tap') : s);
 
   // ---------- counters ----------
@@ -1657,7 +1744,7 @@ if (typeof module !== 'undefined') module.exports = AI;
     const side = E.SCEN[scenId].sides[u.side], h = z / 2, ink = side.ink, t = E.TYPES[u.type];
     const f = opts.f || (u.steps < 2 ? { a: Math.ceil(t.a / 2), d: Math.ceil(t.d / 2), m: t.m } : t);
     const fac = `${f.a}-${f.d}-${f.m}`;
-    let g = `<g transform="translate(${x.toFixed(1)},${y.toFixed(1)})" opacity="${opts.ghost ? 0.45 : opts.dim ? 0.55 : 1}">`;
+    let g = `<g${opts.uid != null ? ` data-uid="${opts.uid}"` : ''} transform="translate(${x.toFixed(1)},${y.toFixed(1)})" opacity="${opts.ghost ? 0.45 : opts.dim ? 0.55 : 1}">`;
     g += `<rect x="${-h + 1.6}" y="${-h + 2.6}" width="${z}" height="${z}" rx="3" fill="rgba(0,0,0,.38)"/>`;
     g += `<rect x="${-h}" y="${-h}" width="${z}" height="${z}" rx="3" fill="${side.color}" stroke="rgba(10,8,4,.85)" stroke-width="1.4"${opts.ghost ? ' stroke-dasharray="3 2"' : ''}/>`;
     g += `<rect x="${-h + 1.5}" y="${-h + 1.5}" width="${z - 3}" height="${z - 3}" rx="2" fill="none" stroke="rgba(255,255,255,.18)"/>`;
@@ -1671,7 +1758,10 @@ if (typeof module !== 'undefined') module.exports = AI;
       `<text y="${(h - z * 0.08).toFixed(1)}" text-anchor="middle" font-family="${FONT}" font-weight="700" font-size="${(z * 0.3).toFixed(1)}" fill="${ink}" letter-spacing=".4">${opts.ghost ? '?' : fac}</text>`;
     g += opts.lod === 'near' ? near : `<g class="lod-near">${near}</g><g class="lod-far">${far}</g>`;
     if (opts.oos) g += `<g transform="translate(${-h + 1},${-h + 1})"><circle r="6.5" fill="#c4412d" stroke="#1a1e18" stroke-width="1.2"/><text y="3.4" text-anchor="middle" font-family="${FONT}" font-weight="700" font-size="10" fill="#fff">S</text></g>`;
-    if (u.dig) g += `<g transform="translate(${-h + 1},${h - 1})"><circle r="7" fill="#5b4a2e" stroke="#1a1e18" stroke-width="1.2"${u.dig === 'digging' ? ' stroke-dasharray="2 1.5"' : ''}/><path d="M-4.2 1.8h8.4M-3.4 -.6h3M.6 -.6h3M-1.6 -3h3.2" stroke="#efe2bf" stroke-width="1.6" stroke-linecap="round"/></g>`;
+    if (u.dig) { // amber while digging in, green once entrenched
+      const dug = u.dig === 'dug';
+      g += `<g transform="translate(${-h + 1},${h - 1})"><circle r="7.2" fill="${dug ? '#4f7f33' : '#d99a2b'}" stroke="#1a1e18" stroke-width="1.3"/><path d="M-4.2 1.8h8.4M-3.4 -.6h3M.6 -.6h3M-1.6 -3h3.2" stroke="${dug ? '#eaf3d8' : '#2a1c05'}" stroke-width="1.6" stroke-linecap="round"/></g>`;
+    }
     return g + '</g>';
   }
   const miniCounter = (u, z = 44, f) => `<svg viewBox="${-z / 2 - 2} ${-z / 2 - 2} ${z + 6} ${z + 6}" width="${z}" height="${z}" aria-hidden="true">${counterSVG(state.scen, u, 0, 0, z, { lod: 'near', f })}</svg>`;
@@ -1707,7 +1797,7 @@ if (typeof module !== 'undefined') module.exports = AI;
     for (const [a, b] of m.riverSegs) { const [x1, y1] = center(...a), [x2, y2] = center(...b); rivers += `<line x1="${x1}" y1="${y1.toFixed(1)}" x2="${x2}" y2="${y2.toFixed(1)}"/>`; }
     for (const [a, b] of m.roadSegs) { const [x1, y1] = center(...a), [x2, y2] = center(...b); roads += `<line x1="${x1}" y1="${y1.toFixed(1)}" x2="${x2}" y2="${y2.toFixed(1)}"/>`; }
     o += `<defs><clipPath id="hexclip"><polygon points="${hexPts(0, 0, S + 0.6)}"/></clipPath></defs>`;
-    o += hexes + tex + glyph + `<g fill="none" stroke="${useTex ? 'rgba(30,26,16,.38)' : th.grid}" stroke-width="1">${grid}</g>`;
+    o += hexes + `<g opacity=".5">${tex}</g>` + glyph + `<g fill="none" stroke="${useTex ? 'rgba(30,26,16,.38)' : th.grid}" stroke-width="1">${grid}</g>`;
     o += `<g stroke="${th.river}" stroke-width="6.5" stroke-linecap="round" opacity=".9">${rivers}</g>`;
     o += `<g stroke="rgba(255,250,230,.55)" stroke-width="5.5" stroke-linecap="round">${roads}</g><g stroke="${th.road}" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="7 3">${roads}</g>`;
     o += ids;
@@ -1788,7 +1878,7 @@ if (typeof module !== 'undefined') module.exports = AI;
       if (target && atk.has(u.id)) rg = ring(x, y, '#e8a83a', 3);
       else if (target && mine && eligT.includes(u.id)) rg = ring(x, y, '#e8a83a', 1.5, 'stroke-dasharray="4 3"');
       if (state.pending && state.pending.units.includes(u.id)) rg = ring(x, y, '#e8a83a', 3, 'class="pulse"');
-      units += rg + counterSVG(state.scen, u, x, y, 40, { dim, oos: u.oos && mine, f: E.factors(state, E.byId(state, u.id) || u) });
+      units += rg + counterSVG(state.scen, u, x, y, 40, { dim, oos: u.oos && mine, f: E.factors(state, E.byId(state, u.id) || u), uid: u.id });
     }
     o += units;
     o += `<polygon id="hoverHex" points="${hexPts(0, 0, S - 1)}" fill="none" stroke="rgba(255,252,235,.9)" stroke-width="2" visibility="hidden"/>`;
@@ -1817,31 +1907,41 @@ if (typeof module !== 'undefined') module.exports = AI;
 
   // ---------- popup on the map ----------
   let popAt = 0;
-  function openPop(kind, unitId) { pop = { kind, unit: unitId }; popAt = Date.now(); renderDyn(); renderPop(); }
+  function openPop(kind, unitId) {
+    if (!PHONE.matches) { // desktop: details and orders live in the right-hand column
+      const u = E.byId(V(), unitId); if (u) info = K(u.c, u.r);
+      openTray('unit'); render(); return;
+    }
+    pop = { kind, unit: unitId }; popAt = Date.now(); renderDyn(); renderPop();
+  }
   function closePop() { if (!pop) return; pop = null; $('pop').classList.remove('show'); renderDyn(); }
+  function orderBlock(u) {
+    const mine = u.side === state.active && !isAI(u.side) && !aiBusy && !state.winner;
+    let why = '';
+    if (!mine) why = u.side === state.active ? 'The computer commands this unit.' : 'Orders can only be given to your own units on your turn.';
+    else if (state.phase !== 'move') why = 'Orders are given in the movement phase.';
+    else if (u.dig === 'dug') why = 'Already entrenched. It keeps the bonus until it moves.';
+    else if (u.dig === 'digging') why = 'Already digging in.';
+    else if (E.byId(state, u.id).moved) why = 'This unit has already moved this turn.';
+    return `<div class="order"><b style="font:700 16px/1 var(--ui);letter-spacing:.04em;text-transform:uppercase">Entrench</b><p>Stay put and dig in. If not attacked before your next turn, attacks on it shift one column left until it moves.</p>
+        <button type="button" class="primary" data-pop="entrench" data-unit="${u.id}" ${why ? 'disabled' : ''}>Entrench</button>${why ? `<p style="color:var(--signal)">${esc(why)}</p>` : ''}</div>`;
+  }
+  function statsHTML(f, base) {
+    const st = (lbl, val, b) => `<div><small>${lbl}</small><b class="${val < b ? 'down' : ''}">${val}</b></div>`;
+    return `<div class="stats">${st('Attack', f.a, base.a)}${st('Defense', f.d, base.d)}${st('Move', f.m, base.m)}</div>`;
+  }
   function renderPop() {
     const el = $('pop');
     if (!pop) { el.classList.remove('show'); return; }
     const v = V(), u = E.byId(v, pop.unit);
     if (!u) { pop = null; el.classList.remove('show'); return; }
     const sd = sideOf(u.side), { f, t, rows, base } = unitFacts(u);
-    let html = `<div class="pop-h">${miniCounter(u, 44, f)}<div><b>${esc(u.name || t.name)}</b><small>${esc(sd.name)} · ${esc(t.name)}</small></div><button type="button" class="pop-x" data-pop="close" aria-label="Close">×</button></div>`;
+    let html = `<div class="pop-h">${miniCounter(u, 44, f)}<div><b>${esc(fname(u))}</b><small>${esc(sd.name)} · ${esc(t.name)}${u.name ? ` · counter “${esc(u.name)}”` : ''}</small></div><button type="button" class="pop-x" data-pop="close" aria-label="Close">×</button></div>`;
     if (pop.kind === 'info') {
-      const st = (lbl, val, b) => `<div><small>${lbl}</small><b class="${val < b ? 'down' : ''}">${val}</b></div>`;
-      html += `<div class="stats">${st('Attack', f.a, base.a)}${st('Defense', f.d, base.d)}${st('Move', f.m, base.m)}</div>`;
+      html += statsHTML(f, base);
       html += `<ul>${rows.map(([a, b]) => `<li><span>${esc(a)}</span><span>${esc(b)}</span></li>`).join('')}</ul>`;
       if (t.note) html += `<p class="note">${esc(t.note)}</p>`;
-    } else {
-      const mine = u.side === state.active && !isAI(u.side) && !aiBusy;
-      let why = '';
-      if (!mine) why = u.side === state.active ? 'The computer commands this unit.' : "Orders can only be given to your own units on your turn.";
-      else if (state.phase !== 'move') why = 'Orders are given in the movement phase.';
-      else if (u.dig === 'dug') why = 'Already entrenched. It keeps the bonus until it moves.';
-      else if (u.dig === 'digging') why = 'Already digging in.';
-      else if (E.byId(state, u.id).moved) why = 'This unit has already moved this turn.';
-      html += `<div class="order"><b style="font:700 16px/1 var(--ui);letter-spacing:.04em;text-transform:uppercase">Entrench</b><p>Stay put and dig in. If not attacked before your next turn, attacks on it shift one column left until it moves.</p>
-        <button type="button" class="primary" data-pop="entrench" ${why ? 'disabled' : ''}>Entrench</button>${why ? `<p style="color:var(--signal)">${esc(why)}</p>` : ''}</div>`;
-    }
+    } else html += orderBlock(u);
     el.innerHTML = html;
     el.classList.add('show');
     placePop();
@@ -1867,12 +1967,17 @@ if (typeof module !== 'undefined') module.exports = AI;
     }
     el.style.left = left + 'px'; el.style.top = top + 'px';
   }
+  $('detail').addEventListener('click', e => {
+    const b = e.target.closest('[data-pop="entrench"]'); if (!b) return;
+    const r = act({ t: 'entrench', unit: Number(b.dataset.unit) });
+    if (!r.error) toast2('Digging in. Entrenched at the start of your next turn if not attacked.');
+  });
   $('pop').addEventListener('click', e => {
     if (Date.now() - popAt < 400) return; // ignore the tap that opened it
     const b = e.target.closest('[data-pop]'); if (!b) return;
     if (b.dataset.pop === 'close') closePop();
     if (b.dataset.pop === 'entrench') {
-      const id = pop.unit; closePop();
+      const id = Number(b.dataset.unit); closePop();
       const r = act({ t: 'entrench', unit: id });
       if (!r.error) toast2('Digging in. Entrenched at the start of your next turn if not attacked.');
     }
@@ -1894,28 +1999,38 @@ if (typeof module !== 'undefined') module.exports = AI;
     if (PHONE.matches) return;
     const v = V(), su = sel != null ? E.byId(v, sel) : null;
     const k = su ? K(su.c, su.r) : info, el = $('detail');
-    if (!k) { $('detailTitle').textContent = 'Selection'; el.innerHTML = `<p class="empty">${tapWord('Click')} a unit or hex to see its details, or use Info in the toolbar. Counters read attack-defense-move.</p>`; return; }
+    if (!k) { el.innerHTML = `<p class="empty">${tapWord('Click')} a unit or hex to see it here. Counters read attack-defense-move. With Orders on in the left toolbar, ${tapWord('click')} one of your units to give it orders.</p>`; return; }
     const u = E.occMap(v).get(k);
-    if (!u) { $('detailTitle').textContent = 'Terrain'; el.innerHTML = terrainLine(k); return; }
-    $('detailTitle').textContent = 'Unit';
-    const { f, t, rows } = unitFacts(u);
-    el.innerHTML = `<div class="detail">${miniCounter(u, 60, f)}<div><h4>${esc(u.name || t.name)}</h4><p>${esc(sideOf(u.side).name)} · ${esc(t.name)} · attack ${f.a} · defense ${f.d} · move ${f.m}</p>${t.note ? `<p>${esc(t.note)}</p>` : ''}</div></div>${rows.map(([a, b]) => `<p>${esc(a)}: ${esc(b)}</p>`).join('')}`;
+    if (!u) { el.innerHTML = `<div class="unitcard">${terrainLine(k)}</div>`; return; }
+    const { f, t, rows, base } = unitFacts(u), sd = sideOf(u.side);
+    const showOrders = u.side === state.active && !isAI(u.side);
+    el.innerHTML = `<div class="unitcard"><div class="pop-h">${miniCounter(u, 44, f)}<div><b>${esc(fname(u))}</b><small>${esc(sd.name)} · ${esc(t.name)}</small></div><span></span></div>
+      ${statsHTML(f, base)}<ul>${rows.map(([a, b]) => `<li><span>${esc(a)}</span><span>${esc(b)}</span></li>`).join('')}</ul>
+      ${t.note ? `<p class="note">${esc(t.note)}</p>` : ''}
+      ${showOrders || mode === 'orders' ? `<h3 style="margin:16px 0 0">Orders</h3>${orderBlock(u)}` : ''}
+      <h3 style="margin:16px 0 6px">Hex</h3>${terrainLine(k)}</div>`;
+  }
+  const SHORT = { DE: 'Defender destroyed', D1: 'Defender loses a step and retreats', DR: 'Defender retreats', EX: 'Exchange: both sides lose a step', A1: 'Strongest attacker loses a step', AE: 'Every adjacent attacker loses a step', B1: 'Hit: defender loses a step', '-': 'Miss' };
+  const tone = r => (r === 'DE' || r === 'D1' || r === 'DR' || r === 'B1' ? 'good' : r === 'EX' ? 'mid' : r === '-' ? 'none' : 'bad');
+  function dieFace(n, size = 22) {
+    const P2 = { 1: [[2, 2]], 2: [[1, 1], [3, 3]], 3: [[1, 1], [2, 2], [3, 3]], 4: [[1, 1], [3, 1], [1, 3], [3, 3]], 5: [[1, 1], [3, 1], [2, 2], [1, 3], [3, 3]], 6: [[1, 1], [3, 1], [1, 2], [3, 2], [1, 3], [3, 3]] }[n];
+    return `<svg class="die" viewBox="0 0 4 4" width="${size}" height="${size}" aria-label="${n}"><rect x=".15" y=".15" width="3.7" height="3.7" rx=".7" fill="#efe6cc"/>${P2.map(([x, y]) => `<circle cx="${x}" cy="${y}" r=".36" fill="#1a1e18"/>`).join('')}</svg>`;
   }
   function crtCells(table, col, hitDie) {
-    return table[col].map((res, i) => `<div class="${res === '-' ? '' : res[0]}${hitDie === i + 1 ? ' hit' : ''}" title="${esc(E.RESULT_TEXT[res] || '')}"><small>${i + 1}</small>${res === '-' ? '—' : res}</div>`).join('');
+    return `<ol class="dielist">${table[col].map((res, i) => `<li class="${tone(res)}${hitDie === i + 1 ? ' hit' : ''}">${dieFace(i + 1)}<span>${esc(SHORT[res])}</span></li>`).join('')}</ol>`;
   }
   function lastResultHTML() {
     const lc = state.lastCombat;
     if (!lc) return '';
     const tb = lc.bombard ? E.BOMBARD : E.CRT;
-    return `<div class="result">${lc.bombard ? 'Bombardment: rolled' : 'Rolled'} <b>${lc.die}</b> at ${E.COLS[lc.col]} (${lc.att} vs ${lc.def}): <b>${lc.res === '-' ? 'miss' : lc.res}</b>. ${esc(E.RESULT_TEXT[lc.res])}.</div><div class="crtrow">${crtCells(tb, lc.col, lc.die)}</div>`;
+    return `<div class="result">${lc.bombard ? 'Bombardment: rolled' : 'Rolled'} <b>${lc.die}</b> at ${E.COLS[lc.col]} odds (${lc.att} against ${lc.def}): <b>${esc(SHORT[lc.res])}</b>.</div>${crtCells(tb, lc.col, lc.die)}`;
   }
   function renderCombat() {
-    const sec = $('combatSec'), el = $('combat');
+    const el = $('combat'), sec = { hidden: false };
     const myTurn = !aiBusy && !isAI(state.active) && !state.winner;
     if (state.pending && myTurn) {
       sec.hidden = false;
-      const btns = state.pending.units.map(id => { const u = E.byId(state, id); return `<button type="button" data-adv="${id}">Advance ${esc(u.name || E.TYPES[u.type].name)}</button>`; }).join('');
+      const btns = state.pending.units.map(id => { const u = E.byId(state, id); return `<button type="button" data-adv="${id}">Advance ${esc(fname(u))}</button>`; }).join('');
       el.innerHTML = `${lastResultHTML()}<p class="empty" style="margin-bottom:10px">The defender's hex is empty. Move one attacker in, or stay put.</p><div class="row">${btns}<button type="button" data-adv="none">Stay put</button></div>`;
       return;
     }
@@ -1932,14 +2047,14 @@ if (typeof module !== 'undefined') module.exports = AI;
     const elig = E.eligibleAttackers(state, target), ids = [...atk].filter(id => elig.includes(id));
     const o = E.oddsFor(state, target, ids), tgt = E.occMap(state).get(target);
     if (!tgt) { target = null; atk.clear(); return renderCombat(); }
-    const list = elig.map(id => { const u = E.byId(state, id), f = E.factors(state, u), rng = E.dist([u.c, u.r], [tgt.c, tgt.r]) > 1; return `<li data-atk="${id}" class="${atk.has(id) ? '' : 'off'}"><span>${esc(u.name || E.TYPES[u.type].name)}${rng ? ' (ranged)' : ''}${u.oos ? ' · halved' : ''}</span><b>${f.a}</b></li>`; }).join('');
+    const list = elig.map(id => { const u = E.byId(state, id), f = E.factors(state, u), rng = E.dist([u.c, u.r], [tgt.c, tgt.r]) > 1; return `<li data-atk="${id}" class="${atk.has(id) ? '' : 'off'}"><span>${esc(fname(u))}${rng ? ' (firing from range)' : ''}${u.oos ? ' · out of supply, halved' : ''}</span><b>${f.a}</b></li>`; }).join('');
     const base = o.col >= 0 ? E.COLS[o.col] : '—', fin = o.fin >= 0 ? E.COLS[o.fin] : '—';
     const why = [];
     if (o.shift) why.push(`${o.shift} left for ${[o.hi.city ? (o.hi.city.cap ? 'capital' : 'city') : (o.hi.t.shift ? 'terrain' : ''), o.hi.river ? 'river' : '', o.dug ? 'entrenched' : ''].filter(Boolean).join(', ')}`);
     const arts = elig.filter(id => E.TYPES[E.byId(state, id).type].range);
-    el.innerHTML = `<ul class="atklist">${list}<li class="total"><span>vs ${esc(tgt.name || E.TYPES[tgt.type].name)} (defense ${o.def})</span><b>${o.att} : ${o.def}</b></li></ul>
+    el.innerHTML = `<ul class="atklist">${list}<li class="total"><span>Against ${esc(fname(tgt))} (defense ${o.def})</span><b>${o.att} : ${o.def}</b></li></ul>
       <div class="odds"><b>${fin}</b>${o.bombard ? '<span class="mode">Bombardment</span>' : ''}<span>${base} odds${why.length ? `, shifted ${why.join(' ')}` : ''}</span></div>
-      ${o.fin >= 0 ? `<div class="crtrow">${crtCells(o.bombard ? E.BOMBARD : E.CRT, o.fin)}</div>` : ''}
+      ${o.fin >= 0 ? `<p class="empty" style="margin:0 0 6px">If you roll:</p>${crtCells(o.bombard ? E.BOMBARD : E.CRT, o.fin)}` : ''}
       ${o.valid ? '' : `<p class="empty" style="color:var(--danger);margin-bottom:10px">${esc(o.why)}</p>`}
       <div class="row"><button type="button" class="primary" id="resolveBtn" ${o.valid ? '' : 'disabled'}>${o.bombard ? 'Fire' : 'Roll the die'}</button>${arts.length && arts.length < elig.length && !o.bombard ? '<button type="button" id="artOnly">Artillery only</button>' : ''}<button type="button" id="cancelAtk">Cancel</button></div>`;
   }
@@ -1948,13 +2063,12 @@ if (typeof module !== 'undefined') module.exports = AI;
     $('score').innerHTML = ['A', 'B'].map(sd => {
       const sdd = sideOf(sd), n = state.units.filter(u => u.side === sd).length;
       const hide = state.fog && who && sd !== who;
-      return `<div style="border-left-color:${sdd.color}"><small>${esc(sdd.name)}</small><b>${E.vp(state, sd)}</b> <em>VP · ${hide ? '?' : n} units</em></div>`;
+      return `<div style="border-left-color:${sdd.color}"><small>${esc(sdd.name)}</small><b>${E.vp(state, sd)}</b> <em>points · ${hide ? '?' : n} units</em></div>`;
     }).join('');
     const v = s.victory;
     $('objective').textContent = v.type === 'more'
-      ? `Most VP after turn ${s.maxTurns} wins. Taking the enemy capital (★) wins at once.`
-      : `${s.sides[v.side].name} need ${v.vp} VP by the end of turn ${s.maxTurns}. Taking the enemy capital (★) wins at once.`;
-    if (!PHONE.matches) return;
+      ? `Most victory points after turn ${s.maxTurns} wins. Taking the enemy capital (★) wins at once.`
+      : `${s.sides[v.side].name} need ${v.vp} victory points by the end of turn ${s.maxTurns}. Taking the enemy capital (★) wins at once.`;
     const special = [...new Set(s.units.map(u => u[1]))].filter(t => !['inf', 'mech', 'arm', 'art'].includes(t)).map(t => `${E.TYPES[t].name}: ${E.TYPES[t].note}`);
     const rules = [
       'Capitals hold: a unit defending a capital never retreats; it loses a step instead.',
@@ -1966,10 +2080,13 @@ if (typeof module !== 'undefined') module.exports = AI;
       <section><h3>Scenario rules</h3><ul class="rulelist">${rules.map(r => `<li>${esc(r)}</li>`).join('')}</ul></section>
       <section><h3>Cities</h3><ul class="citylist">${s.cities.map(ct => { const own = state.owner[K(ct.c, ct.r)]; return `<li><span>${ct.cap ? '★ ' : ''}${esc(ct.name)}</span><span class="own"><i style="background:${own ? sideOf(own).color : '#8a8572'}"></i>${own ? esc(sideOf(own).short) : 'Neutral'}</span><span class="vp">${ct.vp}</span></li>`; }).join('')}</ul></section>`;
   }
+  let forcesSide = 'mine';
   function renderForces() {
-    if (!PHONE.matches) return;
-    const who = viewer() || state.active, sd = sideOf(who);
-    const mine = state.units.filter(u => u.side === who);
+    const me = viewer() || state.active;
+    const who = forcesSide === 'mine' ? me : E.other(me), sd = sideOf(who);
+    const v = V();
+    const mine = v.units.filter(u => u.side === who);
+    const ghosts = who !== me && state.fog ? Object.entries((state.seen && state.seen[me]) || {}) : [];
     const status = u => {
       const st = [];
       if (u.steps < 2) st.push('Reduced');
@@ -1980,9 +2097,13 @@ if (typeof module !== 'undefined') module.exports = AI;
       return st.join(' · ') || '—';
     };
     const lost = (state.dead || []).filter(d => d.side === who);
-    $('forces').innerHTML = `<h3 style="margin:0 0 8px;font:600 13px/1 var(--ui);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)">${esc(sd.name)} · ${mine.length} units</h3>
-      <ul class="forces">${mine.map(u => `<li data-unit="${u.id}">${miniCounter(u, 36, E.factors(state, u))}<div><b>${esc(u.name || E.TYPES[u.type].name)}</b><small>${esc(E.TYPES[u.type].name)} · hex ${hexId(u.c, u.r)}</small></div><span class="st">${esc(status(u))}</span></li>`).join('')}
-      ${lost.map(d => `<li class="lost">${miniCounter({ side: d.side, type: d.type, steps: 1, name: d.name }, 36)}<div><b>${esc(d.name || E.TYPES[d.type].name)}</b><small>Lost on turn ${d.turn}</small></div><span class="st">Destroyed</span></li>`).join('')}</ul>`;
+    const seg = `<div class="seg forceseg" role="group" aria-label="Whose forces"><button type="button" data-fs="mine" aria-pressed="${forcesSide === 'mine'}">${esc(sideOf(me).name)}</button><button type="button" data-fs="enemy" aria-pressed="${forcesSide === 'enemy'}">${esc(sideOf(E.other(me)).name)}</button></div>`;
+    const status2 = u => (who === me ? status(u) : [u.steps < 2 ? 'Reduced' : 'Full strength', u.dig === 'dug' ? 'Entrenched' : ''].filter(Boolean).join(' · '));
+    $('forces').innerHTML = `${seg}<h3 style="margin:12px 0 8px;font:600 13px/1 var(--ui);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)">${esc(sd.name)} · ${state.fog && who !== me ? `${mine.length} in sight` : `${mine.length} units`}</h3>
+      <ul class="forces">${mine.map(u => `<li data-unit="${u.id}">${miniCounter(u, 36, E.factors(state, E.byId(state, u.id)))}<div><b>${esc(fname(u))}</b><small>${esc(E.TYPES[u.type].name)} · hex ${hexId(u.c, u.r)}</small></div><span class="st">${esc(status2(u))}</span></li>`).join('')}
+      ${ghosts.map(([id, g]) => `<li class="lost" data-ghost="${id}">${miniCounter({ side: who, type: g.type, steps: g.steps, name: g.name }, 36)}<div><b>${esc(E.fullName(g.name) || E.TYPES[g.type].name)}</b><small>Last seen at hex ${hexId(g.c, g.r)}, turn ${g.turn}</small></div><span class="st">Not in sight</span></li>`).join('')}
+      ${!mine.length && !ghosts.length ? '<li class="lost" style="grid-template-columns:1fr"><small>No enemy units in sight.</small></li>' : ''}</ul>
+      ${lost.length ? `<h3 style="margin:14px 0 8px;font:600 13px/1 var(--ui);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)">Destroyed · ${lost.length}</h3><ul class="forces">${lost.map(d => `<li class="lost">${miniCounter({ side: d.side, type: d.type, steps: 1, name: d.name }, 36)}<div><b>${esc(d.full || E.fullName(d.name) || E.TYPES[d.type].name)}</b><small>${esc(E.TYPES[d.type].name)} · lost on turn ${d.turn}</small></div><span class="st">Destroyed</span></li>`).join('')}</ul>` : ''}`;
   }
   function chartsHTML() {
     const tr = Object.entries(E.TERRAIN).map(([ch, t]) => `<tr><td style="text-align:left">${esc(E.terrainName(state.scen, ch))}</td><td>${t.impass ? '—' : t.mp}</td><td>${t.impass ? '—' : t.shift}</td></tr>`).join('');
@@ -1991,7 +2112,7 @@ if (typeof module !== 'undefined') module.exports = AI;
     return `<div class="tblwrap"><h3>Terrain</h3><table class="crt"><tr><th style="text-align:left">Terrain</th><th>MP</th><th>Odds shift</th></tr>${tr}<tr><td style="text-align:left">City / capital</td><td>1</td><td>1 / 2</td></tr><tr><td style="text-align:left">River hex</td><td>+1</td><td>+1</td></tr><tr><td style="text-align:left">Entrenched unit</td><td>—</td><td>+1</td></tr></table></div>
     <div class="tblwrap"><h3>Combat results</h3><table class="crt">${tbl(E.CRT)}</table><p class="empty" style="margin-top:6px">AE all adjacent attackers lose a step · A1 strongest attacker loses a step · EX both lose a step · DR defender retreats · D1 defender loses a step and retreats · DE defender eliminated.</p></div>
     <div class="tblwrap"><h3>Bombardment (artillery only)</h3><table class="crt">${tbl(E.BOMBARD, r => (r === '-' ? '—' : 'Hit'))}</table><p class="empty" style="margin-top:6px">A hit costs the defender one step. Artillery is never hurt; the defender never retreats.</p></div>
-    <div class="tblwrap"><h3>Units</h3><table class="crt"><tr><th style="text-align:left">Unit</th><th>A-D-M</th><th style="text-align:left">Notes</th></tr>${units}</table></div>`;
+    <div class="tblwrap"><h3>Units</h3><table class="crt"><tr><th style="text-align:left">Unit</th><th>Attack-Defense-Move</th><th style="text-align:left">Notes</th></tr>${units}</table></div>`;
   }
   function rulesHTML() {
     return `<div><h3>Turn</h3><ul><li>Each turn, one side moves, then fights, then hands over. Then the other side does the same.</li><li>Units have two steps. A reduced unit (corner tab) has its attack and defense halved. Losing a second step eliminates it.</li><li>One unit per hex.</li></ul></div>
@@ -2017,8 +2138,14 @@ if (typeof module !== 'undefined') module.exports = AI;
     tb('info').setAttribute('aria-pressed', mode === 'info'); tb('orders').setAttribute('aria-pressed', mode === 'orders');
     tb('undo').disabled = !undo.length || aiBusy;
     const busy = aiBusy || isAI(state.active) || !!state.winner;
-    tb('next').disabled = busy; tb('orders').disabled = busy;
-    $('log').innerHTML = state.log.slice(-80).map(l => `<li class="${l.kind}">${esc(l.text)}</li>`).join('');
+    tb('next').disabled = busy; tb('orders').disabled = busy || state.phase !== 'move' || !!state.pending;
+    if (mode === 'orders' && tb('orders').disabled) mode = null;
+    $('log').innerHTML = state.log.slice(-80).map(l => {
+      const c = l.side ? sideOf(l.side).color : '#8a8572';
+      return l.kind === 'turn'
+        ? `<li class="turn" style="border-left-color:${c};background:${hexA(c, 0.22)}">${flagSVG(l.side)}<span>${esc(l.text)}</span></li>`
+        : `<li class="${l.kind}" style="border-left-color:${hexA(c, 0.9)}">${esc(l.text)}</li>`;
+    }).join('');
     let hint;
     if (state.winner) hint = `Game over. ${state.winner.reason}.`;
     else if (aiBusy || isAI(state.active)) hint = `${side.name} (computer) is ${state.phase === 'move' ? 'moving' : 'attacking'}…`;
@@ -2043,33 +2170,25 @@ if (typeof module !== 'undefined') module.exports = AI;
   // ---------- trays (phones) ----------
   const TRAY_TITLES = Object.fromEntries(TRAYS);
   function openTray(name) {
+    if (!PHONE.matches && name === tray) return;
     tray = name;
     document.querySelectorAll('#trayBody .pane').forEach(p => (p.hidden = p.dataset.pane !== name));
     $('trayTitle').textContent = TRAY_TITLES[name];
     $('tray').classList.add('open');
     document.body.classList.add('tray-on');
-    $('trayBack').classList.toggle('on', name !== 'battle'); // the map stays live under the Battle tray
+    $('trayBack').classList.toggle('on', PHONE.matches && name !== 'battle'); // the map stays live under the Battle tray
     document.querySelectorAll('#bnav [data-tray]').forEach(b => b.setAttribute('aria-pressed', b.dataset.tray === name));
     $('trayBody').scrollTop = 0;
   }
   function closeTray() {
+    if (!PHONE.matches) return; // desktop: the right column always shows one panel
     tray = null;
     $('tray').classList.remove('open'); document.body.classList.remove('tray-on'); $('trayBack').classList.remove('on');
     document.querySelectorAll('#bnav [data-tray]').forEach(b => b.setAttribute('aria-pressed', 'false'));
   }
-  // Move shared panels between the desktop sidebar and the phone trays.
   function placePanels() {
-    const pane = n => document.querySelector(`#trayBody [data-pane="${n}"]`);
-    if (PHONE.matches) {
-      pane('battle').append($('combat'));
-      pane('obj').prepend($('score'), $('objective'));
-      pane('log').append($('log'));
-    } else {
-      $('combatSec').append($('combat'));
-      $('scoreSec').append($('score'), $('objective'));
-      $('logSec').append($('log'));
-      closeTray();
-    }
+    if (PHONE.matches) { tray = 'x'; closeTray(); }
+    else { const t = tray && tray !== 'x' ? tray : 'obj'; tray = null; openTray(t); }
   }
   PHONE.addEventListener?.('change', () => { placePanels(); if (state) { render(); smartFit(); } });
 
@@ -2090,14 +2209,15 @@ if (typeof module !== 'undefined') module.exports = AI;
     if (a.t === 'move') { info = K(a.to[0], a.to[1]); sel = null; }
     if (a.t === 'endTurn') { closePop(); mode = null; if (tray === 'battle') closeTray(); }
     persist(); render();
-    if (a.t === 'attack' && PHONE.matches && tray !== 'battle') openTray('battle');
+    if (a.t === 'attack' && tray !== 'battle') { openTray('battle'); render(); }
     if (state.winner) showWinner();
     else if (a.t === 'endTurn') { if (isAI(state.active)) runAI(); else if (hasAI()) { smartFit(); toast2(`Your turn: ${sideOf(state.active).name}`); } else showHandoff(); }
     return r;
   }
   function onHex(c, r) {
+    if (fxBusy) return;
     const k = K(c, r), v = V(), u = E.occMap(v).get(k);
-    if (mode === 'info') { if (u) openPop('info', u.id); else { closePop(); info = k; render(); } return; }
+    if (mode === 'info') { if (u) openPop('info', u.id); else { closePop(); info = k; if (!PHONE.matches) openTray('unit'); render(); } return; }
     if (mode === 'orders') {
       if (u && u.side === state.active && !isAI(u.side)) openPop('orders', u.id);
       else { closePop(); toast(tapWord('Click one of your own units to give it orders.')); }
@@ -2117,6 +2237,7 @@ if (typeof module !== 'undefined') module.exports = AI;
         if (su && E.reachable(v, su).has(k)) { act({ t: 'move', unit: sel, to: [c, r] }); return; }
       }
       if (u && u.side === state.active && !u.moved) sel = sel === u.id ? null : u.id;
+      if (u && !PHONE.matches) openTray('unit');
       else { sel = null; if (u && u.side === state.active && u.moved) toast(u.dig === 'digging' ? 'That unit is digging in this turn.' : 'That unit has already moved this turn.'); }
       info = k; render(); return;
     }
@@ -2124,7 +2245,7 @@ if (typeof module !== 'undefined') module.exports = AI;
       const el = E.eligibleAttackers(state, k);
       if (el.length) {
         if (target === k) { target = null; atk.clear(); }
-        else { target = k; atk = new Set(el); if (PHONE.matches) openTray('battle'); }
+        else { target = k; atk = new Set(el); openTray('battle'); }
       } else { target = null; atk.clear(); toast('None of your units can attack that enemy.'); }
     } else if (u && target && E.eligibleAttackers(state, target).includes(u.id)) {
       atk.has(u.id) ? atk.delete(u.id) : atk.add(u.id);
@@ -2132,6 +2253,7 @@ if (typeof module !== 'undefined') module.exports = AI;
     info = k; render();
   }
   function mainButton() {
+    if (fxBusy) return;
     if (state.winner) { openNew(); return; }
     if (aiBusy || isAI(state.active)) return;
     if (state.phase === 'move') {
@@ -2142,7 +2264,8 @@ if (typeof module !== 'undefined') module.exports = AI;
   }
   function centerOn(c, r) {
     const [x, y] = center(c, r);
-    vb.x = x - vb.w / 2; vb.y = y - vb.h / 2; setVB();
+    const clamp = (v, size, total) => (size >= total + 60 ? (total - size) / 2 : Math.min(Math.max(v, -30), total + 30 - size));
+    vb.x = clamp(x - vb.w / 2, vb.w, mapW); vb.y = clamp(y - vb.h / 2, vb.h, mapH); setVB();
   }
   function nextUnit() {
     if (aiBusy || isAI(state.active) || state.winner) return;
@@ -2162,11 +2285,134 @@ if (typeof module !== 'undefined') module.exports = AI;
     centerOn(u.c, u.r); render();
   }
 
+  // ---------- battle effects ----------
+  const REDUCED = (() => { try { return matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } })();
+  const NS = 'http://www.w3.org/2000/svg';
+  let fxBusy = false, skipReports = false;
+  function fxEl(tag, attrs) { const el = document.createElementNS(NS, tag); for (const k in attrs) el.setAttribute(k, attrs[k]); $('gFx').appendChild(el); return el; }
+  const tween = (ms, fn) => new Promise(res => { const t0 = performance.now(); const step = now => { const t = Math.min(1, (now - t0) / ms); fn(t); if (t < 1) requestAnimationFrame(step); else res(); }; requestAnimationFrame(step); });
+  const ease = t => 1 - Math.pow(1 - t, 3);
+  function burst(x, y, size, kind) {
+    const els = [];
+    const flash = fxEl('circle', { cx: x, cy: y, r: 0, fill: kind === 'dust' ? '#d8c49a' : '#fff6c8' }); els.push(flash);
+    const balls = [], smoke = [];
+    const n = kind === 'dust' ? 0 : 6;
+    for (let i = 0; i < n; i++) { const a = i / n * 6.283 + Math.random(), d = size * (0.25 + Math.random() * 0.35); balls.push({ el: fxEl('circle', { cx: x, cy: y, r: 0, fill: i % 2 ? '#f07a22' : '#ffb432' }), dx: Math.cos(a) * d, dy: Math.sin(a) * d }); }
+    for (let i = 0; i < (kind === 'dust' ? 4 : 6); i++) smoke.push({ el: fxEl('circle', { cx: x, cy: y, r: 0, fill: kind === 'dust' ? '#a8916a' : '#4b4a44' }), dx: (Math.random() - 0.5) * size * 0.9, dy: -size * (0.3 + Math.random() * 0.5) });
+    els.push(...balls.map(b => b.el), ...smoke.map(b => b.el));
+    return tween(kind === 'dust' ? 650 : 900, t => {
+      const e = ease(t);
+      flash.setAttribute('r', (size * 0.55 * Math.min(1, t * 3)).toFixed(1)); flash.setAttribute('opacity', Math.max(0, 1 - t * 2.6).toFixed(2));
+      for (const b of balls) { b.el.setAttribute('cx', (x + b.dx * e).toFixed(1)); b.el.setAttribute('cy', (y + b.dy * e).toFixed(1)); b.el.setAttribute('r', (size * 0.28 * Math.sin(Math.min(1, t * 1.6) * Math.PI)).toFixed(1)); b.el.setAttribute('opacity', (1 - t).toFixed(2)); }
+      for (const b of smoke) { b.el.setAttribute('cx', (x + b.dx * e).toFixed(1)); b.el.setAttribute('cy', (y + b.dy * e).toFixed(1)); b.el.setAttribute('r', (size * (0.12 + 0.3 * e)).toFixed(1)); b.el.setAttribute('opacity', (0.75 * (1 - t)).toFixed(2)); }
+    }).then(() => els.forEach(el => el.remove()));
+  }
+  function shell(from, to, delay) {
+    return new Promise(res => setTimeout(async () => {
+      const [x1, y1] = center(...from), [x2, y2] = center(...to);
+      const muzzle = fxEl('circle', { cx: x1, cy: y1 - 6, r: 0, fill: '#fff1b0' });
+      const sh = fxEl('circle', { cx: x1, cy: y1, r: 3.2, fill: '#2b2516', stroke: '#ffd27a', 'stroke-width': 1 });
+      const trail = fxEl('path', { d: '', fill: 'none', stroke: 'rgba(255,240,200,.55)', 'stroke-width': 1.6, 'stroke-dasharray': '2 3' });
+      const peak = Math.max(40, Math.hypot(x2 - x1, y2 - y1) * 0.45), pts = [];
+      await tween(520, t => {
+        const x = x1 + (x2 - x1) * t, y = y1 + (y2 - y1) * t - Math.sin(t * Math.PI) * peak;
+        sh.setAttribute('cx', x.toFixed(1)); sh.setAttribute('cy', y.toFixed(1)); pts.push(`${x.toFixed(1)},${y.toFixed(1)}`);
+        trail.setAttribute('d', 'M' + pts.join('L')); trail.setAttribute('opacity', (1 - t * 0.6).toFixed(2));
+        muzzle.setAttribute('r', (12 * Math.sin(Math.min(1, t * 4) * Math.PI)).toFixed(1));
+      });
+      sh.remove(); muzzle.remove(); trail.remove();
+      burst(x2 + (Math.random() - 0.5) * 12, y2 + (Math.random() - 0.5) * 12, 30, 'fire');
+      res();
+    }, delay));
+  }
+  function lunge(u, to) {
+    const g = gDyn.querySelector(`[data-uid="${u.id}"]`);
+    if (!g) return Promise.resolve();
+    const [x1, y1] = center(u.c, u.r), [x2, y2] = center(...to);
+    return tween(420, t => { const k = Math.sin(t * Math.PI) * 0.38; g.setAttribute('transform', `translate(${(x1 + (x2 - x1) * k).toFixed(1)},${(y1 + (y2 - y1) * k).toFixed(1)})`); });
+  }
+  function shake(id, ms) {
+    const g = gDyn.querySelector(`[data-uid="${id}"]`);
+    if (!g) return Promise.resolve();
+    const base = g.getAttribute('transform');
+    return tween(ms, t => { const a = (1 - t) * 4; g.setAttribute('transform', `${base} translate(${(Math.sin(t * 60) * a).toFixed(1)},${(Math.cos(t * 47) * a * 0.6).toFixed(1)})`); }).then(() => g.setAttribute('transform', base));
+  }
+  // Plays over the board as it was before the battle; the board is redrawn afterwards.
+  async function animateBattle(pre, lc) {
+    if (REDUCED) return;
+    const arts = pre.attackers.filter(u => u.art), ground = pre.attackers.filter(u => !u.art);
+    if (arts.length) await Promise.all(arts.map((u, i) => shell([u.c, u.r], pre.target, i * 160)));
+    if (ground.length) {
+      await Promise.all(ground.map(u => lunge(u, pre.target)));
+    }
+    const hurt = lc && /^(DE|D1|EX|B1)$/.test(lc.res);
+    const [x, y] = center(...pre.target);
+    await Promise.all([burst(x, y, hurt ? 58 : 40, lc && lc.res === '-' ? 'dust' : 'fire'), shake(pre.defender, 520)]);
+    await wait(120);
+  }
+  // Make sure the fight is on screen: slide the phone panel away and centre the map if needed.
+  function prepView(hex) {
+    if (PHONE.matches && tray) closeTray();
+    const [x, y] = center(...hex), mx = vb.w * 0.18, my = vb.h * 0.22;
+    if (x < vb.x + mx || x > vb.x + vb.w - mx || y < vb.y + my || y > vb.y + vb.h - my) centerOn(...hex);
+  }
+  function capturePre(a) {
+    const t = E.occMap(state).get(K(...a.target));
+    return { target: a.target.slice(), defender: t && t.id, attackers: a.attackers.map(id => { const u = E.byId(state, id); return { id, c: u.c, r: u.r, art: !!E.TYPES[u.type].range }; }) };
+  }
+  const OUTCOME = { unharmed: 'Unharmed', reduced: 'Lost a step', destroyed: 'Destroyed', retreated: 'Retreated', 'reduced and retreated': 'Lost a step, retreated' };
+  function showBattleModal(lc, fromAI) {
+    return new Promise(res => {
+      if (!lc || !lc.units) { res(); return; }
+      const atkSide = lc.side, defSide = E.other(lc.side);
+      const atkU = lc.units.filter(u => u.side === atkSide), defU = lc.units.filter(u => u.side === defSide);
+      const unitRow = u => `<div class="bm-u">${miniCounter({ side: u.side, type: u.type, steps: u.outcome === 'destroyed' ? u.steps : (u.outcome.startsWith('reduced') ? u.steps - 1 : u.steps), name: u.name }, 34)}<div><b>${esc(u.full || E.fullName(u.name) || E.TYPES[u.type].name)}</b><i class="${u.outcome.replace(/ /g, '')}">${OUTCOME[u.outcome]}</i></div></div>`;
+      const sideBox = (side, list, label) => `<div class="bm-side" style="border-top-color:${sideOf(side).color}"><h4>${label} · ${esc(sideOf(side).name)}</h4>${list.map(unitRow).join('')}</div>`;
+      const where = lc.city ? `at ${lc.city}` : `at hex ${hexId(...lc.target)}`;
+      const shiftTxt = lc.shift ? `, shifted ${lc.shift} column${lc.shift > 1 ? 's' : ''} for the defender's position` : '';
+      const pov = viewer() || atkSide, raw = tone(lc.res);
+      const povTone = pov === atkSide ? raw : raw === 'good' ? 'bad' : raw === 'bad' ? 'good' : raw;
+      const kicker = `${flagSVG(atkSide)}${lc.bombard ? 'Bombardment' : 'Battle'} ${esc(where)} · ${esc(sideOf(atkSide).name)} attack`;
+      $('bmCard').innerHTML = `<div class="bm-k">${kicker}</div>
+        <h2 class="bm-h ${povTone}">${esc(SHORT[lc.res])}</h2>
+        <div class="bm-roll">${dieFace(lc.die, 46)}<span>Rolled <b>${lc.die}</b> at <b>${E.COLS[lc.col]}</b> odds: attack ${lc.att} against defense ${lc.def}${shiftTxt}.</span></div>
+        <div class="bm-sides">${sideBox(atkSide, atkU, lc.bombard ? 'Firing' : 'Attackers')}${sideBox(defSide, defU, 'Defender')}</div>
+        ${lc.held ? '<p class="bm-note">Capitals hold: the defender stood its ground and took a loss instead of retreating.</p>' : ''}
+        ${lc.vacated && !fromAI && state.pending ? '<p class="bm-note">The defender’s hex is empty. After closing this, choose a unit to advance into it, or stay put.</p>' : ''}
+        <div class="row"><button type="button" class="primary" id="bmOk">Continue</button>${fromAI ? '<button type="button" id="bmSkip">Skip the rest of this turn’s battles</button>' : ''}</div>`;
+      $('bm').classList.add('show');
+      const done = v => { $('bm').classList.remove('show'); document.removeEventListener('keydown', key); res(v); };
+      const key = e => { if (e.key === 'Escape' || e.key === 'Enter') { e.preventDefault(); done(); } };
+      document.addEventListener('keydown', key);
+      $('bmOk').onclick = () => done();
+      if (fromAI) $('bmSkip').onclick = () => done('skip');
+      $('bmOk').focus();
+    });
+  }
+  async function doAttack(a) {
+    if (fxBusy) return;
+    fxBusy = true;
+    const pre = capturePre(a);
+    const r = E.apply(state, a);
+    if (r.error) { toast(r.error); fxBusy = false; return; }
+    undo = []; target = null; atk.clear(); sel = null; persist();
+    prepView(pre.target);
+    await wait(PHONE.matches ? 280 : 0);
+    await animateBattle(pre, state.lastCombat);
+    render(); if (!PHONE.matches) openTray('battle'); render();
+    await showBattleModal(state.lastCombat, false);
+    fxBusy = false;
+    if (PHONE.matches && (state.pending || state.phase === 'combat')) openTray('battle');
+    render();
+    if (state.winner) showWinner();
+  }
+
   // ---------- computer player ----------
   const wait = ms => new Promise(res => setTimeout(res, ms));
   async function runAI() {
     if (aiBusy || !state || state.winner || !isAI(state.active)) return;
     const my = ++aiToken;
+    skipReports = false;
     aiBusy = true; sel = null; target = null; atk.clear(); mode = null; closePop(); render();
     await wait(450);
     if (my !== aiToken) return;
@@ -2177,7 +2423,23 @@ if (typeof module !== 'undefined') module.exports = AI;
       if (my !== aiToken) return;
       // under fog, the human only sees what their units can see
       const seen = !state.fog || !who || (a.t === 'attack' ? E.visibleHexes(state, who).has(K(...a.target)) : a.t === 'move' ? E.visibleHexes(state, who).has(K(...a.to)) : true);
-      if (a.t === 'attack' && seen) { target = K(...a.target); atk = new Set(a.attackers); render(); await wait(650); target = null; atk.clear(); }
+      if (a.t === 'attack') {
+        const show = seen && !skipReports;
+        if (show) { prepView(a.target); target = K(...a.target); atk = new Set(a.attackers); render(); await wait(550); target = null; atk.clear(); }
+        const pre = capturePre(a);
+        const r = E.apply(state, a);
+        if (r.error) { console.warn('AI action refused', a, r.error); continue; }
+        persist();
+        if (show) {
+          prepView(pre.target);
+          await animateBattle(pre, state.lastCombat);
+          render();
+          if (my !== aiToken) return;
+          if ((await showBattleModal(state.lastCombat, true)) === 'skip') skipReports = true;
+        } else render();
+        if (state.winner) break;
+        continue;
+      }
       const r = E.apply(state, a);
       if (r.error) { console.warn('AI action refused', a, r.error); if (a.t !== 'endTurn') continue; }
       persist(); render();
@@ -2384,23 +2646,27 @@ if (typeof module !== 'undefined') module.exports = AI;
       else {
         // act on the selected unit straight away, if there is one
         const v = V(), su = sel != null ? E.byId(v, sel) : (info ? E.occMap(v).get(info) : null);
-        if (su && (t === 'info' || su.side === state.active)) openPop(t, su.id); else closePop();
+        if (!PHONE.matches) openTray('unit');
+        else if (su && (t === 'info' || su.side === state.active)) openPop(t, su.id); else closePop();
       }
     }
     else if (t === 'undo') { if (undo.length && !aiBusy) { state = JSON.parse(undo.pop()); sel = null; closePop(); persist(); } }
     else if (t === 'next') { nextUnit(); return; }
     render();
   });
-  $('bnav').addEventListener('click', e => { const b = e.target.closest('[data-tray]'); if (!b) return; tray === b.dataset.tray ? closeTray() : openTray(b.dataset.tray); });
+  $('bnav').addEventListener('click', e => { const b = e.target.closest('[data-tray]'); if (!b) return; if (PHONE.matches && tray === b.dataset.tray) closeTray(); else openTray(b.dataset.tray); render(); });
   $('trayBack').addEventListener('click', closeTray);
   $('trayClose').addEventListener('click', closeTray);
   $('forces').addEventListener('click', e => {
+    const fs = e.target.closest('[data-fs]'); if (fs) { forcesSide = fs.dataset.fs; renderForces(); return; }
     const li = e.target.closest('[data-unit]'); if (!li) return;
     const u = E.byId(state, Number(li.dataset.unit)); if (!u) return;
     closeTray(); mode = null;
     if (state.phase === 'move' && u.side === state.active && !u.moved && !aiBusy && !isAI(u.side)) sel = u.id;
-    info = K(u.c, u.r); centerOn(u.c, u.r); render(); openPop('info', u.id);
+    info = K(u.c, u.r); centerOn(u.c, u.r); render(); if (PHONE.matches) openPop('info', u.id); else { openTray('unit'); render(); }
   });
+  $('verTag').textContent = `Hexfront v${VERSION} · ${BUILD}`;
+  $('brandVer').textContent = `v${VERSION}`;
   $('menuBtn').addEventListener('click', () => $('menuDlg').showModal());
   $('menuDlg').addEventListener('click', e => {
     const b = e.target.closest('[data-menu]'); if (!b) return;
@@ -2412,10 +2678,6 @@ if (typeof module !== 'undefined') module.exports = AI;
     else if (what === 'load') { $('loadErr').textContent = ''; $('loadDlg').showModal(); }
     else if (what === 'rules') { $('rulesBody').innerHTML = rulesHTML(); $('rulesDlg').showModal(); }
   });
-  $('rulesBtn').addEventListener('click', () => { $('rulesBody').innerHTML = rulesHTML(); $('rulesDlg').showModal(); });
-  $('sendBtn').addEventListener('click', openSend);
-  $('loadBtn').addEventListener('click', () => { $('loadErr').textContent = ''; $('loadDlg').showModal(); });
-  $('newBtn').addEventListener('click', openNew);
   $('loadGo').addEventListener('click', doLoad);
   $('loadFile').addEventListener('change', async e => { const f = e.target.files[0]; if (f) { $('loadText').value = await f.text(); doLoad(); } });
   $('copyMail').addEventListener('click', () => copy(lastMail));
@@ -2445,7 +2707,7 @@ if (typeof module !== 'undefined') module.exports = AI;
     const li = e.target.closest('[data-atk]');
     if (li && target) { const id = Number(li.dataset.atk); atk.has(id) ? atk.delete(id) : atk.add(id); render(); return; }
     const b = e.target.closest('button'); if (!b) return;
-    if (b.id === 'resolveBtn') { const [c, r] = P(target); act({ t: 'attack', target: [c, r], attackers: [...atk] }); }
+    if (b.id === 'resolveBtn') { const [c, r] = P(target); doAttack({ t: 'attack', target: [c, r], attackers: [...atk] }); }
     else if (b.id === 'artOnly') { atk = new Set([...atk].filter(id => E.TYPES[E.byId(state, id).type].range)); if (!atk.size) atk = new Set(E.eligibleAttackers(state, target).filter(id => E.TYPES[E.byId(state, id).type].range)); render(); }
     else if (b.id === 'cancelAtk') { target = null; atk.clear(); render(); }
     else if (b.dataset.adv) act({ t: 'advance', unit: b.dataset.adv === 'none' ? null : Number(b.dataset.adv) });
@@ -2469,7 +2731,7 @@ if (typeof module !== 'undefined') module.exports = AI;
     if (!s || !E.SCEN[s.scen]) { s = E.newGame('generic', seed()); s.players = { A: 'human', B: 'ai' }; }
     // games saved before unit names existed: fill them in from the scenario
     const tpl = E.SCEN[s.scen].units;
-    s.units.forEach(u => { if (u.name == null && tpl[u.id - 1]) u.name = tpl[u.id - 1][4] || ''; });
+    s.units.forEach(u => { if (u.name == null && tpl[u.id - 1]) u.name = tpl[u.id - 1][4] || ''; if (!u.full) u.full = E.fullName(u.name); });
     setState(s);
   }
   window.claude?.hot?.snapshot?.(() => ({ state }));
