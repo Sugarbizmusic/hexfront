@@ -231,7 +231,7 @@ aside h3, .pane h3 { margin: 0 0 10px; font: 600 13px/1 var(--ui); text-transfor
 .bm-note { margin: 0; font-size: 13.5px; color: var(--muted); }
 .bm .row button { padding: 12px; }
 @media (max-width: 700px) {
-  .bm { align-items: flex-end; padding: 0 0 calc(var(--nav-h) + max(0px, calc(env(safe-area-inset-bottom) - 14px))); background: rgba(8,10,7,.45); }
+  .bm { align-items: flex-end; padding: 0 0 calc(var(--nav-h) + var(--home-pad)); background: rgba(8,10,7,.45); }
   .bm-card { width: 100%; border-radius: 12px 12px 0 0; max-height: 70dvh; }
   .bm-h { font-size: 26px; }
   .bm-sides { grid-template-columns: 1fr; }
@@ -253,6 +253,10 @@ aside h3, .pane h3 { margin: 0 0 10px; font: 600 13px/1 var(--ui); text-transfor
 .natrow { display: inline-flex; align-items: center; gap: 7px; justify-content: flex-end; }
 .natrow svg { width: 30px; height: 21px; flex: none; border-radius: 2px; box-shadow: 0 1px 3px rgba(0,0,0,.4); }
 .natrow em { font-style: normal; color: var(--muted); font-size: 12.5px; }
+.reinstall { position: fixed; left: 10px; right: 10px; top: calc(env(safe-area-inset-top) + 8px); z-index: 50; background: var(--signal); color: #1d1606; border-radius: 8px; padding: 12px 40px 12px 14px; font: 500 14.5px/1.35 var(--body); box-shadow: 0 10px 30px rgba(0,0,0,.5); }
+.reinstall[hidden] { display: none; }
+.reinstall b { display: block; font: 700 15px/1.2 var(--ui); text-transform: uppercase; letter-spacing: .04em; margin-bottom: 3px; }
+.reinstall button { position: absolute; right: 6px; top: 6px; background: transparent; border: 0; color: #1d1606; font-size: 22px; padding: 2px 8px; }
 /* ---------- dialogs ---------- */
 dialog { background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 0; max-width: min(760px, calc(100vw - 32px)); width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
 dialog::backdrop { background: rgba(8,10,7,.72); }
@@ -310,7 +314,7 @@ table.crt th { color: var(--muted); font-weight: 600; }
 /* ================= PHONES ================= */
 @media (max-width: 700px) {
   html, body { overflow: hidden; overscroll-behavior: none; }
-  body { display: flex; flex-direction: column; height: 100%; height: 100dvh; }
+  body { display: flex; flex-direction: column; height: 100%; height: var(--app-h, 100dvh); }
   .bar { flex: none; grid-template-columns: 1fr auto; grid-template-areas: "brand menu" "status main"; gap: 6px 10px; padding: calc(8px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) 8px calc(12px + env(safe-area-inset-left)); border-bottom: 0; }
   .brand img { height: 34px; }
   .brand span { font-size: 20px; }
@@ -337,12 +341,13 @@ table.crt th { color: var(--muted); font-weight: 600; }
   .hint.quiet { opacity: 0; }
   .toast { bottom: 16px; }
 
-  .bnav { display: grid; flex: none; grid-template-columns: repeat(5, 1fr); grid-auto-rows: auto; position: relative; z-index: 12; padding-bottom: max(0px, calc(env(safe-area-inset-bottom) - 14px)); background: var(--cell); border-left: 0; border-top: 1px solid var(--line); }
-  .bnav button { height: var(--nav-h); }
+  .bnav { display: grid; flex: none; grid-template-columns: repeat(5, 1fr); grid-auto-rows: auto; position: relative; z-index: 12; padding: 0; background: var(--cell); border-left: 0; border-top: 1px solid var(--line); }
+  :root { --home-pad: max(0px, calc(env(safe-area-inset-bottom) - 12px)); }
+  .bnav button { height: calc(var(--nav-h) + var(--home-pad)); padding-bottom: calc(6px + var(--home-pad)); justify-content: center; }
   :root { --nav-h: 56px; }
   .trayback { display: block; position: fixed; inset: 0; z-index: 9; pointer-events: none; }
   .trayback.on { pointer-events: auto; }
-  .tray { display: flex; flex-direction: column; border-left: 0; position: fixed; left: 0; right: 0; bottom: calc(var(--nav-h) + max(0px, calc(env(safe-area-inset-bottom) - 14px))); max-height: min(62dvh, 560px); z-index: 10; background: var(--panel); border-top: 1px solid var(--line); border-radius: 12px 12px 0 0; box-shadow: 0 -12px 40px rgba(0,0,0,.5); transform: translateY(110%); transition: transform .26s cubic-bezier(.2,.8,.2,1), visibility 0s linear .26s; visibility: hidden; }
+  .tray { display: flex; flex-direction: column; border-left: 0; position: fixed; left: 0; right: 0; bottom: calc(var(--nav-h) + var(--home-pad)); max-height: min(62dvh, 560px); z-index: 10; background: var(--panel); border-top: 1px solid var(--line); border-radius: 12px 12px 0 0; box-shadow: 0 -12px 40px rgba(0,0,0,.5); transform: translateY(110%); transition: transform .26s cubic-bezier(.2,.8,.2,1), visibility 0s linear .26s; visibility: hidden; }
   .tray.open { transform: none; visibility: visible; transition: transform .26s cubic-bezier(.2,.8,.2,1); }
   .trayhead { padding: 8px 14px 6px; }
   .trayhead::before { content: ""; position: absolute; left: 50%; top: 5px; width: 36px; height: 4px; border-radius: 2px; background: #4a5444; transform: translateX(-50%); }
@@ -396,6 +401,8 @@ table.crt th { color: var(--muted); font-weight: 600; }
   </div>
 </section>
 <nav class="bnav cells" id="bnav" aria-label="Panels"></nav>
+<div id="saProbe" style="position:fixed;left:0;top:0;width:0;height:0;visibility:hidden;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)"></div>
+<div class="reinstall" id="reinstall" hidden><b>One more step for the update.</b> Your phone is still using the old status bar setting. Remove the Hexfront icon from your Home Screen, open the site in Safari and add it again. Your game is saved.<button type="button" id="reinstallX" aria-label="Dismiss">×</button></div>
 
 <div class="bm" id="bm" role="dialog" aria-modal="true" aria-label="Battle result"><div class="bm-card" id="bmCard"></div></div>
 
@@ -473,6 +480,308 @@ table.crt th { color: var(--muted); font-weight: 600; }
 </div></dialog>
 
 <script>
+// ===================== HEXFRONT: additional scenarios =====================
+// Loaded into Engine before the scenario list is frozen. Tuples: [side, type, col, row, name, 'dug'?]
+const EXTRA_SCEN = {
+  fulda: {
+    id: 'fulda', name: 'Fulda Gap', setting: 'Cold War 1985',
+    blurb: 'The Warsaw Pact storms through the Fulda Gap toward Frankfurt. NATO’s armored cavalry and attack helicopters must trade space for time. The Pact needs 12 victory points by turn 12, or wins at once by taking Frankfurt.',
+    maxTurns: 12, victory: { type: 'target', side: 'A', vp: 12 }, supplyRange: Infinity, theme: 'temperate',
+    sides: {
+      A: { name: 'Warsaw Pact', short: 'Pact', color: '#a33b32', ink: '#f6efe4', edge: 'E', flag: 'soviet' },
+      B: { name: 'NATO', short: 'NATO', color: '#4f6a46', ink: '#eef2e4', edge: 'W', flag: 'nato' },
+    },
+    rows: [
+      '...hhhh.......ff..hhh...',
+      '..hhhhhf.....fff..hhhh..',
+      '.hhhhh.......ff....hh...',
+      'hhhh......f.............',
+      'hhh....ff...............',
+      'hhh....f......f.........',
+      'hh...........fff........',
+      'h..............f........',
+      'hh.....ff...............',
+      'hhh....f.........hhh....',
+      'hh..............hhmmh...',
+      'f..........ff..hhmmmh...',
+      'ff..ff.....ff..hmmmh....',
+      'fff.fff.........hmmh....',
+      'ffffff...........hh.....',
+      '.fff....................',
+    ],
+    rivers: [[[13, 0], [12, 8], [11, 15]], [[20, 0], [19, 6], [21, 10], [21, 15]], [[11, 11], [6, 10], [2, 13]]],
+    roads: [
+      [[0, 12], [1, 13], [3, 11], [6, 10], [12, 8], [16, 7], [21, 3], [23, 3]],
+      [[14, 0], [14, 2], [12, 8], [13, 15]],
+      [[12, 8], [11, 5], [7, 6], [5, 4], [0, 4]],
+      [[19, 5], [16, 7]], [[19, 8], [12, 8]], [[22, 12], [19, 8]],
+    ],
+    cities: [
+      { name: 'Frankfurt', c: 1, r: 13, vp: 3, cap: true, supply: true, owner: 'B' },
+      { name: 'Hanau', c: 3, r: 11, vp: 1, owner: 'B' },
+      { name: 'Gelnhausen', c: 6, r: 10, vp: 1, owner: 'B' },
+      { name: 'Alsfeld', c: 5, r: 4, vp: 1, owner: 'B' },
+      { name: 'Lauterbach', c: 7, r: 6, vp: 1, owner: 'B' },
+      { name: 'Schlitz', c: 11, r: 5, vp: 1, owner: 'B' },
+      { name: 'Fulda', c: 12, r: 8, vp: 3, owner: 'B' },
+      { name: 'Bad Hersfeld', c: 14, r: 2, vp: 2, owner: 'B' },
+      { name: 'Hünfeld', c: 16, r: 7, vp: 1, owner: 'B' },
+      { name: 'Vacha', c: 19, r: 5, vp: 1, owner: 'A' },
+      { name: 'Geisa', c: 19, r: 8, vp: 1, owner: 'A' },
+      { name: 'Eisenach', c: 21, r: 3, vp: 3, cap: true, supply: true, owner: 'A' },
+      { name: 'Meiningen', c: 22, r: 12, vp: 1, supply: true, owner: 'A' },
+    ],
+    units: [
+      ['A', 'gtk', 19, 4, '79th GTD'], ['A', 'gtk', 20, 7, '11th GTD'], ['A', 'gtk', 22, 2, '9th GTD'],
+      ['A', 'mech', 18, 3, '39th GMR'], ['A', 'mech', 18, 6, '57th GMR'], ['A', 'mech', 18, 8, '27th GMR'], ['A', 'mech', 21, 8, '20th GMR'],
+      ['A', 'art', 20, 5, '43rd Art'], ['A', 'art', 21, 6, '34th Art'], ['A', 'hel', 21, 4, '336th Hel'],
+      ['A', 'mech', 21, 11, '4th MRD'], ['A', 'arm', 22, 9, '7th PzD'],
+      ['B', 'cav', 15, 4, '11th ACR'], ['B', 'cav', 16, 9, '2/11 ACR'],
+      ['B', 'arm', 11, 6, '1/3 Armd'], ['B', 'arm', 11, 9, '2/3 Armd'],
+      ['B', 'mech', 12, 8, '1/8 Inf', 'dug'], ['B', 'mech', 13, 3, '2/8 Inf', 'dug'], ['B', 'arm', 4, 12, '3/3 Armd'], ['B', 'mech', 2, 9, '3/8 Inf'], ['B', 'art', 6, 7, '41st FA Bde'],
+      ['B', 'art', 10, 7, 'V Corps Art'], ['B', 'hel', 9, 5, '11th Avn'],
+      ['B', 'mech', 8, 11, 'PzGrenBde 5', 'dug'], ['B', 'arm', 5, 8, 'PzBde 14'], ['B', 'inf', 3, 7, 'HSchKdo'],
+    ],
+  },
+
+  stalingrad: {
+    id: 'stalingrad', name: 'Stalingrad', setting: 'Eastern Front 1942',
+    blurb: 'Sixth Army fights into the ruins of Stalingrad while the Soviet 62nd Army clings to the west bank of the Volga. The Soviet defenders start entrenched. Germany needs 13 victory points by turn 12, or wins at once by taking Krasnaya Sloboda across the river.',
+    maxTurns: 12, victory: { type: 'target', side: 'A', vp: 13 }, supplyRange: Infinity, theme: 'winter',
+    sides: {
+      A: { name: 'Germany', short: 'German', color: '#6b747a', ink: '#f2f2ee', edge: 'W', flag: 'axis' },
+      B: { name: 'Soviet Union', short: 'Soviet', color: '#8e3b2f', ink: '#f6ece0', edge: 'E', flag: 'soviet' },
+    },
+    terrainNames: { '.': 'Steppe', h: 'Balka (ravine)', s: 'Volga floodplain', f: 'Woods' },
+    rows: [
+      '......................f.',
+      '....h.........h.....fff.',
+      '...hh..........h....ff..',
+      '...h....h...........ss..',
+      '........hh..........ss..',
+      '..............h.....s...',
+      '...h.................f..',
+      '..hh.....h...........ff.',
+      '........hh............f.',
+      '...h............h....ss.',
+      '....................ss..',
+      '..h.....h.............f.',
+      '..hh.....h.....h......f.',
+      '...........h..........ff',
+      '....h.................f.',
+      '........................',
+    ],
+    rivers: [[[18, 0], [18, 15]], [[2, 0], [3, 8], [2, 15]]],
+    roads: [
+      [[0, 8], [1, 8], [8, 8], [11, 7], [15, 7], [16, 6], [16, 2], [17, 0]],
+      [[15, 7], [16, 9], [16, 11], [17, 13], [17, 15]],
+      [[11, 7], [11, 3], [16, 2]], [[17, 9], [21, 8], [23, 8]], [[21, 8], [22, 4], [23, 3]],
+    ],
+    cities: [
+      { name: 'Kalach', c: 1, r: 8, vp: 3, cap: true, supply: true, owner: 'A' },
+      { name: 'Pitomnik', c: 8, r: 8, vp: 1, owner: 'B' },
+      { name: 'Gumrak', c: 11, r: 7, vp: 1, owner: 'B' },
+      { name: 'Tractor Factory', c: 16, r: 2, vp: 2, owner: 'B' },
+      { name: 'Barrikady', c: 16, r: 4, vp: 1, owner: 'B' },
+      { name: 'Red October', c: 16, r: 6, vp: 2, owner: 'B' },
+      { name: 'Mamayev Kurgan', c: 15, r: 7, vp: 2, owner: 'B' },
+      { name: 'Central Station', c: 16, r: 9, vp: 1, owner: 'B' },
+      { name: 'Grain Elevator', c: 16, r: 11, vp: 1, owner: 'B' },
+      { name: 'Beketovka', c: 17, r: 13, vp: 1, owner: 'B' },
+      { name: 'Krasnaya Sloboda', c: 21, r: 8, vp: 3, cap: true, supply: true, owner: 'B' },
+      { name: 'Akhtuba', c: 22, r: 4, vp: 1, supply: true, owner: 'B' },
+    ],
+    units: [
+      ['A', 'inf', 10, 2, '71st Inf'], ['A', 'inf', 9, 4, '76th Inf'], ['A', 'inf', 10, 6, '94th Inf'], ['A', 'inf', 9, 9, '295th Inf'],
+      ['A', 'inf', 10, 11, '305th Inf'], ['A', 'inf', 8, 13, '389th Inf'],
+      ['A', 'arm', 7, 5, '14th Pz'], ['A', 'arm', 7, 8, '16th Pz'], ['A', 'arm', 7, 11, '24th Pz'],
+      ['A', 'mech', 6, 3, '3rd Mot'], ['A', 'mech', 6, 13, '60th Mot'], ['A', 'art', 8, 7, 'Arko 6'],
+      ['A', 'inf', 4, 2, '1st Rom'], ['A', 'inf', 4, 14, '2nd Rom'],
+      ['B', 'grf', 15, 7, '13th Gds', 'dug'], ['B', 'grf', 16, 2, '37th Gds', 'dug'],
+      ['B', 'inf', 16, 4, '308th Rifle', 'dug'], ['B', 'inf', 16, 6, '284th Rifle', 'dug'], ['B', 'inf', 13, 4, '138th Rifle', 'dug'],
+      ['B', 'inf', 16, 9, '95th Rifle', 'dug'], ['B', 'inf', 16, 11, '35th Gds', 'dug'], ['B', 'inf', 13, 9, '124th Bde'],
+      ['B', 'arm', 14, 5, '84th Tk Bde'], ['B', 'art', 19, 6, 'Volga Art'], ['B', 'art', 19, 10, '62nd Art'],
+      ['B', 'mech', 20, 8, '4th Mech'], ['B', 'grf', 20, 5, '39th Gds'], ['B', 'inf', 21, 11, '45th Rifle'],
+    ],
+  },
+
+  kursk: {
+    id: 'kursk', name: 'Kursk', setting: 'Eastern Front 1943',
+    blurb: 'Operation Citadel: the panzer elite strikes the southern face of the Kursk salient against belts of entrenched Soviet defenders, with the Guards tank reserve waiting at Prokhorovka. Germany needs 10 victory points by turn 12, or wins at once by taking Kursk.',
+    maxTurns: 12, victory: { type: 'target', side: 'A', vp: 10 }, supplyRange: Infinity, theme: 'steppe',
+    sides: {
+      A: { name: 'Germany', short: 'German', color: '#5c656d', ink: '#f2f2ee', edge: 'W', flag: 'axis' },
+      B: { name: 'Soviet Union', short: 'Soviet', color: '#8e3b2f', ink: '#f6ece0', edge: 'E', flag: 'soviet' },
+    },
+    terrainNames: { '.': 'Steppe', h: 'Ravine', f: 'Woods' },
+    rows: [
+      '..f.......ff........f...',
+      '.ff..h.....f.......ff...',
+      '........h..........f....',
+      '...h.......ff...........',
+      '..........fff.....h.....',
+      '.....h........f.........',
+      '..ff........h......f....',
+      '...f......f........ff...',
+      '.......h........h.......',
+      '....f.........f.........',
+      '...ff....h........h.....',
+      '............ff..........',
+      '......f......f.....ff...',
+      '..h.........h...........',
+      '.ff.....f.........f.....',
+      '........................',
+    ],
+    rivers: [[[8, 0], [14, 5], [23, 6]], [[9, 8], [11, 15]], [[1, 15], [4, 9], [5, 0]]],
+    roads: [
+      [[0, 12], [2, 12], [5, 8], [10, 8], [13, 3], [21, 2], [23, 2]],
+      [[10, 8], [17, 6], [21, 2]], [[2, 12], [8, 10], [16, 13], [22, 12], [23, 12]], [[17, 6], [22, 12]],
+    ],
+    cities: [
+      { name: 'Belgorod', c: 2, r: 12, vp: 2, cap: true, supply: true, owner: 'A' },
+      { name: 'Tomarovka', c: 5, r: 8, vp: 1, owner: 'A' },
+      { name: 'Cherkasskoe', c: 8, r: 10, vp: 1, owner: 'B' },
+      { name: 'Yakovlevo', c: 10, r: 8, vp: 1, owner: 'B' },
+      { name: 'Oboyan', c: 13, r: 3, vp: 2, owner: 'B' },
+      { name: 'Prokhorovka', c: 17, r: 6, vp: 3, owner: 'B' },
+      { name: 'Korocha', c: 16, r: 13, vp: 1, owner: 'B' },
+      { name: 'Kursk', c: 21, r: 2, vp: 3, cap: true, supply: true, owner: 'B' },
+      { name: 'Stary Oskol', c: 22, r: 12, vp: 1, supply: true, owner: 'B' },
+    ],
+    units: [
+      ['A', 'epz', 5, 6, 'LSSAH'], ['A', 'epz', 5, 9, 'Das Reich'], ['A', 'epz', 4, 11, 'Totenkopf'], ['A', 'epz', 5, 3, 'GD'],
+      ['A', 'arm', 4, 1, '3rd Pz'], ['A', 'arm', 3, 5, '11th Pz'], ['A', 'arm', 3, 13, '6th Pz'], ['A', 'arm', 5, 14, '7th Pz'],
+      ['A', 'hvy', 3, 8, 's.Pz 503'], ['A', 'inf', 6, 12, '167th Inf'], ['A', 'inf', 7, 14, '168th Inf'], ['A', 'art', 4, 7, 'Arko 122'],
+      ['B', 'grf', 8, 5, '67th Gds', 'dug'], ['B', 'grf', 8, 8, '52nd Gds', 'dug'], ['B', 'grf', 9, 11, '71st Gds', 'dug'],
+      ['B', 'inf', 9, 13, '375th Rifle', 'dug'], ['B', 'inf', 8, 2, '90th Gds', 'dug'],
+      ['B', 'mech', 11, 5, '3rd Mech', 'dug'], ['B', 'arm', 11, 8, '6th Tk Corps', 'dug'], ['B', 'arm', 12, 11, '31st Tk Corps'],
+      ['B', 'art', 12, 7, '27th AT Bde'], ['B', 'inf', 13, 9, '81st Gds', 'dug'],
+      ['B', 'gtk', 18, 7, '18th Tk Corps'], ['B', 'gtk', 15, 2, '1st Tk Army'], ['B', 'inf', 20, 3, '40th Army'], ['B', 'inf', 16, 9, '69th Army', 'dug'], ['B', 'gtk', 18, 5, '29th Tk Corps'], ['B', 'gtk', 19, 9, '5th Gds Tk'],
+    ],
+  },
+
+  bulge: {
+    id: 'bulge', name: 'Battle of the Bulge', setting: 'Western Front 1944',
+    blurb: 'Winter in the Ardennes: German panzer armies burst through thin American lines toward the Meuse. Hold St. Vith and Bastogne as long as you can. Fuel is short: supply reaches only 7 hexes. Germany needs 11 victory points by turn 12, or wins at once by taking Liège.',
+    maxTurns: 12, victory: { type: 'target', side: 'A', vp: 11 }, supplyRange: 7, theme: 'winter',
+    sides: {
+      A: { name: 'Germany', short: 'German', color: '#6b747a', ink: '#f2f2ee', edge: 'E', flag: 'axis' },
+      B: { name: 'Allies', short: 'Allies', color: '#5f6d34', ink: '#f4efd9', edge: 'W', flag: 'allies' },
+    },
+    terrainNames: { f: 'Ardennes forest', h: 'Ridge' },
+    rows: [
+      '..f...ff..hh..f.fff..f..',
+      '...ff.fff.hhf.ffff.ff...',
+      '..fff..f...h.fff..fff...',
+      '.fff..ff...ff.f...ff....',
+      '..f..fff..fff....ff..f..',
+      '....ffff.ff..ff.fff.ff..',
+      '...fff...f..fff..ff...f.',
+      '..ff..hh..fff...ff..ff..',
+      '...f..hhh..ff.fff..ff...',
+      '..ff..fhh...ff..ff.ff...',
+      '...ff..f..fff.ff...f....',
+      '.fff.fff...ff..fff..ff..',
+      '..f..ff..h..ff....ff....',
+      '...ff...hh...fff...f....',
+      '..fff..ff..h..ff..ff....',
+      '.f...ff...f..f....f.....',
+    ],
+    rivers: [[[4, 0], [3, 8], [2, 15]], [[10, 0], [11, 7], [9, 15]], [[19, 0], [19, 15]]],
+    roads: [
+      [[0, 1], [3, 1], [9, 2], [12, 3], [16, 2], [21, 3], [23, 3]],
+      [[3, 1], [2, 8], [3, 11], [7, 10], [11, 12], [16, 12], [21, 13], [23, 13]],
+      [[12, 3], [16, 7], [21, 8], [23, 8]], [[16, 7], [11, 9], [11, 12]], [[11, 9], [7, 10]], [[9, 2], [11, 9]],
+    ],
+    cities: [
+      { name: 'Liège', c: 3, r: 1, vp: 3, cap: true, supply: true, owner: 'B' },
+      { name: 'Namur', c: 2, r: 8, vp: 2, supply: true, owner: 'B' },
+      { name: 'Dinant', c: 3, r: 11, vp: 2, owner: 'B' },
+      { name: 'Spa', c: 9, r: 2, vp: 1, owner: 'B' },
+      { name: 'Marche', c: 7, r: 10, vp: 1, owner: 'B' },
+      { name: 'Malmedy', c: 12, r: 3, vp: 1, owner: 'B' },
+      { name: 'Houffalize', c: 11, r: 9, vp: 1, owner: 'B' },
+      { name: 'Bastogne', c: 11, r: 12, vp: 3, owner: 'B' },
+      { name: 'Elsenborn', c: 16, r: 2, vp: 1, owner: 'B' },
+      { name: 'St. Vith', c: 16, r: 7, vp: 2, owner: 'B' },
+      { name: 'Prüm', c: 21, r: 8, vp: 2, cap: true, supply: true, owner: 'A' },
+      { name: 'Bitburg', c: 21, r: 13, vp: 1, supply: true, owner: 'A' },
+    ],
+    units: [
+      ['A', 'epz', 20, 3, '1st SS Pz'], ['A', 'epz', 21, 5, '12th SS Pz'], ['A', 'arm', 20, 10, '2nd Pz'], ['A', 'arm', 21, 12, 'Pz Lehr'],
+      ['A', 'arm', 20, 7, '116th Pz'], ['A', 'hvy', 22, 4, 's.Pz 506'],
+      ['A', 'inf', 19, 2, '277th VG'], ['A', 'inf', 19, 5, '18th VG'], ['A', 'inf', 19, 8, '62nd VG'], ['A', 'inf', 19, 11, '26th VG'],
+      ['A', 'inf', 19, 14, '5th Fsj'], ['A', 'art', 21, 9, 'Arko 6 SS'], ['A', 'mech', 22, 14, '15th PzGr'],
+      ['B', 'inf', 16, 3, '99th Inf', 'dug'], ['B', 'inf', 15, 1, '2nd Inf', 'dug'], ['B', 'inf', 6, 3, '30th Inf'], ['B', 'inf', 7, 1, '1st Inf'], ['B', 'arm', 5, 7, '3rd Armd'], ['B', 'inf', 17, 6, '106th Inf'], ['B', 'inf', 17, 10, '28th Inf'],
+      ['B', 'inf', 17, 13, '4th Inf'], ['B', 'arm', 15, 8, '9th Armd'], ['B', 'art', 14, 5, 'VIII Corps Art'],
+      ['B', 'arm', 9, 4, '7th Armd'], ['B', 'arm', 8, 13, '10th Armd'], ['B', 'abn', 2, 12, '101st Abn'], ['B', 'abn', 1, 4, '82nd Abn'],
+      ['B', 'arm', 4, 10, '29th Armd Bde'],
+    ],
+  },
+
+  torch: {
+    id: 'torch', name: 'Operation Torch', setting: 'North Africa 1942',
+    blurb: 'After the Torch landings, Allied columns race from Algeria for Tunis while Axis reinforcements pour in by air and sea and the Kasserine passes wait to the south. The Allies need 8 victory points by turn 12, or win at once by taking Tunis.',
+    maxTurns: 12, victory: { type: 'target', side: 'A', vp: 8 }, supplyRange: 10, theme: 'desert',
+    sides: {
+      A: { name: 'Allies', short: 'Allies', color: '#6c7a3a', ink: '#f4efd9', edge: 'W', flag: 'allies' },
+      B: { name: 'Axis', short: 'Axis', color: '#8a96a0', ink: '#1b2024', edge: 'E', flag: 'axis' },
+    },
+    terrainNames: { '.': 'Open ground', h: 'Hills', m: 'Dorsal mountains', s: 'Salt flat', x: 'Chott el Djerid', w: 'Mediterranean' },
+    rows: [
+      'wwwwwwwwwwwwwwwwwwwwwwww',
+      'wwwwww....wwwww....wwwww',
+      '.....hh..........f...www',
+      '....hhh...hh.........www',
+      '..hh.....hhh.mm.......ww',
+      '..h....mm.hh.mmm......ww',
+      '.....mmm....hhmm.....www',
+      '....mmh......hhm......ww',
+      '...mmh...h.....mm.....ww',
+      '..hh......hh....mh....ww',
+      '.hh......hhh.....mh...ww',
+      '........h.........hh..ww',
+      '...........ssssss......w',
+      '..........sssxxxss.....w',
+      '..........xxxxxxxs......',
+      '...........xxxxx........',
+    ],
+    rivers: [[[8, 2], [13, 3], [18, 3]]],
+    roads: [
+      [[0, 2], [1, 2], [2, 2], [9, 2], [13, 3], [19, 2]], [[16, 1], [19, 2]],
+      [[2, 2], [3, 6], [2, 11], [8, 12], [8, 9], [11, 8], [14, 8], [20, 7], [19, 5], [19, 2]],
+      [[8, 9], [3, 6]], [[14, 8], [19, 11], [20, 7]], [[13, 3], [11, 8]],
+    ],
+    cities: [
+      { name: 'Bône', c: 2, r: 2, vp: 2, cap: true, supply: true, owner: 'A' },
+      { name: 'Souk Ahras', c: 3, r: 6, vp: 1, owner: 'A' },
+      { name: 'Tébessa', c: 2, r: 11, vp: 1, supply: true, owner: 'A' },
+      { name: 'Gafsa', c: 8, r: 12, vp: 1, owner: 'A' },
+      { name: 'Béja', c: 9, r: 2, vp: 1, owner: null },
+      { name: 'Kasserine', c: 8, r: 9, vp: 1, owner: 'B' },
+      { name: 'Sbeitla', c: 11, r: 8, vp: 1, owner: 'B' },
+      { name: 'Medjez el Bab', c: 13, r: 3, vp: 2, owner: 'B' },
+      { name: 'Faïd', c: 14, r: 8, vp: 1, owner: 'B' },
+      { name: 'Bizerte', c: 16, r: 1, vp: 2, supply: true, owner: 'B' },
+      { name: 'Tunis', c: 19, r: 2, vp: 3, cap: true, supply: true, owner: 'B' },
+      { name: 'Enfidaville', c: 19, r: 5, vp: 1, owner: 'B' },
+      { name: 'Sousse', c: 20, r: 7, vp: 1, supply: true, owner: 'B' },
+      { name: 'Sfax', c: 19, r: 11, vp: 1, supply: true, owner: 'B' },
+    ],
+    units: [
+      ['A', 'arm', 5, 8, '1st Armd'], ['A', 'inf', 4, 10, '1st Inf'], ['A', 'inf', 6, 11, '34th Inf'], ['A', 'art', 3, 9, 'II Corps Art'],
+      ['A', 'rcn', 6, 13, '1st Ranger'],
+      ['A', 'inf', 7, 2, '78th Inf'], ['A', 'arm', 6, 3, '6th Armd'], ['A', 'abn', 1, 3, '1st Para'], ['A', 'inf', 5, 5, 'Constantine'],
+      ['A', 'mech', 3, 3, '9th Inf'], ['A', 'arm', 8, 4, 'Blade Force'],
+      ['B', 'epz', 15, 4, '10th Pz'], ['B', 'dak', 15, 9, '21st Pz'], ['B', 'hvy', 17, 2, 's.Pz 501'], ['B', 'inf', 12, 2, '334th Inf'],
+      ['B', 'mech', 13, 5, 'HG Div'], ['B', 'inf', 15, 1, 'Barenthin'], ['B', 'art', 16, 3, 'Arko 5'],
+      ['B', 'inf', 12, 10, 'Superga'], ['B', 'arm', 16, 11, 'Centauro'], ['B', 'inf', 18, 8, 'Spezia'],
+    ],
+  },
+};
+const EXTRA_ORDER = ['torch', 'stalingrad', 'kursk', 'bulge', 'fulda'];
+
+
 // ===================== HEXFRONT ENGINE =====================
 // Pure rules: no DOM. State is plain JSON so it can be saved, emailed,
 // sent over a network, or searched by a future AI opponent.
@@ -532,7 +841,12 @@ const Engine = (() => {
     abn: { name: 'Airborne', a: 3, d: 3, m: 3, sym: 'abn', airdrop: 8, note: 'Airdrop once per game: land in any empty hex up to 8 away that is not next to the enemy.' },
     hvy: { name: 'Heavy Panzer', a: 8, d: 5, m: 4, sym: 'hvy', elite: true, note: 'Tiger battalion. Hardest-hitting unit on the map.' },
     dak: { name: 'DAK Panzer', a: 7, d: 4, m: 7, sym: 'arm', elite: true, note: 'Afrika Korps armor: faster and stronger than standard armor.' },
-    rcn: { name: 'LRDG Recon', a: 1, d: 2, m: 8, sym: 'rcn', ignoresZoc: true, note: 'Long Range Desert Group: ignores zones of control.' },
+    rcn: { name: 'Recon', a: 1, d: 2, m: 8, sym: 'rcn', ignoresZoc: true, note: 'Ignores zones of control.' },
+    grf: { name: 'Guards Rifle', a: 4, d: 5, m: 3, sym: 'inf', elite: true, note: 'Guards infantry: tougher than ordinary rifle divisions.' },
+    gtk: { name: 'Guards Tank', a: 7, d: 4, m: 6, sym: 'arm', elite: true, note: 'Guards tank formation.' },
+    epz: { name: 'Elite Panzer', a: 7, d: 4, m: 6, sym: 'arm', elite: true, note: 'Elite panzer division: veteran crews, first pick of equipment.' },
+    cav: { name: 'Armored Cavalry', a: 5, d: 4, m: 7, sym: 'cav', elite: true, note: 'Heavy armored cavalry: a fast, hard-hitting screening force.' },
+    hel: { name: 'Attack Helicopter', a: 5, d: 1, m: 10, sym: 'hel', range: 2, ignoresZoc: true, note: 'Flies over zones of control and strikes from 2 hexes away, like artillery. Fragile if caught.' },
   };
   // Combat results table. Columns by odds; die 1-6 (low is good for the attacker).
   const COLS = ['1:3', '1:2', '1:1', '2:1', '3:1', '4:1', '5:1', '6:1'];
@@ -580,6 +894,39 @@ const Engine = (() => {
     '150th Bde': '150th Infantry Brigade', '1st FF': '1st Free French Brigade', '7th Med': '7th Medium Regiment',
     'LRDG': 'Long Range Desert Group', 'Trento': 'Trento Division', 'Brescia': 'Brescia Division', 'Pavia': 'Pavia Division',
     'Ariete': 'Ariete Armoured Division', 'Trieste': 'Trieste Motorised Division',
+    // Fulda Gap 1985
+    '79th GTD': '79th Guards Tank Division', '11th GTD': '11th Guards Tank Division', '9th GTD': '9th Guards Tank Division',
+    '39th GMR': '39th Guards Motor Rifle Division', '57th GMR': '57th Guards Motor Rifle Division', '27th GMR': '27th Guards Motor Rifle Division',
+    '20th GMR': '20th Guards Motor Rifle Division', '43rd Art': '43rd Artillery Brigade', '34th Art': '34th Artillery Division',
+    '336th Hel': '336th Attack Helicopter Regiment', '4th MRD': '4th Motorized Rifle Division (NVA)', '7th PzD': '7th Panzer Division (NVA)',
+    '11th ACR': '11th Armored Cavalry Regiment', '2/11 ACR': '2nd Squadron, 11th Armored Cavalry', '1/3 Armd': '1st Brigade, 3rd Armored Division',
+    '2/3 Armd': '2nd Brigade, 3rd Armored Division', '1/8 Inf': '1st Brigade, 8th Infantry Division (Mechanized)', '2/8 Inf': '2nd Brigade, 8th Infantry Division (Mechanized)',
+    'V Corps Art': 'V Corps Artillery', '11th Avn': '11th Aviation Brigade', 'PzGrenBde 5': 'Panzergrenadier Brigade 5', 'PzBde 14': 'Panzer Brigade 14',
+    'HSchKdo': 'Home Defence Command 5',
+    // Stalingrad
+    '3rd Mot': '3rd Motorized Division', '60th Mot': '60th Motorized Division', 'Arko 6': 'Sixth Army Artillery', '1st Rom': '1st Romanian Division',
+    '2nd Rom': '2nd Romanian Division', '13th Gds': '13th Guards Rifle Division', '37th Gds': '37th Guards Rifle Division', '35th Gds': '35th Guards Rifle Division',
+    '308th Rifle': '308th Rifle Division', '284th Rifle': '284th Rifle Division', '138th Rifle': '138th Rifle Division', '95th Rifle': '95th Rifle Division',
+    '124th Bde': '124th Rifle Brigade', '84th Tk Bde': '84th Tank Brigade', 'Volga Art': 'Volga Flotilla and Artillery', '62nd Art': '62nd Army Artillery', '4th Mech': '4th Mechanized Corps',
+    // Kursk
+    'LSSAH': '1st SS Panzer Division Leibstandarte', 'Das Reich': '2nd SS Panzer Division Das Reich', 'Totenkopf': '3rd SS Panzer Division Totenkopf',
+    'GD': 'Panzergrenadier Division Großdeutschland', 'Arko 122': 'Artillery Command 122', '67th Gds': '67th Guards Rifle Division', '52nd Gds': '52nd Guards Rifle Division',
+    '71st Gds': '71st Guards Rifle Division', '90th Gds': '90th Guards Rifle Division', '81st Gds': '81st Guards Rifle Division', '375th Rifle': '375th Rifle Division',
+    '3rd Mech': '3rd Mechanized Corps', '6th Tk Corps': '6th Tank Corps', '31st Tk Corps': '31st Tank Corps', '27th AT Bde': '27th Anti-Tank Brigade',
+    '18th Tk Corps': '18th Tank Corps', '29th Tk Corps': '29th Tank Corps', '5th Gds Tk': '5th Guards Tank Corps',
+    // Bulge
+    '1st SS Pz': '1st SS Panzer Division', '12th SS Pz': '12th SS Panzer Division', '2nd Pz': '2nd Panzer Division', '116th Pz': '116th Panzer Division',
+    's.Pz 506': 'Heavy Panzer Battalion 506', '277th VG': '277th Volksgrenadier Division', '18th VG': '18th Volksgrenadier Division', '62nd VG': '62nd Volksgrenadier Division',
+    '26th VG': '26th Volksgrenadier Division', '5th Fsj': '5th Fallschirmjäger Division', 'Arko 6 SS': '6th SS Panzer Army Artillery', '15th PzGr': '15th Panzergrenadier Division',
+    'VIII Corps Art': 'VIII Corps Artillery', '29th Armd Bde': '29th Armoured Brigade',
+    // Torch
+    '1st Ranger': '1st Ranger Battalion', 'II Corps Art': 'II Corps Artillery', '6th Armd': '6th Armoured Division', '1st Para': '1st Parachute Brigade',
+    'Constantine': 'Constantine Division (XIX Corps)', '10th Pz': '10th Panzer Division', 's.Pz 501': 'Heavy Panzer Battalion 501', '334th Inf': '334th Infantry Division',
+    'HG Div': 'Hermann Göring Division', 'Barenthin': 'Fallschirmjäger Regiment Barenthin', 'Arko 5': '5th Panzer Army Artillery', 'Superga': 'Superga Division',
+    'Centauro': 'Centauro Armoured Division', 'Spezia': 'La Spezia Division', 'Blade Force': 'Blade Force (British armoured group)',
+    '3/3 Armd': '3rd Brigade, 3rd Armored Division', '3/8 Inf': '3rd Brigade, 8th Infantry Division (Mechanized)', '41st FA Bde': '41st Field Artillery Brigade',
+    '39th Gds': '39th Guards Rifle Division', '45th Rifle': '45th Rifle Division', '1st Tk Army': '1st Tank Army', '40th Army': '40th Army', '69th Army': '69th Army',
+    '30th Inf': '30th Infantry Division', '3rd Armd': '3rd Armored Division',
   };
   const WORDS = { Inf: 'Infantry', Arm: 'Armor', Armd: 'Armored', Mech: 'Mechanized', Art: 'Artillery', Abn: 'Airborne' };
   function fullName(short) {
@@ -594,6 +941,13 @@ const Engine = (() => {
       units: { '50th Inf': 'GB', 'Gds Armd': 'GB', 'XXX Art': 'GB', '3rd Can': 'CA', 'Pol Armd': 'PL' }, main: { A: ['US', 'American'], B: ['DE', 'German'] } },
     desert: { nations: { IT: { name: 'Italian', color: '#8b9993' }, ZA: { name: 'South African', color: '#80562c' }, FR: { name: 'Free French', color: '#5d4c5c' } },
       units: { Trento: 'IT', Brescia: 'IT', Pavia: 'IT', Ariete: 'IT', Trieste: 'IT', '2nd SA': 'ZA', '1st SA': 'ZA', '1st FF': 'FR' }, main: { A: ['DE', 'German'], B: ['GB', 'British'] } },
+    fulda: { nations: { DDR: { name: 'East German', color: '#9c4434' }, BRD: { name: 'West German', color: '#566c46' } },
+      units: { '4th MRD': 'DDR', '7th PzD': 'DDR', 'PzGrenBde 5': 'BRD', 'PzBde 14': 'BRD', HSchKdo: 'BRD' }, main: { A: ['SU', 'Soviet'], B: ['US', 'American'] } },
+    stalingrad: { nations: { RO: { name: 'Romanian', color: '#71796e' } }, units: { '1st Rom': 'RO', '2nd Rom': 'RO' }, main: { A: ['DE', 'German'], B: ['SU', 'Soviet'] } },
+    kursk: { nations: {}, units: {}, main: { A: ['DE', 'German'], B: ['SU', 'Soviet'] } },
+    bulge: { nations: { GB: { name: 'British', color: '#666c35' } }, units: { '29th Armd Bde': 'GB' }, main: { A: ['DE', 'German'], B: ['US', 'American'] } },
+    torch: { nations: { GB: { name: 'British', color: '#757639' }, FR: { name: 'French', color: '#677038' }, IT: { name: 'Italian', color: '#8b9993' } },
+      units: { '78th Inf': 'GB', '6th Armd': 'GB', '1st Para': 'GB', 'Blade Force': 'GB', Constantine: 'FR', Superga: 'IT', Centauro: 'IT', Spezia: 'IT' }, main: { A: ['US', 'American'], B: ['DE', 'German'] } },
   };
   function natOf(scen, name) { return (NATS[scen] && NATS[scen].units[name]) || ''; }
   function nation(scen, u) {
@@ -768,7 +1122,9 @@ const Engine = (() => {
       ],
     },
   };
-  const SCEN_ORDER = ['generic', 'europe', 'desert'];
+  const EXTRA = typeof EXTRA_SCEN !== 'undefined' ? { EXTRA_SCEN, EXTRA_ORDER } : (typeof require !== 'undefined' ? require('./scen2.js') : { EXTRA_SCEN: {}, EXTRA_ORDER: [] });
+  Object.assign(SCEN, EXTRA.EXTRA_SCEN);
+  const SCEN_ORDER = ['generic', 'europe', 'desert', ...EXTRA.EXTRA_ORDER];
 
   // ---------- map build (derived, cached; never saved) ----------
   const MAPS = {};
@@ -840,7 +1196,7 @@ const Engine = (() => {
   function newGame(scenId, seed, opts = {}) {
     const sc = SCEN[scenId];
     let id = 1;
-    const units = sc.units.map(([side, type, c, r, name]) => ({ id: id++, side, type, c, r, name: name || '', full: fullName(name), nat: natOf(scenId, name), steps: 2, moved: false, attacked: false, dropped: false, oos: false, dig: null }));
+    const units = sc.units.map(([side, type, c, r, name, start]) => ({ id: id++, side, type, c, r, name: name || '', full: fullName(name), nat: natOf(scenId, name), steps: 2, moved: false, attacked: false, dropped: false, oos: false, dig: start === 'dug' ? 'dug' : null }));
     const owner = {};
     sc.cities.forEach(ct => { if (ct.owner) owner[K(ct.c, ct.r)] = ct.owner; });
     const s = { v: 2, scen: scenId, turn: 1, active: 'A', phase: 'move', rng: seed | 0, units, owner, log: [], trails: [], prevTrails: [], attacked: [], bombarded: [], pending: null, winner: null, dead: [], lastCombat: null, fog: !!opts.fog, seen: { A: {}, B: {} } };
@@ -1668,12 +2024,14 @@ if (typeof module !== 'undefined') module.exports = AI;
 // ===================== HEXFRONT UI =====================
 (() => {
   const E = Engine, K = E.K, P = E.P;
-  const VERSION = '0.12.3', BUILD = '2026-11-19';
+  const VERSION = '0.13.1', BUILD = '2026-11-19';
   const S = 30, SQ3 = Math.sqrt(3), SAVE_KEY = 'hexfront.v1';
   try { console.info(`Hexfront v${VERSION} (${BUILD})`); } catch (e) { /* ignore */ }
   const THEMES = {
     temperate: { '.': '#e2d9b4', f: '#a9b47d', h: '#d3bc88', m: '#bba887', s: '#c4cda8', w: '#87a9ba', x: '#c8b285', frame: '#cfc39f', tree: '#6a7b47', hill: '#8f6c3d', mount: '#62513d', marsh: '#5c8797', grid: 'rgba(64,52,30,.30)', road: '#6c4a2b', river: '#4a82a9', label: '#2a2316' },
     europe: { '.': '#dbdab5', f: '#97ac6e', h: '#cfbb89', m: '#b3a184', s: '#bfcaa6', w: '#7d9db0', x: '#c8b285', frame: '#c9c7a2', tree: '#566c3b', hill: '#8a6b3f', mount: '#5f513f', marsh: '#5a8494', grid: 'rgba(56,58,34,.30)', road: '#6a4a2c', river: '#4a7fa6', label: '#262418' },
+    winter: { '.': '#e8ecec', f: '#aebcae', h: '#d2d6d2', m: '#b7bab7', s: '#cbd5d8', w: '#7f9bad', x: '#c9cfcf', frame: '#d3d8d8', tree: '#56685a', hill: '#7d8a8e', mount: '#5f676b', marsh: '#6f8fa0', grid: 'rgba(52,62,72,.30)', road: '#5d4c3c', river: '#4d7fa6', label: '#22303a' },
+    steppe: { '.': '#dfd9ad', f: '#9fae6e', h: '#d2bd86', m: '#b3a184', s: '#c1cba5', w: '#7d9db0', x: '#c8b285', frame: '#cfc8a0', tree: '#5d703d', hill: '#8f6c3d', mount: '#5f513f', marsh: '#5a8494', grid: 'rgba(64,58,30,.30)', road: '#6c4a2b', river: '#4a7fa6', label: '#2a2516' },
     desert: { '.': '#ebd29b', f: '#bcc27c', h: '#d8ab6b', m: '#bb905f', s: '#ede4cb', w: '#6b9cb1', x: '#d8bf8b', frame: '#d9bf88', tree: '#6a7b47', hill: '#925f2d', mount: '#62513d', marsh: '#a39b82', grid: 'rgba(110,78,36,.26)', road: '#7a542f', river: '#4a82a9', label: '#2f220f' },
   };
   // Terrain textures: square seamless JPGs in images/, named {set}_{terrain}_{variant}.jpg.
@@ -1682,7 +2040,7 @@ if (typeof module !== 'undefined') module.exports = AI;
     europe: { clear: 3, forest: 3, hills: 3, mountains: 3, marsh: 3, sea: 3 },
     desert: { clear: 3, hills: 3, marsh: 3, sea: 3, impassable: 3 },
   };
-  const TEX_SET = { temperate: 'base', europe: 'europe', desert: 'desert' };
+  const TEX_SET = { temperate: 'base', europe: 'europe', desert: 'desert', steppe: 'europe' }; // winter: drawn snow map, no textures yet
   const TEX_NAME = { '.': 'clear', f: 'forest', h: 'hills', m: 'mountains', s: 'marsh', w: 'sea', x: 'impassable' };
   const TEX_SIZE = 170, TEX_MARGIN = 16;
   const FONT = 'Barlow Condensed, Arial Narrow, sans-serif';
@@ -1737,6 +2095,8 @@ if (typeof module !== 'undefined') module.exports = AI;
     azure: () => `<rect width="30" height="20" fill="#3f6ea5"/><rect y="7.5" width="30" height="5" fill="#f2ecd8"/><rect x="5" width="5" height="20" fill="#f2ecd8"/>${star(7.5, 10, 2.6, '#e8a83a')}`,
     crimson: () => `<rect width="30" height="20" fill="#a6423a"/><rect width="30" height="6" y="14" fill="#2a1513"/><circle cx="15" cy="9" r="4.6" fill="none" stroke="#f2ecd8" stroke-width="1.8"/>${star(15, 9, 2.2, '#f2ecd8')}`,
     axis: () => `<rect width="30" height="20" fill="#6f777c"/><path d="M11.5 2.5h7v4h4v7h-4v4h-7v-4h-4v-7h4z" fill="#f2f2ee"/><path d="M13 4h4v4h4v4h-4v4h-4v-4h-4v-4h4z" fill="#111"/>`,
+    soviet: () => `<rect width="30" height="20" fill="#cc0000"/>${star(6.2, 3.6, 1.6, '#ffd700')}<path d="M4.3 8.6a2.6 2.6 0 1 0 3.6 -2.2" fill="none" stroke="#ffd700" stroke-width=".8"/><path d="M4.6 5.6l3.4 3.6" stroke="#ffd700" stroke-width=".9"/>`,
+    nato: () => `<rect width="30" height="20" fill="#1f3a68"/><circle cx="15" cy="10" r="5" fill="none" stroke="#fff" stroke-width=".8"/><path d="M15 3.5l1.3 5.2 5.2 1.3-5.2 1.3-1.3 5.2-1.3-5.2-5.2-1.3 5.2-1.3z" fill="#fff"/><path d="M15 2v3M15 15v3M7 10h3M20 10h3" stroke="#fff" stroke-width=".8"/>`,
     allies: () => `<rect width="30" height="20" fill="#5f6d34"/><circle cx="15" cy="10" r="6.6" fill="none" stroke="#f4f0dc" stroke-width="1.4"/>${star(15, 10.3, 5.4, '#f4f0dc')}`,
   };
   // Real national flags, simplified for small sizes (Germany uses the grey with the black cross).
@@ -1750,6 +2110,10 @@ if (typeof module !== 'undefined') module.exports = AI;
     ZA: () => `<rect width="30" height="6.67" fill="#ec7a1c"/><rect y="6.67" width="30" height="6.67" fill="#fff"/><rect y="13.33" width="30" height="6.67" fill="#1c3f94"/>`,
     FR: () => `<rect width="10" height="20" fill="#0055a4"/><rect x="10" width="10" height="20" fill="#fff"/><rect x="20" width="10" height="20" fill="#ef4135"/><path d="M15 4.5v11M12.8 7.5h4.4M12 10h6" stroke="#ef4135" stroke-width="1.2"/>`,
     DE: () => FLAGS.axis(),
+    SU: () => FLAGS.soviet(),
+    BRD: () => `<rect width="30" height="6.67" fill="#111"/><rect y="6.67" width="30" height="6.67" fill="#dd0000"/><rect y="13.33" width="30" height="6.67" fill="#ffce00"/>`,
+    DDR: () => `${NATFLAG.BRD()}<circle cx="15" cy="10" r="4" fill="#ffce00" stroke="#111" stroke-width=".6"/><path d="M13 9.5l2 2.5 2-2.5M15 7v5" stroke="#111" stroke-width=".9" fill="none"/>`,
+    RO: () => `<rect width="10" height="20" fill="#002b7f"/><rect x="10" width="10" height="20" fill="#fcd116"/><rect x="20" width="10" height="20" fill="#ce1126"/>`,
   };
   function natFlagSVG(code, cls = 'natflag') {
     const body = NATFLAG[code] ? NATFLAG[code]() : '';
@@ -1801,6 +2165,8 @@ if (typeof module !== 'undefined') module.exports = AI;
       case 'abn': return box + X + `<path d="M${-bw * 0.22} ${-y0 - 1}q${bw * 0.11} ${-bh * 0.28} ${bw * 0.22} 0q${bw * 0.11} ${-bh * 0.28} ${bw * 0.22} 0" ${st} stroke-width="1.1"/>`;
       case 'hvy': return box + O + `<ellipse rx="${(bw / 2 - bw * 0.3).toFixed(1)}" ry="${Math.max(1.2, bh / 2 - bh * 0.36).toFixed(1)}" ${st} stroke-width="1"/>`;
       case 'rcn': return box + `<path d="M${x0} ${-y0}L${-x0} ${y0}" ${st} stroke-width="1.2"/>`;
+      case 'cav': return box + O + `<path d="M${x0} ${-y0}L${-x0} ${y0}" ${st} stroke-width="1.1"/>`;
+      case 'hel': { const w = bw * 0.3, hh = bh * 0.28; return box + `<path d="M${-w} ${-hh}L${w} ${hh}L${w} ${-hh}L${-w} ${hh}Z" fill="${ink}" stroke="${ink}" stroke-width=".8" stroke-linejoin="round"/>`; }
     }
     return box;
   }
@@ -2810,6 +3176,7 @@ if (typeof module !== 'undefined') module.exports = AI;
     info = K(u.c, u.r); centerOn(u.c, u.r); render(); if (PHONE.matches) openPop('info', u.id); else { openTray('unit'); render(); }
   });
   $('verTag').textContent = `Hexfront v${VERSION} · ${BUILD}`;
+  $('menuBtn').addEventListener('click', () => { $('verTag').textContent = `Hexfront v${VERSION} · ${BUILD} · ${diag()}`; });
   $('brandVer').textContent = `v${VERSION}`;
   $('menuBtn').addEventListener('click', () => $('menuDlg').showModal());
   $('menuDlg').addEventListener('click', e => {
@@ -2866,6 +3233,29 @@ if (typeof module !== 'undefined') module.exports = AI;
     if (e.key === 'Escape' && !document.querySelector('dialog[open]')) { sel = null; target = null; atk.clear(); mode = null; closePop(); closeTray(); render(); }
   });
   window.addEventListener('resize', () => { if (vb) setVB(); });
+
+  // ---------- phone fit ----------
+  // Home-screen apps on iPhone can misreport the viewport, so size the page from innerHeight directly,
+  // and report what the phone says so layout problems can be diagnosed from the Menu.
+  const STANDALONE = (() => { try { return !!navigator.standalone || matchMedia('(display-mode: standalone)').matches; } catch (e) { return false; } })();
+  document.documentElement.classList.toggle('standalone', STANDALONE);
+  function fitPage() {
+    document.documentElement.style.setProperty('--app-h', window.innerHeight + 'px');
+    if (vb) setVB();
+  }
+  function insets() { const cs = getComputedStyle($('saProbe')); return [parseFloat(cs.paddingTop) || 0, parseFloat(cs.paddingBottom) || 0]; }
+  function diag() {
+    const [t, b] = insets();
+    return `${STANDALONE ? 'home-screen app' : 'browser'} · view ${innerWidth}×${innerHeight} · screen ${screen.width}×${screen.height} · safe ${Math.round(t)}/${Math.round(b)}`;
+  }
+  ['resize', 'orientationchange'].forEach(ev => window.addEventListener(ev, () => setTimeout(fitPage, 60)));
+  fitPage();
+  // With the opaque (black) status bar the page starts below it, so a top inset means the old see-through setting is still installed.
+  setTimeout(() => {
+    let dismissed = false; try { dismissed = localStorage.getItem('hexfront.reinstall') === VERSION; } catch (e) { /* ignore */ }
+    if (STANDALONE && insets()[0] > 0 && !dismissed) $('reinstall').hidden = false;
+  }, 400);
+  $('reinstallX').addEventListener('click', () => { $('reinstall').hidden = true; try { localStorage.setItem('hexfront.reinstall', VERSION); } catch (e) { /* ignore */ } });
 
   // ---------- boot ----------
   function start(data) {
