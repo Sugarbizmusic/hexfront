@@ -4,26 +4,27 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Hexfront</title>
-<meta name="theme-color" content="#1a1e18">
-<meta name="description" content="A classic hex-and-counter WWII wargame for two players, hotseat or by email.">
+<meta name="theme-color" content="#1b1f1a">
+<meta name="description" content="A classic hex-and-counter WWII wargame for two players, against the computer, hotseat or by email.">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Hexfront">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Saira+Stencil+One&family=Barlow+Condensed:wght@400;500;600;700&family=Barlow:wght@400;500&display=swap" rel="stylesheet">
 <style>
-/* Layout idea: a war-room table. Dark olive chrome frames a paper map; the sidebar is the staff officer's clipboard. Single theme by choice. */
+/* Layout idea: a war-room table. Dark olive chrome frames a paper map. Phones: fixed header + toolbar, full-bleed map, slide-up trays above a bottom nav. Single theme by choice. */
 :root {
   --chrome: #1a1e18;
+  --bar: #151813;
   --panel: #232921;
   --panel-2: #2c3329;
-  --line: #3b4535;
+  --cell: #1d221b;
+  --line: #333c2e;
   --ink: #ece5cf;
   --muted: #a7a48f;
   --signal: #e8a83a;
@@ -32,77 +33,117 @@
   --display: 'Saira Stencil One', Impact, 'Arial Black', sans-serif;
   --ui: 'Barlow Condensed', 'Arial Narrow', sans-serif;
   --body: 'Barlow', system-ui, sans-serif;
+  --nav-h: 58px;
   color-scheme: dark;
 }
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
 body { background: var(--chrome); color: var(--ink); font: 15px/1.4 var(--body); display: grid; grid-template-rows: auto 1fr; overflow: hidden; }
-button { font: 600 15px/1 var(--ui); letter-spacing: .04em; text-transform: uppercase; color: var(--ink); background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 9px 12px; cursor: pointer; }
+button { -webkit-tap-highlight-color: transparent; font: 600 15px/1 var(--ui); letter-spacing: .04em; text-transform: uppercase; color: var(--ink); background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 9px 12px; cursor: pointer; }
 button:hover:not(:disabled) { border-color: var(--muted); }
 button:disabled { opacity: .4; cursor: default; }
 button:focus-visible, textarea:focus-visible, input:focus-visible, .card:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
 button.primary { background: var(--signal); color: #1d1606; border-color: var(--signal); }
 button.primary:hover:not(:disabled) { background: #f3b84e; }
-button.danger { color: var(--danger); }
 
-/* ---------- top bar ---------- */
-.bar { display: flex; align-items: center; gap: 18px; padding: calc(10px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 10px calc(16px + env(safe-area-inset-left)); border-bottom: 1px solid var(--line); background: #151813; flex-wrap: wrap; }
-.brand { font: 26px/1 var(--display); letter-spacing: .06em; color: var(--signal); }
-.scen { font: 600 15px/1.1 var(--ui); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); }
+/* ---------- header ---------- */
+.bar { display: grid; grid-template-columns: auto auto auto 1fr auto auto; grid-template-areas: "brand scen status phases main menu" "tools tools tools tools tools tools"; align-items: center; gap: 10px 18px; padding: calc(8px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 0 calc(16px + env(safe-area-inset-left)); background: var(--bar); border-bottom: 1px solid var(--line); }
+.brand { grid-area: brand; display: flex; align-items: center; gap: 10px; }
+.brand img { height: 40px; width: auto; display: block; filter: drop-shadow(0 2px 3px rgba(0,0,0,.5)); }
+.brand span { font: 24px/1 var(--display); letter-spacing: .06em; color: var(--signal); }
+.scen { grid-area: scen; font: 600 13px/1.1 var(--ui); text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
 .scen b { color: var(--ink); font-weight: 600; display: block; letter-spacing: .04em; font-size: 17px; }
-.turnbox { font: 600 15px/1 var(--ui); text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-variant-numeric: tabular-nums; }
-.turnbox b { font: 24px/1 var(--display); color: var(--ink); margin-left: 4px; }
-.sidechip { display: flex; align-items: center; gap: 8px; font: 700 17px/1 var(--ui); text-transform: uppercase; letter-spacing: .05em; padding: 6px 10px 6px 6px; border-radius: 4px; background: var(--panel); border: 1px solid var(--line); }
-.sidechip i { width: 22px; height: 22px; border-radius: 3px; display: block; box-shadow: inset 0 0 0 1px rgba(0,0,0,.35); }
-.phases { display: flex; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
-.phases span { font: 600 14px/1 var(--ui); text-transform: uppercase; letter-spacing: .1em; padding: 8px 12px; color: var(--muted); }
+.status { grid-area: status; display: flex; align-items: center; gap: 10px; min-width: 0; }
+.status svg { width: 30px; height: 32px; flex: none; }
+.status b { display: block; font: 700 18px/1.05 var(--ui); text-transform: uppercase; letter-spacing: .04em; white-space: nowrap; }
+.status small { display: block; font: 500 13px/1.2 var(--ui); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cpu { font: 700 11px/1 var(--ui); letter-spacing: .1em; color: #1d1606; background: var(--signal); border-radius: 3px; padding: 2px 4px; margin-left: 6px; vertical-align: 2px; }
+.phases { grid-area: phases; justify-self: start; display: flex; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
+.phases span { font: 600 13px/1 var(--ui); text-transform: uppercase; letter-spacing: .1em; padding: 8px 11px; color: var(--muted); }
 .phases span.on { background: var(--ink); color: var(--chrome); }
-.spacer { flex: 1; }
-#mainBtn { padding: 11px 18px; font-size: 16px; }
+#mainBtn { grid-area: main; padding: 11px 18px; font-size: 16px; white-space: nowrap; }
+#menuBtn { grid-area: menu; display: flex; align-items: center; gap: 8px; padding: 9px 11px; background: transparent; border-color: transparent; }
+#menuBtn svg { width: 24px; height: 24px; }
+
+/* toolbar + bottom nav share one look: flat dark cells, icon over label */
+.cells { display: grid; background: var(--cell); border-top: 1px solid var(--line); }
+.cells button { border: 0; border-radius: 0; border-right: 1px solid var(--line); background: transparent; color: var(--muted); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 7px 2px 6px; font: 600 11px/1 var(--ui); letter-spacing: .08em; position: relative; min-width: 0; }
+.cells button:last-child { border-right: 0; }
+.cells button svg { width: 22px; height: 22px; }
+.cells button:hover:not(:disabled) { color: var(--ink); background: rgba(255,255,255,.03); }
+.cells button[aria-pressed="true"] { color: var(--signal); background: rgba(232,168,58,.08); }
+.cells button[aria-pressed="true"]::before { content: ""; position: absolute; left: 18%; right: 18%; top: 0; height: 2px; background: var(--signal); border-radius: 0 0 2px 2px; }
+.cells button.blank { pointer-events: none; }
+.toolbar { grid-area: tools; grid-template-columns: repeat(8, 1fr); margin: 0 calc(-16px - env(safe-area-inset-right)) 0 calc(-16px - env(safe-area-inset-left)); }
 
 /* ---------- main ---------- */
-main { display: grid; grid-template-columns: 1fr 330px; min-height: 0; }
-.mapwrap { position: relative; min-height: 0; background: radial-gradient(ellipse at center, #2a3026 0%, #161a14 85%); }
-#map { width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; user-select: none; }
+main { display: grid; grid-template-columns: 1fr 330px; min-height: 0; position: relative; }
+.mapwrap { position: relative; min-height: 0; background: radial-gradient(ellipse at center, #2a3026 0%, #161a14 85%); overflow: hidden; }
+#map { width: 100%; height: 100%; display: block; touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; }
 #map.panning { cursor: grabbing; }
-.mapctl { position: absolute; left: 12px; bottom: 12px; display: flex; gap: 6px; flex-wrap: wrap; }
-.mapctl button { padding: 8px 10px; background: rgba(26,30,24,.88); }
-.mapctl button[aria-pressed="true"] { border-color: var(--signal); color: var(--signal); }
-.hint { position: absolute; left: 50%; top: 12px; transform: translateX(-50%); background: rgba(21,24,19,.9); border: 1px solid var(--line); border-radius: 4px; padding: 7px 14px; font: 500 16px/1.2 var(--ui); letter-spacing: .03em; max-width: calc(100% - 24px); text-align: center; pointer-events: none; }
-.toast { position: absolute; left: 50%; bottom: 60px; transform: translateX(-50%); background: var(--danger); color: #fff; padding: 8px 14px; border-radius: 4px; font: 600 15px/1.2 var(--ui); opacity: 0; transition: opacity .2s; pointer-events: none; }
+#map .lod-far { display: none; }
+#map.far .lod-far { display: inline; }
+#map.far .lod-near { display: none; }
+.zoomctl { position: absolute; left: 12px; bottom: 12px; display: flex; gap: 6px; }
+.zoomctl button { padding: 8px 12px; background: rgba(26,30,24,.88); font-size: 17px; }
+.hint { position: absolute; left: 50%; top: 10px; transform: translateX(-50%); background: rgba(21,24,19,.9); border: 1px solid var(--line); border-radius: 4px; padding: 6px 12px; font: 500 15px/1.2 var(--ui); letter-spacing: .03em; max-width: calc(100% - 24px); text-align: center; pointer-events: none; z-index: 2; }
+.toast { position: absolute; left: 50%; bottom: 60px; transform: translateX(-50%); background: var(--danger); color: #fff; padding: 8px 14px; border-radius: 4px; font: 600 15px/1.2 var(--ui); opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 6; max-width: calc(100% - 32px); text-align: center; }
 .toast.show { opacity: 1; }
 
-/* ---------- sidebar ---------- */
+/* ---------- unit popup ---------- */
+.pop { position: absolute; z-index: 4; width: 250px; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 14px 40px rgba(0,0,0,.55); padding: 10px 12px 12px; display: none; }
+.pop.show { display: block; }
+.pop-h { display: grid; grid-template-columns: 44px 1fr auto; gap: 10px; align-items: center; margin-bottom: 8px; }
+.pop-h b { display: block; font: 700 18px/1.05 var(--ui); }
+.pop-h small { display: block; font: 500 13px/1.2 var(--ui); color: var(--muted); letter-spacing: .03em; }
+.pop-x { background: transparent; border: 0; color: var(--muted); font-size: 20px; padding: 4px 6px; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 8px; }
+.stats div { background: var(--panel-2); border-radius: 4px; text-align: center; padding: 5px 0 4px; }
+.stats small { display: block; font: 600 10.5px/1 var(--ui); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.stats b { font: 22px/1.1 var(--display); font-variant-numeric: tabular-nums; }
+.stats b.down { color: var(--danger); }
+.pop ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font: 500 14px/1.25 var(--ui); }
+.pop ul li { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); }
+.pop ul li span:last-child { color: var(--ink); text-align: right; }
+.pop .note { font-size: 13px; color: var(--muted); margin: 8px 0 0; }
+.order { display: grid; gap: 6px; padding: 10px; background: var(--panel-2); border-radius: 5px; margin-top: 6px; }
+.order p { margin: 0; font-size: 13px; color: var(--muted); }
+.order button { width: 100%; }
+
+/* ---------- sidebar (desktop) ---------- */
 aside { border-left: 1px solid var(--line); background: var(--panel); display: flex; flex-direction: column; min-height: 0; overflow-y: auto; }
 aside section { padding: 14px 16px; border-bottom: 1px solid var(--line); }
-aside h3 { margin: 0 0 10px; font: 600 13px/1 var(--ui); text-transform: uppercase; letter-spacing: .14em; color: var(--muted); }
+aside h3, .pane h3 { margin: 0 0 10px; font: 600 13px/1 var(--ui); text-transform: uppercase; letter-spacing: .14em; color: var(--muted); }
 .score { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .score div { background: var(--panel-2); border-radius: 4px; padding: 8px 10px; border-left: 5px solid; }
 .score small { display: block; font: 600 13px/1.1 var(--ui); text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
 .score b { font: 26px/1.1 var(--display); font-variant-numeric: tabular-nums; }
 .score em { font: 500 13px/1 var(--ui); color: var(--muted); font-style: normal; }
 .objective { margin: 10px 0 0; font-size: 13.5px; color: var(--muted); }
+.pane .objective { margin-bottom: 18px; }
 .detail { display: grid; grid-template-columns: 64px 1fr; gap: 12px; align-items: start; }
 .detail h4 { margin: 0 0 4px; font: 700 19px/1.1 var(--ui); letter-spacing: .02em; }
-.detail p { margin: 2px 0; font-size: 13.5px; color: var(--muted); }
+.detail p, #detail > p { margin: 2px 0; font-size: 13.5px; color: var(--muted); }
 .tags { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; }
 .tag { font: 600 12px/1 var(--ui); text-transform: uppercase; letter-spacing: .08em; padding: 4px 6px; border-radius: 3px; background: var(--panel-2); color: var(--muted); border: 1px solid var(--line); }
 .tag.warn { color: var(--danger); border-color: var(--danger); }
 .tag.go { color: var(--ok); border-color: rgba(147,181,107,.6); }
 .empty { color: var(--muted); font-size: 14px; margin: 0; }
-.odds { display: flex; align-items: baseline; gap: 10px; margin: 6px 0 10px; }
+.odds { display: flex; align-items: baseline; gap: 10px; margin: 6px 0 10px; flex-wrap: wrap; }
 .odds b { font: 34px/1 var(--display); color: var(--signal); font-variant-numeric: tabular-nums; }
 .odds span { font: 500 14px/1.3 var(--ui); color: var(--muted); }
+.mode { font: 700 12px/1 var(--ui); letter-spacing: .1em; text-transform: uppercase; padding: 4px 6px; border-radius: 3px; background: #3a3322; color: var(--signal); }
 .crtrow { display: grid; grid-template-columns: repeat(6, 1fr); gap: 3px; margin-bottom: 10px; }
 .crtrow div { text-align: center; background: var(--panel-2); border-radius: 3px; padding: 5px 0 4px; font: 700 15px/1 var(--ui); }
 .crtrow div small { display: block; font: 500 11px/1 var(--ui); color: var(--muted); margin-bottom: 3px; }
-.crtrow .D { color: var(--ok); }
+.crtrow .D, .crtrow .B { color: var(--ok); }
 .crtrow .A { color: var(--danger); }
 .crtrow .E { color: var(--signal); }
 .crtrow div.hit { outline: 2px solid var(--signal); background: #3a3a22; }
-.atklist { list-style: none; padding: 0; margin: 0 0 10px; display: grid; gap: 4px; font: 500 15px/1.2 var(--ui); }
-.atklist li { display: flex; justify-content: space-between; gap: 8px; }
+.atklist { list-style: none; padding: 0; margin: 0 0 10px; display: grid; gap: 2px; font: 500 15px/1.2 var(--ui); }
+.atklist li { display: flex; justify-content: space-between; gap: 8px; padding: 6px 8px; border-radius: 4px; background: var(--panel-2); cursor: pointer; }
 .atklist li.off { opacity: .45; text-decoration: line-through; }
+.atklist li.total { background: transparent; cursor: default; border-top: 1px solid var(--line); border-radius: 0; margin-top: 4px; }
 .row { display: flex; gap: 8px; flex-wrap: wrap; }
 .row button { flex: 1; }
 .result { background: var(--panel-2); border-radius: 4px; padding: 8px 10px; margin-bottom: 10px; font: 500 15px/1.3 var(--ui); }
@@ -114,38 +155,45 @@ aside h3 { margin: 0 0 10px; font: 600 13px/1 var(--ui); text-transform: upperca
 #log li.combat { color: var(--ink); }
 #log li.capture { color: var(--signal); }
 #log li.end { color: var(--signal); font-weight: 700; }
-.tools { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding-bottom: calc(14px + env(safe-area-inset-bottom)) !important; }
-#menuBtn { display: flex; align-items: center; gap: 8px; padding: 10px 12px; }
-#menuBtn svg { width: 18px; height: 18px; }
-.menu { display: grid; gap: 8px; }
-.menu button { text-align: left; padding: 14px 16px; font-size: 17px; display: flex; justify-content: space-between; align-items: center; }
-.menu button small { font: 500 13px/1.2 var(--body); text-transform: none; letter-spacing: 0; color: var(--muted); }
-.howto { display: grid; gap: 16px; }
-.howto ol { margin: 0; padding-left: 22px; display: grid; gap: 8px; }
-.howto li { color: var(--ink); max-width: 65ch; }
-.howto h3 { margin: 0 0 6px; font: 600 14px/1 var(--ui); text-transform: uppercase; letter-spacing: .12em; color: var(--signal); }
-.howto p { color: var(--ink); }
-.howto .kbd { display: inline-block; font: 700 13px/1 var(--ui); text-transform: uppercase; letter-spacing: .06em; padding: 3px 6px; border: 1px solid var(--line); border-radius: 3px; background: var(--panel-2); }
+.tools { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
 .tools button { padding: 9px 6px; font-size: 14px; }
 .tools .wide { grid-column: span 2; }
+
+/* ---------- trays (phones) ---------- */
+.bnav, .tray, .trayback { display: none; }
+.pane[hidden] { display: none !important; }
+.citylist, .forces { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.citylist li { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; padding: 7px 10px; background: var(--panel-2); border-radius: 4px; font: 500 15px/1.2 var(--ui); }
+.citylist .own { display: flex; align-items: center; gap: 6px; color: var(--muted); font-size: 13px; text-transform: uppercase; letter-spacing: .05em; }
+.citylist .own i { width: 12px; height: 12px; border-radius: 2px; display: block; }
+.citylist .vp { font: 16px/1 var(--display); color: var(--signal); min-width: 22px; text-align: right; }
+.forces li { display: grid; grid-template-columns: 40px 1fr auto; gap: 10px; align-items: center; padding: 6px 8px; background: var(--panel-2); border-radius: 4px; cursor: pointer; }
+.forces li b { display: block; font: 700 16px/1.1 var(--ui); }
+.forces li small { display: block; font: 500 12.5px/1.2 var(--ui); color: var(--muted); letter-spacing: .03em; }
+.forces li .st { font: 600 11px/1 var(--ui); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); text-align: right; }
+.forces li.lost { opacity: .5; cursor: default; }
+.brief { margin: 0 0 12px; color: var(--ink); font-size: 14.5px; max-width: 65ch; }
+.rulelist { margin: 0 0 14px; padding-left: 18px; display: grid; gap: 4px; font-size: 14px; }
+.pane + .pane { margin-top: 0; }
+.pane section { margin-bottom: 16px; }
 
 /* ---------- dialogs ---------- */
 dialog { background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 0; max-width: min(760px, calc(100vw - 32px)); width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
 dialog::backdrop { background: rgba(8,10,7,.72); }
-.dlg { padding: 20px 22px; display: grid; gap: 14px; max-height: calc(100vh - 60px); overflow-y: auto; }
+.dlg { padding: 20px 22px; display: grid; gap: 14px; max-height: calc(100dvh - 60px); overflow-y: auto; }
 .dlg h2 { margin: 0; font: 30px/1 var(--display); letter-spacing: .03em; text-wrap: balance; }
 .dlg p { margin: 0; color: var(--muted); max-width: 65ch; }
 .dlg textarea { width: 100%; min-height: 130px; background: #141712; color: var(--ink); border: 1px solid var(--line); border-radius: 4px; padding: 10px; font: 12px/1.35 ui-monospace, Menlo, monospace; word-break: break-all; resize: vertical; }
 .dlg .err { color: var(--danger); font: 600 15px/1.2 var(--ui); min-height: 18px; }
 .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
 .card { background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 14px; display: grid; gap: 8px; align-content: start; cursor: pointer; text-align: left; text-transform: none; letter-spacing: 0; font: inherit; }
-.card:hover { border-color: var(--signal); }
+.card:hover, .card[aria-pressed="true"] { border-color: var(--signal); }
+.card[aria-pressed="true"] { box-shadow: 0 0 0 1px var(--signal); }
 .card .set { font: 600 13px/1 var(--ui); text-transform: uppercase; letter-spacing: .12em; color: var(--signal); }
 .card h4 { margin: 0; font: 22px/1.05 var(--display); letter-spacing: .02em; }
 .card p { font-size: 13.5px; margin: 0; color: var(--muted); }
-.card .vs { display: flex; align-items: center; gap: 8px; font: 600 14px/1 var(--ui); }
+.card .vs { display: flex; align-items: center; gap: 8px; font: 600 14px/1 var(--ui); flex-wrap: wrap; }
 .card .vs svg { width: 34px; height: 34px; }
-.card[aria-pressed="true"] { border-color: var(--signal); box-shadow: 0 0 0 1px var(--signal); }
 .setup { display: grid; gap: 10px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 14px; }
 .setup h3 { margin: 0; font: 600 14px/1 var(--ui); text-transform: uppercase; letter-spacing: .12em; color: var(--signal); }
 .who { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
@@ -154,74 +202,86 @@ dialog::backdrop { background: rgba(8,10,7,.72); }
 .seg { display: flex; border: 1px solid var(--line); border-radius: 4px; overflow: hidden; }
 .seg button { border: 0; border-radius: 0; padding: 9px 12px; background: transparent; color: var(--muted); }
 .seg button[aria-pressed="true"] { background: var(--ink); color: var(--chrome); }
-.cpu { font: 600 12px/1 var(--ui); letter-spacing: .08em; color: var(--signal); margin-left: 4px; }
+.menu { display: grid; gap: 8px; }
+.menu button { text-align: left; padding: 14px 16px; font-size: 17px; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.menu button small { font: 500 13px/1.2 var(--body); text-transform: none; letter-spacing: 0; color: var(--muted); }
+.howto { display: grid; gap: 16px; }
+.howto ol { margin: 0; padding-left: 22px; display: grid; gap: 8px; }
+.howto li { color: var(--ink); max-width: 65ch; }
+.howto h3, .rules h3 { margin: 0 0 6px; font: 600 14px/1 var(--ui); text-transform: uppercase; letter-spacing: .12em; color: var(--signal); }
+.howto p { color: var(--ink); }
+.kbd { display: inline-block; font: 700 13px/1 var(--ui); text-transform: uppercase; letter-spacing: .06em; padding: 3px 6px; border: 1px solid var(--line); border-radius: 3px; background: var(--panel-2); }
 .rules { display: grid; gap: 14px; }
-.rules h3 { margin: 0 0 6px; font: 600 14px/1 var(--ui); text-transform: uppercase; letter-spacing: .12em; color: var(--signal); }
 .rules ul { margin: 0; padding-left: 18px; color: var(--ink); font-size: 14.5px; display: grid; gap: 4px; }
 table.crt { border-collapse: collapse; font: 600 14px/1 var(--ui); width: 100%; font-variant-numeric: tabular-nums; }
 table.crt th, table.crt td { border: 1px solid var(--line); padding: 6px 4px; text-align: center; }
 table.crt th { color: var(--muted); font-weight: 600; }
-.tblwrap { overflow-x: auto; }
+.tblwrap { overflow-x: auto; margin-bottom: 14px; }
 
-/* ---------- handoff / victory screen ---------- */
-.cover { position: absolute; inset: 0; display: none; place-items: center; background: rgba(14,16,12,.86); backdrop-filter: blur(3px); z-index: 5; padding: 16px; }
+/* ---------- handoff / victory ---------- */
+.cover { position: absolute; inset: 0; display: none; place-items: center; background: rgba(14,16,12,.86); backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); z-index: 7; padding: 16px; }
+.cover.opaque { background: #141712; }
 .cover.show { display: grid; }
 .cover .box { text-align: center; display: grid; gap: 14px; justify-items: center; max-width: 520px; }
-.cover .flag { width: 74px; height: 74px; border-radius: 6px; box-shadow: inset 0 0 0 2px rgba(0,0,0,.35), 0 0 0 4px rgba(236,229,207,.08); }
+.cover .flagbig svg { width: 74px; height: 80px; }
 .cover h2 { margin: 0; font: 44px/1 var(--display); letter-spacing: .03em; text-wrap: balance; }
 .cover p { margin: 0; color: var(--muted); }
 .cover .kicker { font: 600 15px/1 var(--ui); text-transform: uppercase; letter-spacing: .2em; color: var(--signal); }
 
-@media (max-width: 900px) {
-  /* App shell: the page itself never scrolls (so iOS draws no fade under the status bar); only main scrolls. */
-  html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
-  body { display: flex; flex-direction: column; height: 100dvh; }
-  .bar { flex: none; }
-  main { flex: 1; min-height: 0; display: block; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
-  .mapwrap { height: 64vh; min-height: 380px; }
-  aside { border-left: 0; border-top: 1px solid var(--line); overflow: visible; }
-  .bar { gap: 10px; }
-  .brand { font-size: 22px; }
-}
-@media (max-width: 600px) {
-  .bar { display: grid; grid-template-columns: auto 1fr auto; gap: 8px 10px; padding: calc(6px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) 10px calc(12px + env(safe-area-inset-left)); align-items: center; }
-  #menuBtn { grid-column: 3; grid-row: 1; justify-self: end; padding: 8px 10px; font-size: 13px; }
-  .scen b { white-space: nowrap; }
-  .brand { font-size: 19px; }
-  .scen { font-size: 11px; grid-column: 2; grid-row: 1; text-align: right; }
-  .scen b { font-size: 14px; }
-  .turnbox { font-size: 12px; }
-  .turnbox b { font-size: 18px; }
-  .sidechip { font-size: 14px; padding: 4px 8px 4px 4px; grid-column: 2 / 4; justify-self: end; }
-  .sidechip i { width: 16px; height: 16px; }
-  .phases { grid-column: 1 / 3; justify-self: start; }
-  .phases span { padding: 8px 9px; font-size: 12px; }
-  .spacer { display: none; }
-  #mainBtn { grid-column: 3; padding: 10px 12px; font-size: 14px; }
-  .sidechip { grid-row: 2; }
-  .turnbox { grid-row: 2; }
-  .phases, #mainBtn { grid-row: 3; }
-  .mapwrap { height: 68vh; min-height: 360px; }
-  .hint { font-size: 13px; padding: 5px 10px; top: 8px; max-width: calc(100% - 16px); }
-  .mapctl { left: 8px; bottom: 8px; gap: 4px; }
-  .mapctl button { padding: 7px 8px; font-size: 12px; }
-  aside section { padding: 12px; }
-}
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 @keyframes pulse { 0%,100% { stroke-opacity: 1; } 50% { stroke-opacity: .35; } }
 .pulse { animation: pulse 1.2s ease-in-out infinite; }
+
+/* ================= PHONES ================= */
+@media (max-width: 700px) {
+  html, body { overflow: hidden; overscroll-behavior: none; }
+  body { display: flex; flex-direction: column; height: 100dvh; }
+  .bar { flex: none; grid-template-columns: 1fr auto; grid-template-areas: "brand menu" "status main" "tools tools"; gap: 6px 10px; padding: calc(4px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) 0 calc(12px + env(safe-area-inset-left)); }
+  .brand img { height: 34px; }
+  .brand span { font-size: 20px; }
+  .scen, .phases { display: none; }
+  #menuBtn span { display: none; }
+  #menuBtn { justify-self: end; }
+  #menuBtn { padding: 6px; }
+  #mainBtn { padding: 10px 14px; font-size: 14px; }
+  .status b { font-size: 16px; }
+  .status small { font-size: 12px; }
+  .toolbar { margin: 4px calc(-12px - env(safe-area-inset-right)) 0 calc(-12px - env(safe-area-inset-left)); }
+  .cells button { font-size: 10px; padding: 7px 0 6px; }
+  main { flex: 1; display: block; min-height: 0; }
+  .mapwrap { position: absolute; inset: 0; }
+  aside, .zoomctl { display: none; }
+  .hint { font-size: 13px; padding: 5px 10px; top: 8px; max-width: calc(100% - 16px); }
+  body.tray-on .hint { display: none; }
+  .hint { transition: opacity .4s; }
+  .hint.quiet { opacity: 0; }
+  .toast { bottom: 16px; }
+
+  .bnav { display: grid; flex: none; grid-template-columns: repeat(5, 1fr); position: relative; z-index: 12; padding-bottom: env(safe-area-inset-bottom); background: var(--cell); }
+  .bnav button { height: var(--nav-h); }
+  .trayback { display: block; position: fixed; inset: 0; z-index: 9; pointer-events: none; }
+  .trayback.on { pointer-events: auto; }
+  .tray { display: flex; flex-direction: column; position: fixed; left: 0; right: 0; bottom: calc(var(--nav-h) + env(safe-area-inset-bottom)); max-height: min(62dvh, 560px); z-index: 10; background: var(--panel); border-top: 1px solid var(--line); border-radius: 12px 12px 0 0; box-shadow: 0 -12px 40px rgba(0,0,0,.5); transform: translateY(110%); transition: transform .26s cubic-bezier(.2,.8,.2,1), visibility 0s linear .26s; visibility: hidden; }
+  .tray.open { transform: none; visibility: visible; transition: transform .26s cubic-bezier(.2,.8,.2,1); }
+  .trayhead { display: flex; align-items: center; justify-content: space-between; padding: 8px 14px 6px; border-bottom: 1px solid var(--line); flex: none; }
+  .trayhead::before { content: ""; position: absolute; left: 50%; top: 5px; width: 36px; height: 4px; border-radius: 2px; background: #4a5444; transform: translateX(-50%); }
+  .trayhead h3 { margin: 6px 0 0; font: 600 14px/1 var(--ui); text-transform: uppercase; letter-spacing: .14em; color: var(--signal); }
+  .trayhead button { background: transparent; border: 0; color: var(--muted); font-size: 22px; padding: 4px 6px; }
+  .traybody { overflow-y: auto; padding: 12px 14px calc(14px); -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+  .pop { width: min(250px, calc(100vw - 24px)); }
+  .cover h2 { font-size: 36px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
 </head>
 <body>
 <header class="bar">
-  <div class="brand">HEXFRONT</div>
+  <div class="brand"><img src="icons/logo.png" alt=""><span>HEXFRONT</span></div>
   <div class="scen" id="scenName"></div>
-  <div class="turnbox" id="turnBox"></div>
-  <div class="sidechip" id="sideChip"></div>
+  <div class="status" id="status" aria-live="polite"></div>
   <div class="phases" id="phases"><span data-p="move">1 Move</span><span data-p="combat">2 Combat</span></div>
-  <div class="spacer"></div>
   <button id="mainBtn" class="primary" type="button"></button>
-  <button id="menuBtn" type="button" aria-haspopup="dialog" aria-label="Menu"><svg viewBox="0 0 18 18" aria-hidden="true"><path d="M2 4h14M2 9h14M2 14h14" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Menu</button>
+  <button id="menuBtn" type="button" aria-haspopup="dialog" aria-label="Menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg><span>Menu</span></button>
+  <nav class="toolbar cells" id="toolbar" aria-label="Map tools"></nav>
 </header>
 <main>
   <div class="mapwrap" id="mapwrap">
@@ -234,40 +294,45 @@ table.crt th { color: var(--muted); font-weight: 600; }
       <g id="gDyn"></g>
     </svg>
     <div class="hint" id="hint"></div>
-    <div class="mapctl">
-      <button type="button" id="zIn" aria-label="Zoom in">+</button>
-      <button type="button" id="zOut" aria-label="Zoom out">−</button>
-      <button type="button" id="zFit">Fit</button>
-      <button type="button" id="tTex" aria-pressed="true">Textures</button>
-      <button type="button" id="tZoc" aria-pressed="false">Enemy ZOC</button>
-      <button type="button" id="tSup" aria-pressed="false">Supply</button>
-    </div>
+    <div class="zoomctl"><button type="button" id="zIn" aria-label="Zoom in">+</button><button type="button" id="zOut" aria-label="Zoom out">−</button></div>
+    <div class="pop" id="pop" role="dialog" aria-label="Unit details"></div>
     <div class="toast" id="toast"></div>
     <div class="cover" id="cover"><div class="box" id="coverBox"></div></div>
   </div>
-  <aside>
-    <section><h3>Victory points</h3><div class="score" id="score"></div><p class="objective" id="objective"></p></section>
+  <aside id="aside">
+    <section id="scoreSec"><h3>Victory points</h3><div class="score" id="score"></div><p class="objective" id="objective"></p></section>
     <section id="detailSec"><h3 id="detailTitle">Selection</h3><div id="detail"></div></section>
-    <section id="combatSec" hidden><h3>Attack</h3><div id="combat"></div></section>
-    <section class="logsec"><h3>Field log</h3><ol id="log"></ol></section>
+    <section id="combatSec" hidden><h3>Battle</h3><div id="combat"></div></section>
+    <section class="logsec" id="logSec"><h3>Field log</h3><ol id="log"></ol></section>
     <section class="tools">
-      <button type="button" id="undoBtn">Undo move</button>
       <button type="button" id="rulesBtn">Rules</button>
       <button type="button" id="sendBtn">Send turn</button>
       <button type="button" id="loadBtn">Load turn</button>
-      <button type="button" id="newBtn" class="wide">New game</button>
+      <button type="button" id="newBtn">New game</button>
     </section>
   </aside>
 </main>
+<div class="trayback" id="trayBack"></div>
+<section class="tray" id="tray" aria-label="Panel">
+  <div class="trayhead"><h3 id="trayTitle"></h3><button type="button" id="trayClose" aria-label="Close panel">×</button></div>
+  <div class="traybody" id="trayBody">
+    <div class="pane" data-pane="battle" hidden></div>
+    <div class="pane" data-pane="obj" hidden><div id="objExtra"></div></div>
+    <div class="pane" data-pane="forces" hidden><div id="forces"></div></div>
+    <div class="pane" data-pane="log" hidden></div>
+    <div class="pane" data-pane="charts" hidden><div id="charts"></div></div>
+  </div>
+</section>
+<nav class="bnav cells" id="bnav" aria-label="Panels"></nav>
 
 <dialog id="menuDlg"><div class="dlg">
   <h2>Menu</h2>
   <div class="menu">
-    <button type="button" data-menu="new">New game <small>Choose a front</small></button>
+    <button type="button" data-menu="new">New game <small>Choose a front and opponents</small></button>
     <button type="button" data-menu="how">How to play <small>A turn, step by step</small></button>
     <button type="button" data-menu="send">Send turn by email <small>Copy a turn code</small></button>
     <button type="button" data-menu="load">Load turn <small>Paste a code from your opponent</small></button>
-    <button type="button" data-menu="rules">Rules and tables <small>Terrain, combat results, units</small></button>
+    <button type="button" data-menu="rules">Rules and tables <small>Full rules, terrain, combat results</small></button>
   </div>
   <div class="row"><button type="button" data-close>Close</button></div>
 </div></dialog>
@@ -275,31 +340,27 @@ table.crt th { color: var(--muted); font-weight: 600; }
 <dialog id="howDlg"><div class="dlg">
   <h2>How to play</h2>
   <div class="howto">
-    <div><h3>The goal</h3><p>Two players command opposing armies on a hex map. Win by capturing the enemy capital (★), or by holding enough victory-point cities when the last turn ends. The panel under the map shows the score and what each side needs.</p></div>
+    <div><h3>The goal</h3><p>Two armies fight over a hex map. Win by capturing the enemy capital (★), or by holding enough victory-point cities when the last turn ends. The Objectives panel shows the score and what each side needs.</p></div>
     <div><h3>Reading a counter</h3><ol>
-      <li>The three numbers are <b>attack – defense – movement</b>. A 6-3-6 armor unit hits hard, defends weakly and moves far.</li>
-      <li>The symbol shows the unit type: ✕ infantry, oval armor, oval with ✕ mechanized, dot artillery.</li>
-      <li>A light corner tab means the unit is <b>reduced</b> (one more loss destroys it). A red <b>S</b> means it is <b>out of supply</b> and fights and moves at half strength.</li>
+      <li>The name is the formation (zoom in to see it). The three numbers are <b>attack – defense – movement</b>.</li>
+      <li>The symbol shows the type: ✕ infantry, oval armor, oval with ✕ mechanized, dot artillery.</li>
+      <li>A light corner tab means <b>reduced</b> (one more loss destroys it). A red <b>S</b> means <b>out of supply</b>. A sandbag badge means <b>entrenched</b>.</li>
+      <li>Tap <span class="kbd">Info</span> in the toolbar, then any unit, to see its full stats for the ground it stands on.</li>
     </ol></div>
     <div><h3>Your turn, step by step</h3><ol>
-      <li><b>Move.</b> Tap one of your units. Lit hexes show where it can go; tap one to move there. Each unit moves once. Roads are fast; forest, hills and marsh are slow. A unit that moves next to an enemy must stop there.</li>
-      <li>Made a mistake? <span class="kbd">Undo move</span> takes back moves until you start fighting.</li>
+      <li><b>Move.</b> Tap one of your units, then a lit hex. Roads are fast; forest, hills and marsh are slow. A unit that moves next to an enemy must stop. <span class="kbd">Next</span> jumps to a unit that has not moved; <span class="kbd">Undo</span> takes a move back.</li>
+      <li><b>Orders.</b> Tap <span class="kbd">Orders</span>, then a unit, to <b>Entrench</b> instead of moving. If it is not attacked before your next turn it digs in and becomes one column harder to attack until it moves.</li>
       <li>Tap <span class="kbd">Go to combat</span> when you have finished moving.</li>
-      <li><b>Attack.</b> Enemy units you can reach are outlined in red. Tap one. Your neighbouring units join the attack automatically; tap any of them to leave it out. Artillery can join from two hexes away.</li>
-      <li>Check the odds in the panel. Higher odds (3:1 and up) usually win; forests, hills, cities and rivers make the defender tougher. Then tap <span class="kbd">Roll the die</span>.</li>
-      <li>If the defender is destroyed or retreats, you may move one attacker into the empty hex. Tap the glowing unit, or choose <span class="kbd">Stay put</span>.</li>
-      <li>Each enemy hex can be attacked once and each of your units attacks once. When you are done, tap <span class="kbd">End turn</span>.</li>
+      <li><b>Attack.</b> Enemy units you can reach are outlined in red. Tap one; the Battle panel opens with the odds. Your units join automatically; tap them in the list to leave them out. Then <span class="kbd">Roll the die</span>.</li>
+      <li><b>Bombard.</b> Artillery can fire on its own from two hexes away. Leave only artillery in the attack: it cannot be hurt, the target cannot be forced back, but a hit costs the defender a step. You can still assault the same unit afterwards.</li>
+      <li>If the defender is destroyed or retreats, you may move one attacker into the empty hex. Then tap <span class="kbd">End turn</span>.</li>
     </ol></div>
-    <div><h3>Handing over</h3><ol>
-      <li><b>Same device:</b> pass the phone to the other player and they tap <span class="kbd">Start turn</span>.</li>
-      <li><b>By email:</b> choose <span class="kbd">Send turn by email</span>, copy the text and email it. Your opponent opens Hexfront, chooses <span class="kbd">Load turn</span> from the menu and pastes it in. Arrows on the map show what you did.</li>
-    </ol></div>
+    <div><h3>Fog of war</h3><p>If fog is switched on for a game, you only see 3 hexes from your units (5 for recon). Grey hexes are unseen; faded counters show where an enemy was last spotted. The computer plays under the same fog.</p></div>
+    <div><h3>Panels</h3><p>The bottom bar opens Battle (odds and results), Objectives (score, cities, scenario rules), Forces (all your units: tap one to find it), Log (what just happened) and Charts (terrain and combat tables). Tap outside a panel or its button again to close it.</p></div>
     <div><h3>Tips</h3><ol>
-      <li>Gang up: two or three units on one defender give much better odds than attacking alone.</li>
-      <li>Keep a path back to your home edge or a supply city. Units cut off by enemy units or their zones of control lose half their strength.</li>
-      <li>Defend in forests, hills and cities. Attack in the open.</li>
-      <li>Turn on <span class="kbd">Enemy ZOC</span> to see where enemy units will stop your movement, and <span class="kbd">Supply</span> to see your supply network.</li>
-      <li>Drag to pan the map and pinch (or use + and −) to zoom.</li>
+      <li>Two or three units on one defender give far better odds than attacking alone. Soften tough targets with artillery first.</li>
+      <li>Keep a path back to your home edge or a supply city. Cut-off units fight at half strength.</li>
+      <li>Defend in forests, hills and cities, and entrench units that will hold a line. Attack in the open.</li>
     </ol></div>
   </div>
   <div class="row"><button type="button" class="primary" data-close>Got it</button></div>
@@ -310,12 +371,12 @@ table.crt th { color: var(--muted); font-weight: 600; }
   <p>Every scenario uses the same rules. Units change colour per front, and some fronts add special units.</p>
   <div class="cards" id="scenCards"></div>
   <div id="setup" hidden></div>
-  <div class="row" id="newRow"><button type="button" data-close>Cancel</button></div>
+  <div class="row" id="newRow"></div>
 </div></dialog>
 
 <dialog id="sendDlg"><div class="dlg">
   <h2>Send this turn</h2>
-  <p id="sendInfo">Copy the text below into an email to your opponent. They open Hexfront, choose Load turn and paste it. Dice are stored in the code, so reloading cannot re-roll a battle.</p>
+  <p>Copy the text below into an email to your opponent. They open Hexfront, choose Load turn and paste it. Dice are stored in the code, so reloading cannot re-roll a battle.</p>
   <textarea id="sendText" readonly aria-label="Turn code"></textarea>
   <div class="err" id="sendMsg" aria-live="polite"></div>
   <div class="row"><button type="button" class="primary" id="copyMail">Copy email text</button><button type="button" id="copyCode">Copy code only</button><button type="button" data-close>Close</button></div>
@@ -392,7 +453,7 @@ const Engine = (() => {
     inf: { name: 'Infantry', a: 3, d: 4, m: 3, sym: 'inf' },
     mech: { name: 'Mechanized', a: 4, d: 4, m: 5, sym: 'mech' },
     arm: { name: 'Armor', a: 6, d: 3, m: 6, sym: 'arm' },
-    art: { name: 'Artillery', a: 4, d: 2, m: 3, sym: 'art', range: 2, note: 'Can join attacks from 2 hexes away.' },
+    art: { name: 'Artillery', a: 4, d: 2, m: 3, sym: 'art', range: 2, note: 'Joins attacks from 2 hexes away, or bombards on its own with no risk.' },
     abn: { name: 'Airborne', a: 3, d: 3, m: 3, sym: 'abn', airdrop: 8, note: 'Airdrop once per game: land in any empty hex up to 8 away that is not next to the enemy.' },
     hvy: { name: 'Heavy Panzer', a: 8, d: 5, m: 4, sym: 'hvy', note: 'Tiger battalion. Hardest-hitting unit on the map.' },
     dak: { name: 'DAK Panzer', a: 7, d: 4, m: 7, sym: 'arm', note: 'Afrika Korps armor: faster and stronger than standard armor.' },
@@ -411,7 +472,21 @@ const Engine = (() => {
     ['DE', 'DE', 'D1', 'D1', 'DR', 'DR'],
     ['DE', 'DE', 'DE', 'D1', 'D1', 'DR'],
   ];
+  // Bombardment (artillery only): B1 = defender loses a step; '-' = no effect. Never retreats, never advances.
+  const BOMBARD = [
+    ['B1', '-', '-', '-', '-', '-'],
+    ['B1', '-', '-', '-', '-', '-'],
+    ['B1', 'B1', '-', '-', '-', '-'],
+    ['B1', 'B1', '-', '-', '-', '-'],
+    ['B1', 'B1', 'B1', '-', '-', '-'],
+    ['B1', 'B1', 'B1', '-', '-', '-'],
+    ['B1', 'B1', 'B1', 'B1', '-', '-'],
+    ['B1', 'B1', 'B1', 'B1', '-', '-'],
+  ];
+  const SIGHT = 3, SIGHT_RECON = 5;
   const RESULT_TEXT = {
+    B1: 'Bombardment hits: defender loses a step',
+    '-': 'Bombardment misses: no effect',
     AE: 'Attacker repulsed: every adjacent attacker loses a step',
     A1: 'Attack stalls: strongest attacker loses a step',
     EX: 'Exchange: defender and strongest attacker each lose a step',
@@ -467,10 +542,10 @@ const Engine = (() => {
         { name: 'Karmagrad', c: 21, r: 7, vp: 3, cap: true, supply: true, owner: 'B' },
       ],
       units: [
-        ['A', 'inf', 10, 2], ['A', 'inf', 10, 4], ['A', 'inf', 10, 6], ['A', 'inf', 10, 8], ['A', 'inf', 8, 13],
-        ['A', 'arm', 7, 5], ['A', 'arm', 7, 8], ['A', 'mech', 8, 10], ['A', 'art', 8, 6], ['A', 'art', 8, 3],
-        ['B', 'inf', 14, 2], ['B', 'inf', 14, 4], ['B', 'inf', 14, 6], ['B', 'inf', 14, 8], ['B', 'inf', 16, 13],
-        ['B', 'arm', 17, 5], ['B', 'arm', 17, 8], ['B', 'mech', 16, 10], ['B', 'art', 16, 6], ['B', 'art', 16, 3],
+        ['A', 'inf', 10, 2, '1st Inf'], ['A', 'inf', 10, 4, '2nd Inf'], ['A', 'inf', 10, 6, '3rd Inf'], ['A', 'inf', 10, 8, '4th Inf'], ['A', 'inf', 8, 13, '5th Inf'],
+        ['A', 'arm', 7, 5, '1st Arm'], ['A', 'arm', 7, 8, '2nd Arm'], ['A', 'mech', 8, 10, '3rd Mech'], ['A', 'art', 8, 6, '1st Art'], ['A', 'art', 8, 3, '2nd Art'],
+        ['B', 'inf', 14, 2, '11th Inf'], ['B', 'inf', 14, 4, '14th Inf'], ['B', 'inf', 14, 6, '17th Inf'], ['B', 'inf', 14, 8, '19th Inf'], ['B', 'inf', 16, 13, '22nd Inf'],
+        ['B', 'arm', 17, 5, '31st Arm'], ['B', 'arm', 17, 8, '33rd Arm'], ['B', 'mech', 16, 10, '8th Mech'], ['B', 'art', 16, 6, '5th Art'], ['B', 'art', 16, 3, '6th Art'],
       ],
     },
     europe: {
@@ -526,11 +601,11 @@ const Engine = (() => {
         { name: 'Strasbourg', c: 23, r: 12, vp: 1, owner: 'B' },
       ],
       units: [
-        ['A', 'inf', 4, 5], ['A', 'inf', 4, 7], ['A', 'inf', 4, 9], ['A', 'inf', 4, 11], ['A', 'inf', 3, 13],
-        ['A', 'arm', 2, 6], ['A', 'arm', 3, 10], ['A', 'arm', 2, 12], ['A', 'mech', 3, 14],
-        ['A', 'art', 3, 6], ['A', 'art', 3, 11], ['A', 'abn', 0, 10], ['A', 'abn', 0, 11],
-        ['B', 'inf', 7, 4], ['B', 'inf', 7, 6], ['B', 'inf', 7, 8], ['B', 'inf', 7, 12], ['B', 'inf', 6, 14], ['B', 'inf', 8, 10],
-        ['B', 'arm', 9, 7], ['B', 'hvy', 10, 9], ['B', 'art', 8, 6],
+        ['A', 'inf', 4, 5, '50th Inf'], ['A', 'inf', 4, 7, '3rd Can'], ['A', 'inf', 4, 9, '29th Inf'], ['A', 'inf', 4, 11, '1st Inf'], ['A', 'inf', 3, 13, '4th Inf'],
+        ['A', 'arm', 2, 6, 'Gds Armd'], ['A', 'arm', 3, 10, '3rd Armd'], ['A', 'arm', 2, 12, '2nd Armd'], ['A', 'mech', 3, 14, 'Pol Armd'],
+        ['A', 'art', 3, 6, 'XXX Art'], ['A', 'art', 3, 11, 'VII Art'], ['A', 'abn', 0, 10, '82nd Abn'], ['A', 'abn', 0, 11, '101st Abn'],
+        ['B', 'inf', 7, 4, '711th Inf'], ['B', 'inf', 7, 6, '716th Inf'], ['B', 'inf', 7, 8, '352nd Inf'], ['B', 'inf', 7, 12, '243rd Inf'], ['B', 'inf', 6, 14, '91st LL'], ['B', 'inf', 8, 10, '325th Inf'],
+        ['B', 'arm', 9, 7, 'Pz Lehr'], ['B', 'hvy', 10, 9, 's.Pz 503'], ['B', 'art', 8, 6, '84th Art'],
       ],
     },
     desert: {
@@ -579,10 +654,10 @@ const Engine = (() => {
         { name: 'Alexandria', c: 23, r: 3, vp: 3, cap: true, supply: true, owner: 'B' },
       ],
       units: [
-        ['A', 'inf', 9, 4], ['A', 'inf', 9, 6], ['A', 'inf', 10, 9], ['A', 'inf', 8, 2],
-        ['A', 'dak', 7, 5], ['A', 'dak', 7, 8], ['A', 'arm', 6, 6], ['A', 'mech', 8, 10], ['A', 'art', 8, 4],
-        ['B', 'inf', 12, 3], ['B', 'inf', 13, 4], ['B', 'inf', 13, 6], ['B', 'inf', 13, 8], ['B', 'inf', 12, 8],
-        ['B', 'arm', 15, 5], ['B', 'arm', 15, 8], ['B', 'art', 14, 5], ['B', 'rcn', 14, 11],
+        ['A', 'inf', 9, 4, 'Trento'], ['A', 'inf', 9, 6, 'Brescia'], ['A', 'inf', 10, 9, 'Pavia'], ['A', 'inf', 8, 2, '90th Lt'],
+        ['A', 'dak', 7, 5, '15th Pz'], ['A', 'dak', 7, 8, '21st Pz'], ['A', 'arm', 6, 6, 'Ariete'], ['A', 'mech', 8, 10, 'Trieste'], ['A', 'art', 8, 4, 'Arko 104'],
+        ['B', 'inf', 12, 3, '2nd SA'], ['B', 'inf', 13, 4, '1st SA'], ['B', 'inf', 13, 6, '50th Inf'], ['B', 'inf', 13, 8, '150th Bde'], ['B', 'inf', 12, 8, '1st FF'],
+        ['B', 'arm', 15, 5, '1st Armd'], ['B', 'arm', 15, 8, '7th Armd'], ['B', 'art', 14, 5, '7th Med'], ['B', 'rcn', 14, 11, 'LRDG'],
       ],
     },
   };
@@ -652,17 +727,18 @@ const Engine = (() => {
     t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
     return Math.floor((((t ^ (t >>> 14)) >>> 0) / 4294967296) * 6) + 1;
   }
-  function unitLabel(s, u) { return `${SCEN[s.scen].sides[u.side].short} ${TYPES[u.type].name}`; }
+  function unitLabel(s, u) { return u.name ? `${SCEN[s.scen].sides[u.side].short} ${u.name}` : `${SCEN[s.scen].sides[u.side].short} ${TYPES[u.type].name}`; }
 
   // ---------- new game ----------
-  function newGame(scenId, seed) {
+  function newGame(scenId, seed, opts = {}) {
     const sc = SCEN[scenId];
     let id = 1;
-    const units = sc.units.map(([side, type, c, r]) => ({ id: id++, side, type, c, r, steps: 2, moved: false, attacked: false, dropped: false, oos: false }));
+    const units = sc.units.map(([side, type, c, r, name]) => ({ id: id++, side, type, c, r, name: name || '', steps: 2, moved: false, attacked: false, dropped: false, oos: false, dig: null }));
     const owner = {};
     sc.cities.forEach(ct => { if (ct.owner) owner[K(ct.c, ct.r)] = ct.owner; });
-    const s = { v: 1, scen: scenId, turn: 1, active: 'A', phase: 'move', rng: seed | 0, units, owner, log: [], trails: [], prevTrails: [], attacked: [], pending: null, winner: null, dead: [], lastCombat: null };
+    const s = { v: 2, scen: scenId, turn: 1, active: 'A', phase: 'move', rng: seed | 0, units, owner, log: [], trails: [], prevTrails: [], attacked: [], bombarded: [], pending: null, winner: null, dead: [], lastCombat: null, fog: !!opts.fog, seen: { A: {}, B: {} } };
     refreshSupply(s);
+    updateSeen(s);
     log(s, 'turn', `Turn 1: ${sc.sides.A.name} to move`);
     return s;
   }
@@ -738,11 +814,48 @@ const Engine = (() => {
     for (const u of s.units) if (u.side === s.active) u.oos = !net.has(K(u.c, u.r));
   }
 
+  // ---------- fog of war ----------
+  function visibleHexes(s, side) {
+    const m = getMap(s.scen), vis = new Set();
+    for (const u of s.units) {
+      if (u.side !== side) continue;
+      const rng = TYPES[u.type].ignoresZoc ? SIGHT_RECON : SIGHT;
+      for (let r = Math.max(0, u.r - rng - 1); r <= Math.min(m.H - 1, u.r + rng + 1); r++)
+        for (let c = Math.max(0, u.c - rng); c <= Math.min(m.W - 1, u.c + rng); c++)
+          if (dist([u.c, u.r], [c, r]) <= rng) vis.add(K(c, r));
+    }
+    return vis;
+  }
+  function canSee(s, side, u) { return !s.fog || u.side === side || visibleHexes(s, side).has(K(u.c, u.r)); }
+  function updateSeen(s) {
+    if (!s.fog) return;
+    s.seen = s.seen || { A: {}, B: {} };
+    for (const side of ['A', 'B']) {
+      const vis = visibleHexes(s, side), seen = s.seen[side];
+      for (const id of Object.keys(seen)) if (vis.has(K(seen[id].c, seen[id].r))) delete seen[id];
+      for (const u of s.units) if (u.side !== side && vis.has(K(u.c, u.r))) seen[u.id] = { c: u.c, r: u.r, type: u.type, name: u.name, steps: u.steps, turn: s.turn };
+      for (const u of s.units) if (u.side !== side && vis.has(K(u.c, u.r))) delete seen[u.id]; // currently visible: not a ghost
+    }
+  }
+  // What one side is allowed to know: a copy with hidden enemy units removed.
+  function fogView(s, side) {
+    if (!s.fog) return s;
+    const vis = visibleHexes(s, side);
+    const v = JSON.parse(JSON.stringify(s));
+    v.units = v.units.filter(u => u.side === side || vis.has(K(u.c, u.r)));
+    return v;
+  }
+  function defShift(s, u) {
+    const hi = hexInfo(getMap(s.scen), K(u.c, u.r));
+    return hi.shift + (u.dig === 'dug' ? 1 : 0);
+  }
+
   // ---------- combat ----------
   function eligibleAttackers(s, tk) {
     const tgt = occMap(s).get(tk);
     if (!tgt || tgt.side === s.active || s.phase !== 'combat' || s.pending || s.winner) return [];
-    if (s.attacked.includes(tk)) return [];
+    if (s.fog && !visibleHexes(s, s.active).has(tk)) return [];
+    if (s.attacked.includes(tk) && (s.bombarded || []).includes(tk)) return [];
     return s.units.filter(u => {
       if (u.side !== s.active || u.attacked) return false;
       const d = dist([u.c, u.r], [tgt.c, tgt.r]), t = TYPES[u.type];
@@ -757,21 +870,23 @@ const Engine = (() => {
     const ratio = def ? att / def : 99;
     let col = -1;
     THR.forEach((t, i) => { if (ratio >= t - 1e-9) col = i; });
-    const hi = hexInfo(m, tk), shift = hi.shift;
+    const hi = hexInfo(m, tk), dug = tgt.dig === 'dug', shift = hi.shift + (dug ? 1 : 0);
     const fin = col < 0 ? -1 : Math.max(0, col - shift);
     const adj = us.some(u => dist([u.c, u.r], [tgt.c, tgt.r]) === 1);
+    const bombard = us.length > 0 && us.every(u => TYPES[u.type].range);
     let why = '';
     if (!us.length) why = 'Pick at least one attacker.';
-    else if (!adj) why = 'At least one attacker must be next to the target.';
+    else if (!bombard && !adj) why = 'At least one attacker must be next to the target.';
     else if (col < 0) why = 'Odds below 1:3 are not allowed.';
-    else if (s.attacked.includes(tk)) why = 'That hex was already attacked this turn.';
-    return { att, def, ratio, col, shift, fin, adj, hi, valid: !why, why };
+    else if (bombard && (s.bombarded || []).includes(tk)) why = 'That hex was already bombarded this turn.';
+    else if (!bombard && s.attacked.includes(tk)) why = 'That hex was already assaulted this turn.';
+    return { att, def, ratio, col, shift, fin, adj, hi, dug, bombard, valid: !why, why };
   }
   function loseStep(s, u) {
     u.steps -= 1;
     if (u.steps <= 0) {
       s.units = s.units.filter(x => x !== u);
-      s.dead.push({ side: u.side, type: u.type, turn: s.turn });
+      s.dead.push({ side: u.side, type: u.type, name: u.name || '', turn: s.turn });
       log(s, 'loss', `${unitLabel(s, u)} eliminated`);
       return true;
     }
@@ -791,7 +906,7 @@ const Engine = (() => {
     }
     if (!best) return false;
     s.trails.push({ side: u.side, from: [u.c, u.r], to: best, retreat: true });
-    u.c = best[0]; u.r = best[1];
+    u.c = best[0]; u.r = best[1]; u.dig = null;
     log(s, 'move', `${unitLabel(s, u)} retreats`);
     return true;
   }
@@ -834,7 +949,13 @@ const Engine = (() => {
   // ---------- actions ----------
   // Every change goes through apply(). Returns {ok} or {error}. Errors never mutate.
   function apply(s, a) {
+    const r = applyCore(s, a);
+    if (!r.error) updateSeen(s);
+    return r;
+  }
+  function applyCore(s, a) {
     const sc = SCEN[s.scen];
+    if (!s.bombarded) s.bombarded = [];
     if (s.winner) return { error: 'The game is over.' };
     switch (a.t) {
       case 'move': {
@@ -846,9 +967,20 @@ const Engine = (() => {
         const r = reachable(s, u).get(K(a.to[0], a.to[1]));
         if (!r) return { error: 'That unit cannot reach that hex.' };
         s.trails.push({ side: u.side, from: [u.c, u.r], to: a.to.slice(), drop: !!r.drop });
-        u.c = a.to[0]; u.r = a.to[1]; u.moved = true;
+        u.c = a.to[0]; u.r = a.to[1]; u.moved = true; u.dig = null;
         if (r.drop) { u.dropped = true; log(s, 'move', `${unitLabel(s, u)} airdrops`); }
         enter(s, u); checkWin(s);
+        return { ok: true };
+      }
+      case 'entrench': {
+        if (s.phase !== 'move') return { error: 'Orders are given in the movement phase.' };
+        if (s.pending) return { error: 'Finish the advance after combat first.' };
+        const u = byId(s, a.unit);
+        if (!u || u.side !== s.active) return { error: 'That is not your unit.' };
+        if (u.moved) return { error: 'That unit has already moved or been given orders this turn.' };
+        if (u.dig === 'dug') return { error: 'That unit is already entrenched.' };
+        u.moved = true; u.dig = 'digging';
+        log(s, 'move', `${unitLabel(s, u)} starts digging in`);
         return { ok: true };
       }
       case 'phase': {
@@ -864,6 +996,17 @@ const Engine = (() => {
         const o = oddsFor(s, tk, a.attackers);
         if (!o.valid) return { error: o.why };
         const tgt = occMap(s).get(tk), us = a.attackers.map(id => byId(s, id));
+        if (tgt.dig === 'digging') { tgt.dig = null; log(s, 'loss', `${unitLabel(s, tgt)} digging interrupted`); }
+        if (o.bombard) {
+          const die = roll(s), res = BOMBARD[o.fin][die - 1];
+          us.forEach(u => (u.attacked = true));
+          s.bombarded.push(tk);
+          log(s, 'combat', `${us.length > 1 ? us.length + ' batteries' : unitLabel(s, us[0])} bombard ${unitLabel(s, tgt)} at ${COLS[o.fin]}: rolled ${die}, ${res === 'B1' ? 'hit' : 'miss'}`);
+          if (res === 'B1') loseStep(s, tgt);
+          s.lastCombat = { target: [tgt.c, tgt.r], die, res, col: o.fin, att: o.att, def: o.def, vacated: false, bombard: true };
+          checkWin(s);
+          return { ok: true, die, res };
+        }
         const die = roll(s), res = CRT[o.fin][die - 1];
         us.forEach(u => (u.attacked = true));
         s.attacked.push(tk);
@@ -896,7 +1039,7 @@ const Engine = (() => {
         if (!s.pending.units.includes(a.unit)) return { error: 'That unit cannot advance.' };
         const u = byId(s, a.unit);
         s.trails.push({ side: u.side, from: [u.c, u.r], to: s.pending.hex.slice(), advance: true });
-        u.c = s.pending.hex[0]; u.r = s.pending.hex[1];
+        u.c = s.pending.hex[0]; u.r = s.pending.hex[1]; u.dig = null;
         s.pending = null;
         log(s, 'move', `${unitLabel(s, u)} advances`);
         enter(s, u); checkWin(s);
@@ -905,12 +1048,13 @@ const Engine = (() => {
       case 'endTurn': {
         if (s.pending) return { error: 'Advance or skip first.' };
         s.units.forEach(u => { u.moved = false; u.attacked = false; });
-        s.prevTrails = s.trails; s.trails = []; s.attacked = []; s.lastCombat = null;
+        s.prevTrails = s.trails; s.trails = []; s.attacked = []; s.bombarded = []; s.lastCombat = null;
         if (s.active === 'B') {
           if (s.turn >= sc.maxTurns) { endOfGame(s); return { ok: true }; }
           s.turn++;
         }
         s.active = other(s.active); s.phase = 'move';
+        for (const u of s.units) if (u.side === s.active && u.dig === 'digging') { u.dig = 'dug'; log(s, 'move', `${unitLabel(s, u)} entrenched`); }
         refreshSupply(s);
         const oos = s.units.filter(u => u.side === s.active && u.oos).length;
         log(s, 'turn', `Turn ${s.turn}: ${sc.sides[s.active].name} to move${oos ? ` (${oos} out of supply)` : ''}`);
@@ -927,7 +1071,7 @@ const Engine = (() => {
     return out;
   }
 
-  return { K, P, other, dist, nbrs, toCube, fromCube, TERRAIN, TYPES, COLS, THR, CRT, RESULT_TEXT, SCEN, SCEN_ORDER, getMap, hexInfo, terrainName, newGame, apply, reachable, eligibleAttackers, oddsFor, factors, supplyNet, zocOf, occMap, byId, vp, legalMoves };
+  return { K, P, other, dist, nbrs, toCube, fromCube, TERRAIN, TYPES, COLS, THR, CRT, BOMBARD, RESULT_TEXT, SIGHT, SIGHT_RECON, SCEN, SCEN_ORDER, getMap, hexInfo, terrainName, newGame, apply, reachable, eligibleAttackers, oddsFor, factors, supplyNet, zocOf, occMap, byId, vp, legalMoves, visibleHexes, canSee, fogView, defShift };
 })();
 if (typeof module !== 'undefined') module.exports = Engine;
 
@@ -1089,9 +1233,17 @@ const AI = (() => {
   function attackEV(s, side, tgt, members, canRet, bonus = 0) {
     const m = E.getMap(s.scen), tk = K(tgt.c, tgt.r);
     const adj = members.filter(x => x.adj);
-    if (!adj.length) return { ev: -Infinity };
     const att = members.reduce((t, x) => t + E.factors(s, x.u).a, 0);
-    const fin = oddsCol(att, E.factors(s, tgt).d, E.hexInfo(m, tk).shift);
+    const shift = E.defShift(s, tgt);
+    if (members.length && members.every(x => E.TYPES[x.u.type].range)) {
+      // bombardment: no risk, chance of one step
+      const fb = oddsCol(att, E.factors(s, tgt).d, shift);
+      if (fb < 0) return { ev: -Infinity };
+      const p = E.BOMBARD[fb].filter(r => r === 'B1').length / 6;
+      return { ev: p * (lossVal(tgt) + (tgt.steps <= 1 ? bonus * 0.5 : 0)), fin: fb, bombard: true };
+    }
+    if (!adj.length) return { ev: -Infinity };
+    const fin = oddsCol(att, E.factors(s, tgt).d, shift);
     if (fin < 0) return { ev: -Infinity };
     const strongest = adj.reduce((b, x) => (E.factors(s, x.u).a > E.factors(s, b.u).a ? x : b)).u;
     if (m.cities[tk] && m.cities[tk].cap) canRet = false;
@@ -1328,6 +1480,7 @@ const AI = (() => {
         const mem = pool.filter((_, i) => mask & (1 << i)).map(u => ({ u, adj: E.dist([u.c, u.r], [t.c, t.r]) === 1 }));
         const r = attackEV(s, side, t, mem, cr, tb);
         if (r.ev === -Infinity) continue;
+        if (!E.oddsFor(s, tk, mem.map(x => x.u.id)).valid) continue;
         const score = r.ev - mem.length * P_.unitCost;
         if (!best || score > best.score) best = { score, ev: r.ev, target: [t.c, t.r], attackers: mem.map(x => x.u.id) };
       }
@@ -1353,30 +1506,32 @@ const AI = (() => {
   function takeTurn(real) {
     const s = JSON.parse(JSON.stringify(real));
     const side = s.active, actions = [];
+    const view = () => E.fogView(s, side); // the AI only knows what its side can see
     const doA = a => { const r = E.apply(s, a); if (!r.error) actions.push(a); return r; };
     if (s.winner) return actions;
-    if (s.pending) doA({ t: 'advance', unit: chooseAdvance(s, side) });
+    if (s.pending) doA({ t: 'advance', unit: chooseAdvance(view(), side) });
     if (s.phase === 'move') {
-      const ctx = buildCtx(s, side);
-      const plan = planMoves(s, side, ctx);
-      // execute; retry in rounds in case a destination frees up later
+      const v = view();
+      const plan = planMoves(v, side, buildCtx(v, side));
       let todo = [...plan.entries()];
       for (let round = 0; round < 3 && todo.length && !s.winner; round++) {
         const next = [];
         for (const [id, k] of todo) { const r = doA({ t: 'move', unit: id, to: P(k) }); if (r.error) next.push([id, k]); if (s.winner) break; }
         todo = next;
       }
+      // everyone who stayed put digs in
+      if (!s.winner) for (const u of s.units) if (u.side === side && !u.moved && u.dig !== 'dug') doA({ t: 'entrench', unit: u.id });
       if (!s.winner) doA({ t: 'phase' });
     }
     let guard = 0;
     while (!s.winner && s.phase === 'combat' && guard++ < 40) {
-      if (s.pending) { doA({ t: 'advance', unit: chooseAdvance(s, side) }); continue; }
-      const b = bestAttack(s, side);
+      if (s.pending) { doA({ t: 'advance', unit: chooseAdvance(view(), side) }); continue; }
+      const b = bestAttack(view(), side);
       if (!b) break;
       const r = doA({ t: 'attack', target: b.target, attackers: b.attackers });
       if (r.error) break;
     }
-    if (!s.winner && s.pending) doA({ t: 'advance', unit: chooseAdvance(s, side) });
+    if (!s.winner && s.pending) doA({ t: 'advance', unit: chooseAdvance(view(), side) });
     if (!s.winner) doA({ t: 'endTurn' });
     return actions;
   }
@@ -1397,7 +1552,6 @@ if (typeof module !== 'undefined') module.exports = AI;
     desert: { '.': '#ebd29b', f: '#bcc27c', h: '#d8ab6b', m: '#bb905f', s: '#ede4cb', w: '#6b9cb1', x: '#d8bf8b', frame: '#d9bf88', tree: '#6a7b47', hill: '#925f2d', mount: '#62513d', marsh: '#a39b82', grid: 'rgba(110,78,36,.26)', road: '#7a542f', river: '#4a82a9', label: '#2f220f' },
   };
   // Terrain textures: square seamless JPGs in images/, named {set}_{terrain}_{variant}.jpg.
-  // Number = how many variants exist. Missing terrain falls back to flat colour + drawn symbols.
   const TEX = {
     base: { clear: 3, forest: 3, hills: 3, mountains: 3, marsh: 3, sea: 3 },
     europe: { clear: 3, forest: 3, hills: 3, mountains: 3, marsh: 3, sea: 3 },
@@ -1405,18 +1559,56 @@ if (typeof module !== 'undefined') module.exports = AI;
   };
   const TEX_SET = { temperate: 'base', europe: 'europe', desert: 'desert' };
   const TEX_NAME = { '.': 'clear', f: 'forest', h: 'hills', m: 'mountains', s: 'marsh', w: 'sea', x: 'impassable' };
-  const TEX_SIZE = 170, TEX_MARGIN = 16; // map units one texture covers; edge band to avoid
+  const TEX_SIZE = 170, TEX_MARGIN = 16;
+  const FONT = 'Barlow Condensed, Arial Narrow, sans-serif';
   let useTex = true;
   try { useTex = localStorage.getItem('hexfront.tex') !== '0'; } catch (e) { /* default on */ }
   const TOUCH = (() => { try { return matchMedia('(pointer: coarse)').matches; } catch (e) { return false; } })();
+  const PHONE = (() => { try { return matchMedia('(max-width: 700px)'); } catch (e) { return { matches: false, addEventListener() {} }; } })();
   const $ = id => document.getElementById(id);
   const svg = $('map'), gStatic = $('gStatic'), gDyn = $('gDyn');
 
   let state = null, sel = null, target = null, atk = new Set(), info = null, undo = [];
-  let aiBusy = false, aiToken = 0, pickScen = null, pickWho = { A: 'human', B: 'ai' };
+  let aiBusy = false, aiToken = 0, pickScen = null, pickWho = { A: 'human', B: 'ai' }, pickFog = false;
+  let showZoc = false, showSup = false, vb = null, mapW = 0, mapH = 0, staticFor = null, hoverEl = null;
+  let mode = null, pop = null, tray = null, nextIdx = 0;
   const isAI = side => !!(state && state.players && state.players[side] === 'ai');
   const hasAI = () => isAI('A') || isAI('B');
-  let showZoc = false, showSup = false, vb = null, mapW = 0, mapH = 0, staticFor = null, hoverEl = null;
+  // Whose eyes the map is drawn through (matters under fog of war).
+  function viewer() {
+    if (!state) return null;
+    const humans = ['A', 'B'].filter(s => !isAI(s));
+    if (humans.length === 1) return humans[0];
+    if (!humans.length) return null;
+    return state.active;
+  }
+  const V = () => (state.fog && viewer() ? E.fogView(state, viewer()) : state);
+
+  // ---------- icons ----------
+  const ic = d => `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
+  const ICONS = {
+    fit: ic('<path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/><rect x="8.5" y="8.5" width="7" height="7" rx="1"/>'),
+    tex: ic('<path d="M2.5 19.5l6-9 4 6 3-4.5 6 7.5z"/><circle cx="17" cy="6.5" r="2"/>'),
+    zoc: ic('<path d="M12 3l7.8 4.5v9L12 21l-7.8-4.5v-9z"/><circle cx="12" cy="12" r="2.6" fill="currentColor"/>'),
+    sup: ic('<path d="M2.5 6.5h11v10h-11zM13.5 10h4.2l3 3.4v3.1h-7.2"/><circle cx="6.5" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/>'),
+    info: ic('<circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><circle cx="12" cy="7.6" r="1" fill="currentColor"/>'),
+    orders: ic('<rect x="5" y="4" width="14" height="17" rx="1.5"/><path d="M9 3h6v3H9zM8.5 11h7M8.5 14.5h7M8.5 18h4"/>'),
+    undo: ic('<path d="M9 6L4 11l5 5"/><path d="M4 11h10.5a5 5 0 0 1 0 10H11"/>'),
+    next: ic('<circle cx="11" cy="12" r="6.5"/><path d="M11 3v3M11 18v3M2 12h3M17 12h2.5"/><path d="M17.5 8.5L21 12l-3.5 3.5"/>'),
+    battle: ic('<path d="M4 4l10 10M14 14l-2.5 2.5M15.5 15.5l4 4M20 4L10 14M10 14l2.5 2.5M8.5 15.5l-4 4"/>'),
+    obj: ic('<path d="M5 21V4"/><path d="M5 4.5h12l-2.5 4 2.5 4H5"/>'),
+    forces: ic('<rect x="3" y="8" width="11" height="11" rx="1.5"/><path d="M7 8V5.5A1.5 1.5 0 0 1 8.5 4h10A1.5 1.5 0 0 1 20 5.5v10a1.5 1.5 0 0 1-1.5 1.5H14"/><path d="M5.5 11.5l6 5M11.5 11.5l-6 5"/>'),
+    log: ic('<path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1" fill="currentColor"/><circle cx="4" cy="12" r="1" fill="currentColor"/><circle cx="4" cy="18" r="1" fill="currentColor"/>'),
+    charts: ic('<rect x="3.5" y="4" width="17" height="16" rx="1.5"/><path d="M3.5 9h17M3.5 14.5h17M9.5 4v16M15 4v16"/>'),
+  };
+  const TOOLS = [['fit', 'Fit'], ['tex', 'Terrain'], ['zoc', 'ZOC'], ['sup', 'Supply'], ['info', 'Info'], ['orders', 'Orders'], ['undo', 'Undo'], ['next', 'Next']];
+  const TRAYS = [['battle', 'Battle'], ['obj', 'Objectives'], ['forces', 'Forces'], ['log', 'Log'], ['charts', 'Charts']];
+  $('toolbar').innerHTML = TOOLS.map(([k, l]) => `<button type="button" data-tool="${k}" aria-label="${l}">${ICONS[k]}<span>${l}</span></button>`).join('');
+  $('bnav').innerHTML = TRAYS.map(([k, l]) => `<button type="button" data-tray="${k}" aria-label="${l}">${ICONS[k]}<span>${l}</span></button>`).join('');
+  function flagSVG(side, big) {
+    const sd = side ? E.SCEN[state.scen].sides[side] : { color: '#8a8572', ink: '#fff' };
+    return `<svg viewBox="0 0 30 32" ${big ? '' : 'aria-hidden="true"'}><path d="M4 2v29" stroke="#c9c2a8" stroke-width="2" stroke-linecap="round"/><path d="M5 3.5c4-2 8 1.5 12 0s6-1.4 10 .3v14c-4-1.7-6-1.4-10 0s-8-2-12 0z" fill="${sd.color}" stroke="rgba(0,0,0,.45)" stroke-width="1"/><path d="M5 9.5c4-2 8 1.5 12 0s6-1.4 10 .3" stroke="${sd.ink}" stroke-width="1.6" fill="none" opacity=".7"/><circle cx="4" cy="2" r="1.6" fill="#e8a83a"/></svg>`;
+  }
 
   // ---------- geometry ----------
   const center = (c, r) => [S + 1.5 * S * c, S * SQ3 / 2 + S * SQ3 * (r + 0.5 * (c & 1))];
@@ -1438,39 +1630,51 @@ if (typeof module !== 'undefined') module.exports = AI;
   const esc = t => String(t).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
   const sc = () => E.SCEN[state.scen];
   const sideOf = s => sc().sides[s];
+  const hexId = (c, r) => `${String(c + 1).padStart(2, '0')}${String(r + 1).padStart(2, '0')}`;
+  const tapWord = s => (TOUCH ? s.replace(/\bclick\b/g, 'tap').replace(/\bClick\b/g, 'Tap') : s);
 
   // ---------- counters ----------
   function symbol(type, bw, bh, ink) {
     const t = E.TYPES[type].sym, x0 = -bw / 2, y0 = -bh / 2;
     const st = `stroke="${ink}" fill="none"`;
-    const box = `<rect x="${x0}" y="${y0}" width="${bw}" height="${bh}" ${st} stroke-width="1.4"/>`;
-    const X = `<path d="M${x0} ${y0}L${-x0} ${-y0}M${x0} ${-y0}L${-x0} ${y0}" ${st} stroke-width="1.2"/>`;
-    const O = `<ellipse rx="${bw / 2 - 3.6}" ry="${bh / 2 - 2.7}" ${st} stroke-width="1.3"/>`;
+    const box = `<rect x="${x0.toFixed(1)}" y="${y0.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" ${st} stroke-width="1.3"/>`;
+    const X = `<path d="M${x0} ${y0}L${-x0} ${-y0}M${x0} ${-y0}L${-x0} ${y0}" ${st} stroke-width="1.1"/>`;
+    const O = `<ellipse rx="${(bw / 2 - bw * 0.16).toFixed(1)}" ry="${(bh / 2 - bh * 0.2).toFixed(1)}" ${st} stroke-width="1.2"/>`;
     switch (t) {
       case 'inf': return box + X;
       case 'arm': return box + O;
       case 'mech': return box + O + X;
-      case 'art': return box + `<circle r="2.7" fill="${ink}"/>`;
-      case 'abn': return box + X + `<path d="M-5 ${-y0 - 1}q2.5 -4 5 0q2.5 -4 5 0" ${st} stroke-width="1.2"/>`;
-      case 'hvy': return box + O + `<ellipse rx="${bw / 2 - 6.4}" ry="${Math.max(1.2, bh / 2 - 5)}" ${st} stroke-width="1.1"/>`;
-      case 'rcn': return box + `<path d="M${x0} ${-y0}L${-x0} ${y0}" ${st} stroke-width="1.3"/>`;
+      case 'art': return box + `<circle r="${(bh * 0.17).toFixed(1)}" fill="${ink}"/>`;
+      case 'abn': return box + X + `<path d="M${-bw * 0.22} ${-y0 - 1}q${bw * 0.11} ${-bh * 0.28} ${bw * 0.22} 0q${bw * 0.11} ${-bh * 0.28} ${bw * 0.22} 0" ${st} stroke-width="1.1"/>`;
+      case 'hvy': return box + O + `<ellipse rx="${(bw / 2 - bw * 0.3).toFixed(1)}" ry="${Math.max(1.2, bh / 2 - bh * 0.36).toFixed(1)}" ${st} stroke-width="1"/>`;
+      case 'rcn': return box + `<path d="M${x0} ${-y0}L${-x0} ${y0}" ${st} stroke-width="1.2"/>`;
     }
     return box;
   }
+  // Two layouts per counter: "near" (name + symbol + factors) and "far" (big symbol + factors).
+  // The map toggles between them by zoom; previews always use near.
   function counterSVG(scenId, u, x, y, z = 40, opts = {}) {
-    const side = E.SCEN[scenId].sides[u.side], h = z / 2, ink = side.ink;
-    const f = opts.f || (() => { const t = E.TYPES[u.type]; return u.steps < 2 ? { a: Math.ceil(t.a / 2), d: Math.ceil(t.d / 2), m: t.m } : t; })();
-    const fs = (z * 0.3).toFixed(1);
-    let g = `<g transform="translate(${x.toFixed(1)},${y.toFixed(1)})" opacity="${opts.dim ? 0.5 : 1}">`;
+    const side = E.SCEN[scenId].sides[u.side], h = z / 2, ink = side.ink, t = E.TYPES[u.type];
+    const f = opts.f || (u.steps < 2 ? { a: Math.ceil(t.a / 2), d: Math.ceil(t.d / 2), m: t.m } : t);
+    const fac = `${f.a}-${f.d}-${f.m}`;
+    let g = `<g transform="translate(${x.toFixed(1)},${y.toFixed(1)})" opacity="${opts.ghost ? 0.45 : opts.dim ? 0.55 : 1}">`;
     g += `<rect x="${-h + 1.6}" y="${-h + 2.6}" width="${z}" height="${z}" rx="3" fill="rgba(0,0,0,.38)"/>`;
-    g += `<rect x="${-h}" y="${-h}" width="${z}" height="${z}" rx="3" fill="${side.color}" stroke="rgba(10,8,4,.85)" stroke-width="1.4"/>`;
+    g += `<rect x="${-h}" y="${-h}" width="${z}" height="${z}" rx="3" fill="${side.color}" stroke="rgba(10,8,4,.85)" stroke-width="1.4"${opts.ghost ? ' stroke-dasharray="3 2"' : ''}/>`;
     g += `<rect x="${-h + 1.5}" y="${-h + 1.5}" width="${z - 3}" height="${z - 3}" rx="2" fill="none" stroke="rgba(255,255,255,.18)"/>`;
-    if (u.steps < 2) g += `<path d="M${h - z * 0.3} ${-h}H${h - 3}Q${h} ${-h} ${h} ${-h + 3}V${-h + z * 0.3}Z" fill="${ink}" opacity=".8"/>`;
-    g += `<g transform="translate(0,${(-z * 0.14).toFixed(1)})">${symbol(u.type, z * 0.56, z * 0.35, ink)}</g>`;
-    g += `<text y="${(h - z * 0.1).toFixed(1)}" text-anchor="middle" font-family="Barlow Condensed, Arial Narrow, sans-serif" font-weight="700" font-size="${fs}" fill="${ink}" letter-spacing=".5">${f.a}-${f.d}-${f.m}</text>`;
-    if (opts.oos) g += `<g transform="translate(${-h + 1},${-h + 1})"><circle r="6.5" fill="#c4412d" stroke="#1a1e18" stroke-width="1.2"/><text y="3.4" text-anchor="middle" font-family="Barlow Condensed, sans-serif" font-weight="700" font-size="10" fill="#fff">S</text></g>`;
+    if (u.steps < 2) g += `<path d="M${h - z * 0.28} ${-h}H${h - 3}Q${h} ${-h} ${h} ${-h + 3}V${-h + z * 0.28}Z" fill="${ink}" opacity=".8"/>`;
+    const name = opts.ghost ? 'Last seen' : (u.name || t.name);
+    const fitName = name.length > 8 ? ` textLength="${(z - 7).toFixed(1)}" lengthAdjust="spacingAndGlyphs"` : '';
+    const near = `<text y="${(-h + z * 0.24).toFixed(1)}" text-anchor="middle" font-family="${FONT}" font-weight="600" font-size="${(z * 0.2).toFixed(1)}" fill="${ink}"${fitName}>${esc(name)}</text>` +
+      `<g transform="translate(0,${(z * 0.03).toFixed(1)})">${symbol(u.type, z * 0.5, z * 0.28, ink)}</g>` +
+      `<text y="${(h - z * 0.08).toFixed(1)}" text-anchor="middle" font-family="${FONT}" font-weight="700" font-size="${(z * 0.27).toFixed(1)}" fill="${ink}" letter-spacing=".4">${opts.ghost ? '?' : fac}</text>`;
+    const far = `<g transform="translate(0,${(-z * 0.12).toFixed(1)})">${symbol(u.type, z * 0.64, z * 0.4, ink)}</g>` +
+      `<text y="${(h - z * 0.08).toFixed(1)}" text-anchor="middle" font-family="${FONT}" font-weight="700" font-size="${(z * 0.3).toFixed(1)}" fill="${ink}" letter-spacing=".4">${opts.ghost ? '?' : fac}</text>`;
+    g += opts.lod === 'near' ? near : `<g class="lod-near">${near}</g><g class="lod-far">${far}</g>`;
+    if (opts.oos) g += `<g transform="translate(${-h + 1},${-h + 1})"><circle r="6.5" fill="#c4412d" stroke="#1a1e18" stroke-width="1.2"/><text y="3.4" text-anchor="middle" font-family="${FONT}" font-weight="700" font-size="10" fill="#fff">S</text></g>`;
+    if (u.dig) g += `<g transform="translate(${-h + 1},${h - 1})"><circle r="7" fill="#5b4a2e" stroke="#1a1e18" stroke-width="1.2"${u.dig === 'digging' ? ' stroke-dasharray="2 1.5"' : ''}/><path d="M-4.2 1.8h8.4M-3.4 -.6h3M.6 -.6h3M-1.6 -3h3.2" stroke="#efe2bf" stroke-width="1.6" stroke-linecap="round"/></g>`;
     return g + '</g>';
   }
+  const miniCounter = (u, z = 44, f) => `<svg viewBox="${-z / 2 - 2} ${-z / 2 - 2} ${z + 6} ${z + 6}" width="${z}" height="${z}" aria-hidden="true">${counterSVG(state.scen, u, 0, 0, z, { lod: 'near', f })}</svg>`;
 
   // ---------- static map layer ----------
   function renderStatic() {
@@ -1483,9 +1687,9 @@ if (typeof module !== 'undefined') module.exports = AI;
       const k = K(c, r), ch = m.terr[k], [x, y] = center(c, r);
       hexes += `<polygon points="${hexPts(x, y)}" fill="${th[ch]}"/>`;
       grid += `<polygon points="${hexPts(x, y)}"/>`;
+      if (ch !== 'w') ids += `<text x="${x.toFixed(1)}" y="${(y - S * 0.62).toFixed(1)}" text-anchor="middle" font-size="6.5" font-family="${FONT}" fill="${th.label}" opacity=".38">${hexId(c, r)}</text>`;
       const tname = TEX_NAME[ch], nv = useTex && set && TEX[set] && TEX[set][tname];
       if (nv) {
-        // Each hex shows its own crop from the texture's interior, away from the soft seam bands at the edges.
         const v = 1 + Math.floor(hash(c, r, 21) * nv);
         const px = TEX_MARGIN + S + hash(c, r, 22) * (TEX_SIZE - 2 * TEX_MARGIN - 2 * S);
         const py = TEX_MARGIN + S + hash(c, r, 23) * (TEX_SIZE - 2 * TEX_MARGIN - 2 * S);
@@ -1498,7 +1702,6 @@ if (typeof module !== 'undefined') module.exports = AI;
       if (ch === 's') for (let i = 0; i < 3; i++) { const ox = x - 10 + hash(c, r, i) * 14, oy = y - 10 + i * 9; glyph += `<path d="M${ox.toFixed(1)} ${oy}h9M${(ox + 3).toFixed(1)} ${oy - 4}v4M${(ox + 6).toFixed(1)} ${oy - 3}v3" stroke="${th.marsh}" stroke-width="1.4" stroke-linecap="round" opacity=".8"/>`; }
       if (ch === 'x') glyph += `<polygon points="${hexPts(x, y)}" fill="url(#hatch)"/>`;
       if (ch === 'w' && hash(c, r, 7) < 0.25) glyph += `<path d="M${x - 9} ${y}q3 -3 6 0t6 0t6 0" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="1.2"/>`;
-      if (ch !== 'w') ids += `<text x="${x.toFixed(1)}" y="${(y - S * 0.62).toFixed(1)}" text-anchor="middle" font-size="6.5" font-family="Barlow Condensed, sans-serif" fill="${th.label}" opacity=".38">${String(c + 1).padStart(2, '0')}${String(r + 1).padStart(2, '0')}</text>`;
     }
     let rivers = '', roads = '';
     for (const [a, b] of m.riverSegs) { const [x1, y1] = center(...a), [x2, y2] = center(...b); rivers += `<line x1="${x1}" y1="${y1.toFixed(1)}" x2="${x2}" y2="${y2.toFixed(1)}"/>`; }
@@ -1508,9 +1711,8 @@ if (typeof module !== 'undefined') module.exports = AI;
     o += `<g stroke="${th.river}" stroke-width="6.5" stroke-linecap="round" opacity=".9">${rivers}</g>`;
     o += `<g stroke="rgba(255,250,230,.55)" stroke-width="5.5" stroke-linecap="round">${roads}</g><g stroke="${th.road}" stroke-width="2.6" stroke-linecap="round" stroke-dasharray="7 3">${roads}</g>`;
     o += ids;
-    // supply edges
     const A = sc().sides.A, B = sc().sides.B;
-    const edgeLbl = (side, x) => `<text transform="translate(${x},${mapH / 2}) rotate(-90)" text-anchor="middle" font-family="Barlow Condensed, sans-serif" font-weight="700" font-size="11" letter-spacing="2" fill="${th.label}" opacity=".7">${esc(side.name.toUpperCase())} SUPPLY EDGE</text>`;
+    const edgeLbl = (side, x) => `<text transform="translate(${x},${mapH / 2}) rotate(-90)" text-anchor="middle" font-family="${FONT}" font-weight="700" font-size="11" letter-spacing="2" fill="${th.label}" opacity=".7">${esc(side.name.toUpperCase())} SUPPLY EDGE</text>`;
     o += edgeLbl(A.edge === 'W' ? A : B, -9) + edgeLbl(A.edge === 'W' ? B : A, mapW + 15);
     gStatic.innerHTML = o;
     staticFor = state.scen;
@@ -1525,69 +1727,68 @@ if (typeof module !== 'undefined') module.exports = AI;
     return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${ex.toFixed(1)}" y2="${ey.toFixed(1)}" stroke="rgba(15,15,10,.55)" stroke-width="${(opts.w || 3) + 2.5}" stroke-linecap="round" ${dash}/>` +
       `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${ex.toFixed(1)}" y2="${ey.toFixed(1)}" stroke="${color}" stroke-width="${opts.w || 3}" stroke-linecap="round" marker-end="url(#arrowA)" ${dash}/>`;
   }
+  const ring = (x, y, color, w, extra = '') => `<rect ${extra} x="${x - 24}" y="${y - 24}" width="48" height="48" rx="5" fill="none" stroke="${color}" stroke-width="${w}"/>`;
   function renderDyn() {
-    const m = E.getMap(state.scen), th = THEMES[sc().theme], occ = E.occMap(state);
+    const m = E.getMap(state.scen), th = THEMES[sc().theme], v = V(), who = viewer();
+    const vis = state.fog && who ? E.visibleHexes(state, who) : null;
     let o = '';
     if (showZoc) {
-      const z = E.zocOf(state, E.other(state.active));
+      const z = E.zocOf(v, E.other(state.active));
       for (const k of z) { if (E.hexInfo(m, k).impass) continue; const [x, y] = center(...P(k)); o += `<polygon points="${hexPts(x, y, S - 1)}" fill="rgba(200,60,40,.17)"/>`; }
     }
     if (showSup) {
-      const net = E.supplyNet(state, state.active);
+      const net = E.supplyNet(v, who || state.active);
       for (const k of net.keys()) { const [x, y] = center(...P(k)); o += `<circle cx="${x}" cy="${(y + S * 0.55).toFixed(1)}" r="2.6" fill="#3d7a35" opacity=".8"/>`; }
     }
-    // reachable hexes
-    const su = sel != null ? E.byId(state, sel) : null;
-    if (su) {
-      for (const [k, r] of E.reachable(state, su)) {
-        const [x, y] = center(...P(k));
-        o += r.drop
-          ? `<polygon points="${hexPts(x, y, S - 2)}" fill="rgba(90,170,200,.22)" stroke="rgba(40,110,150,.75)" stroke-width="1.5" stroke-dasharray="4 3"/>`
-          : `<polygon points="${hexPts(x, y, S - 2)}" fill="rgba(232,168,58,.36)" stroke="rgba(150,95,10,.7)" stroke-width="1.5"/>`;
-      }
+    const su = sel != null ? E.byId(v, sel) : null;
+    if (su) for (const [k, r] of E.reachable(v, su)) {
+      const [x, y] = center(...P(k));
+      o += r.drop
+        ? `<polygon points="${hexPts(x, y, S - 2)}" fill="rgba(90,170,200,.22)" stroke="rgba(40,110,150,.75)" stroke-width="1.5" stroke-dasharray="4 3"/>`
+        : `<polygon points="${hexPts(x, y, S - 2)}" fill="rgba(232,168,58,.36)" stroke="rgba(150,95,10,.7)" stroke-width="1.5"/>`;
     }
-    // cities
     for (const ct of sc().cities) {
       const k = K(ct.c, ct.r), [x, y] = center(ct.c, ct.r), own = state.owner[k], col = own ? sideOf(own).color : '#8a8572';
       o += `<rect x="${x - 11}" y="${y - 11}" width="22" height="22" rx="2" fill="#4b4132" stroke="${col}" stroke-width="3"/>`;
       o += `<path d="M${x - 7} ${y + 6}v-7h4v-4h4v6h5v5z" fill="#efe6cc" opacity=".85"/>`;
-      const label = `${ct.cap ? '★ ' : ''}${ct.name.toUpperCase()}`;
-      const ly = y + S * 0.72;
-      o += `<text x="${x}" y="${ly.toFixed(1)}" text-anchor="middle" font-family="Barlow Condensed, sans-serif" font-weight="700" font-size="9.5" letter-spacing=".6" fill="${th.label}" stroke="${th['.']}" stroke-width="3" paint-order="stroke">${esc(label)}</text>`;
-      o += `<g transform="translate(${x + 15},${y - 15})"><circle r="7" fill="${col}" stroke="#1a1e18" stroke-width="1.2"/><text y="3.5" text-anchor="middle" font-family="Barlow Condensed, sans-serif" font-weight="700" font-size="10" fill="#fff">${ct.vp}</text></g>`;
+      o += `<text x="${x}" y="${(y + S * 0.72).toFixed(1)}" text-anchor="middle" font-family="${FONT}" font-weight="700" font-size="9.5" letter-spacing=".6" fill="${th.label}" stroke="${th['.']}" stroke-width="3" paint-order="stroke">${esc((ct.cap ? '★ ' : '') + ct.name.toUpperCase())}</text>`;
+      o += `<g transform="translate(${x + 15},${y - 15})"><circle r="7" fill="${col}" stroke="#1a1e18" stroke-width="1.2"/><text y="3.5" text-anchor="middle" font-family="${FONT}" font-weight="700" font-size="10" fill="#fff">${ct.vp}</text></g>`;
     }
-    // trails: opponent's last turn, then this turn
-    for (const t of state.prevTrails) o += arrow(t.from, t.to, sideOf(t.side).color, { w: 3.2, dash: t.retreat ? '5 4' : (t.drop ? '2 5' : '') });
-    for (const t of state.trails) o += arrow(t.from, t.to, '#e8a83a', { w: 2, dash: '4 3' });
-    // combat marks
-    if (state.lastCombat && !state.pending) {
-      const [x, y] = center(...state.lastCombat.target);
-      o += `<polygon points="${hexPts(x, y, S - 3)}" fill="none" stroke="#d4573f" stroke-width="2" stroke-dasharray="3 3"/>`;
-    }
-    if (state.pending) {
-      const [x, y] = center(...state.pending.hex);
-      o += `<polygon class="pulse" points="${hexPts(x, y, S - 2)}" fill="rgba(147,181,107,.3)" stroke="#4e7a2a" stroke-width="3"/>`;
-    }
-    const combatOn = state.phase === 'combat' && !state.pending && !state.winner;
-    if (combatOn && !target) {
-      for (const u of state.units) if (u.side !== state.active && E.eligibleAttackers(state, K(u.c, u.r)).length) {
+    const seenOK = t => !vis || t.side === who || vis.has(K(...t.to)) || vis.has(K(...t.from));
+    for (const t of state.prevTrails) if (seenOK(t)) o += arrow(t.from, t.to, sideOf(t.side).color, { w: 3.2, dash: t.retreat ? '5 4' : (t.drop ? '2 5' : '') });
+    for (const t of state.trails) if (seenOK(t)) o += arrow(t.from, t.to, '#e8a83a', { w: 2, dash: '4 3' });
+    if (state.lastCombat && !state.pending) { const [x, y] = center(...state.lastCombat.target); o += `<polygon points="${hexPts(x, y, S - 3)}" fill="none" stroke="#d4573f" stroke-width="2" stroke-dasharray="3 3"/>`; }
+    if (state.pending) { const [x, y] = center(...state.pending.hex); o += `<polygon class="pulse" points="${hexPts(x, y, S - 2)}" fill="rgba(147,181,107,.3)" stroke="#4e7a2a" stroke-width="3"/>`; }
+    const myTurn = !aiBusy && !isAI(state.active) && !state.winner;
+    if (myTurn && state.phase === 'combat' && !state.pending && !target) {
+      for (const u of v.units) if (u.side !== state.active && E.eligibleAttackers(state, K(u.c, u.r)).length) {
         const [x, y] = center(u.c, u.r);
         o += `<polygon points="${hexPts(x, y, S - 2)}" fill="rgba(212,87,63,.18)" stroke="#b9432d" stroke-width="2" stroke-dasharray="5 3"/>`;
       }
     }
-    // units
+    // fog overlay
+    if (vis) {
+      let fogP = '';
+      for (let r = 0; r < m.H; r++) for (let c = 0; c < m.W; c++) if (!vis.has(K(c, r))) { const [x, y] = center(c, r); fogP += `<polygon points="${hexPts(x, y, S + 0.5)}"/>`; }
+      o += `<g fill="rgba(34,36,32,.46)">${fogP}</g>`;
+      for (const [id, g] of Object.entries((state.seen && state.seen[who]) || {})) {
+        const [x, y] = center(g.c, g.r);
+        o += counterSVG(state.scen, { side: E.other(who), type: g.type, steps: g.steps, name: g.name }, x, y, 40, { ghost: true });
+      }
+    }
     let units = '';
-    for (const u of state.units) {
-      const [x, y] = center(u.c, u.r), k = K(u.c, u.r);
-      const mine = u.side === state.active;
+    const eligT = target ? E.eligibleAttackers(state, target) : [];
+    for (const u of v.units) {
+      const [x, y] = center(u.c, u.r), k = K(u.c, u.r), mine = u.side === state.active;
       const dim = mine && ((state.phase === 'move' && u.moved) || (state.phase === 'combat' && u.attacked));
-      let ring = '';
-      if (sel === u.id) ring = `<rect x="${x - 24}" y="${y - 24}" width="48" height="48" rx="5" fill="none" stroke="#e8a83a" stroke-width="3"/>`;
-      if (target === k) ring = `<rect class="pulse" x="${x - 25}" y="${y - 25}" width="50" height="50" rx="5" fill="none" stroke="#e0412a" stroke-width="3.5"/>`;
-      if (target && atk.has(u.id)) ring = `<rect x="${x - 24}" y="${y - 24}" width="48" height="48" rx="5" fill="none" stroke="#e8a83a" stroke-width="3"/>`;
-      else if (target && mine && E.eligibleAttackers(state, target).includes(u.id)) ring = `<rect x="${x - 24}" y="${y - 24}" width="48" height="48" rx="5" fill="none" stroke="#e8a83a" stroke-width="1.5" stroke-dasharray="4 3"/>`;
-      if (state.pending && state.pending.units.includes(u.id)) ring = `<rect class="pulse" x="${x - 24}" y="${y - 24}" width="48" height="48" rx="5" fill="none" stroke="#e8a83a" stroke-width="3"/>`;
-      units += ring + counterSVG(state.scen, u, x, y, 40, { dim, oos: u.oos && mine, f: E.factors(state, u) });
+      let rg = '';
+      if (sel === u.id) rg = ring(x, y, '#e8a83a', 3);
+      if (pop && pop.unit === u.id) rg = ring(x, y, '#f2ead2', 2.5);
+      if (target === k) rg = `<rect class="pulse" x="${x - 25}" y="${y - 25}" width="50" height="50" rx="5" fill="none" stroke="#e0412a" stroke-width="3.5"/>`;
+      if (target && atk.has(u.id)) rg = ring(x, y, '#e8a83a', 3);
+      else if (target && mine && eligT.includes(u.id)) rg = ring(x, y, '#e8a83a', 1.5, 'stroke-dasharray="4 3"');
+      if (state.pending && state.pending.units.includes(u.id)) rg = ring(x, y, '#e8a83a', 3, 'class="pulse"');
+      units += rg + counterSVG(state.scen, u, x, y, 40, { dim, oos: u.oos && mine, f: E.factors(state, E.byId(state, u.id) || u) });
     }
     o += units;
     o += `<polygon id="hoverHex" points="${hexPts(0, 0, S - 1)}" fill="none" stroke="rgba(255,252,235,.9)" stroke-width="2" visibility="hidden"/>`;
@@ -1595,80 +1796,215 @@ if (typeof module !== 'undefined') module.exports = AI;
     hoverEl = $('hoverHex');
   }
 
-  // ---------- sidebar ----------
+  // ---------- unit facts (shared by popup and sidebar) ----------
+  function unitFacts(u) {
+    const m = E.getMap(state.scen), k = K(u.c, u.r), hi = E.hexInfo(m, k), t = E.TYPES[u.type];
+    const real = E.byId(state, u.id) || u, f = E.factors(state, real), mine = u.side === state.active;
+    const rows = [];
+    rows.push(['Strength', u.steps < 2 ? 'Reduced (1 step left)' : 'Full (2 steps)']);
+    rows.push(['Terrain', `${E.terrainName(state.scen, hi.ch)}${hi.river ? ' + river' : ''}${hi.city ? ` · ${hi.city.name}` : ''}`]);
+    const shift = E.defShift(state, real);
+    rows.push(['Defending here', shift ? `Attacks shift ${shift} column${shift > 1 ? 's' : ''} left` : 'No terrain bonus']);
+    if (u.dig === 'dug') rows.push(['Entrenched', '+1 column while it holds']);
+    if (u.dig === 'digging') rows.push(['Digging in', 'Entrenched next turn if not attacked']);
+    if (mine) rows.push(['Supply', real.oos ? 'Cut off: half attack and move' : 'In supply']);
+    if (mine && real.moved) rows.push(['This turn', u.dig === 'digging' ? 'Given orders' : 'Moved']);
+    if (mine && real.attacked) rows.push(['This turn', 'Has attacked']);
+    if (E.zocOf(state, E.other(u.side)).has(k)) rows.push(['Position', 'In enemy zone of control']);
+    if (t.airdrop) rows.push(['Airdrop', real.dropped ? 'Used' : 'Ready']);
+    return { f, t, rows, base: u.steps < 2 ? { a: Math.ceil(t.a / 2), d: Math.ceil(t.d / 2), m: t.m } : t };
+  }
+
+  // ---------- popup on the map ----------
+  let popAt = 0;
+  function openPop(kind, unitId) { pop = { kind, unit: unitId }; popAt = Date.now(); renderDyn(); renderPop(); }
+  function closePop() { if (!pop) return; pop = null; $('pop').classList.remove('show'); renderDyn(); }
+  function renderPop() {
+    const el = $('pop');
+    if (!pop) { el.classList.remove('show'); return; }
+    const v = V(), u = E.byId(v, pop.unit);
+    if (!u) { pop = null; el.classList.remove('show'); return; }
+    const sd = sideOf(u.side), { f, t, rows, base } = unitFacts(u);
+    let html = `<div class="pop-h">${miniCounter(u, 44, f)}<div><b>${esc(u.name || t.name)}</b><small>${esc(sd.name)} · ${esc(t.name)}</small></div><button type="button" class="pop-x" data-pop="close" aria-label="Close">×</button></div>`;
+    if (pop.kind === 'info') {
+      const st = (lbl, val, b) => `<div><small>${lbl}</small><b class="${val < b ? 'down' : ''}">${val}</b></div>`;
+      html += `<div class="stats">${st('Attack', f.a, base.a)}${st('Defense', f.d, base.d)}${st('Move', f.m, base.m)}</div>`;
+      html += `<ul>${rows.map(([a, b]) => `<li><span>${esc(a)}</span><span>${esc(b)}</span></li>`).join('')}</ul>`;
+      if (t.note) html += `<p class="note">${esc(t.note)}</p>`;
+    } else {
+      const mine = u.side === state.active && !isAI(u.side) && !aiBusy;
+      let why = '';
+      if (!mine) why = u.side === state.active ? 'The computer commands this unit.' : "Orders can only be given to your own units on your turn.";
+      else if (state.phase !== 'move') why = 'Orders are given in the movement phase.';
+      else if (u.dig === 'dug') why = 'Already entrenched. It keeps the bonus until it moves.';
+      else if (u.dig === 'digging') why = 'Already digging in.';
+      else if (E.byId(state, u.id).moved) why = 'This unit has already moved this turn.';
+      html += `<div class="order"><b style="font:700 16px/1 var(--ui);letter-spacing:.04em;text-transform:uppercase">Entrench</b><p>Stay put and dig in. If not attacked before your next turn, attacks on it shift one column left until it moves.</p>
+        <button type="button" class="primary" data-pop="entrench" ${why ? 'disabled' : ''}>Entrench</button>${why ? `<p style="color:var(--signal)">${esc(why)}</p>` : ''}</div>`;
+    }
+    el.innerHTML = html;
+    el.classList.add('show');
+    placePop();
+  }
+  function placePop() {
+    if (!pop) return;
+    const el = $('pop'), u = E.byId(V(), pop.unit);
+    if (!u) return;
+    const [x, y] = center(u.c, u.r), p = svg.createSVGPoint(); p.x = x; p.y = y;
+    const q = p.matrixTransform(svg.getScreenCTM()), wr = $('mapwrap').getBoundingClientRect();
+    const sx = q.x - wr.left, sy = q.y - wr.top, w = el.offsetWidth, h = el.offsetHeight;
+    const half = 20 * svg.getScreenCTM().a + 8; // half a counter on screen, plus a gap
+    let left, top;
+    if (wr.width - sx - half >= w + 8 || sx - half >= w + 8) {
+      // beside the unit
+      left = wr.width - sx - half >= w + 8 ? sx + half : sx - half - w;
+      top = Math.max(8, Math.min(wr.height - h - 8, sy - 40));
+    } else {
+      // narrow screen: above or below the unit, never on top of it
+      left = Math.max(8, Math.min(wr.width - w - 8, sx - w / 2));
+      top = sy > wr.height / 2 ? sy - half - h : sy + half;
+      top = Math.max(8, Math.min(wr.height - h - 8, top));
+    }
+    el.style.left = left + 'px'; el.style.top = top + 'px';
+  }
+  $('pop').addEventListener('click', e => {
+    if (Date.now() - popAt < 400) return; // ignore the tap that opened it
+    const b = e.target.closest('[data-pop]'); if (!b) return;
+    if (b.dataset.pop === 'close') closePop();
+    if (b.dataset.pop === 'entrench') {
+      const id = pop.unit; closePop();
+      const r = act({ t: 'entrench', unit: id });
+      if (!r.error) toast2('Digging in. Entrenched at the start of your next turn if not attacked.');
+    }
+  });
+
+  // ---------- sidebar & trays ----------
   function terrainLine(k) {
     const m = E.getMap(state.scen), hi = E.hexInfo(m, k), [c, r] = P(k);
-    const parts = [];
     const tname = E.terrainName(state.scen, hi.ch);
     if (hi.impass) return `<p>${esc(tname)}: impassable.</p>`;
-    parts.push(`${esc(tname)}, ${hi.mp} MP`);
+    const parts = [`${esc(tname)}, ${hi.mp} MP`];
     if (hi.river) parts.push('river (+1 MP)');
-    const roads = E.nbrs(m, c, r).some(([nc, nr]) => m.roadEdges.has(k + '|' + K(nc, nr)));
-    if (roads) parts.push('road (½ MP along it)');
-    let s = `<p>Hex ${String(c + 1).padStart(2, '0')}${String(r + 1).padStart(2, '0')} · ${parts.join(' · ')}</p>`;
-    s += `<p>Defender shifts odds ${hi.shift} column${hi.shift === 1 ? '' : 's'} left.</p>`;
-    if (hi.city) {
-      const own = state.owner[k];
-      s += `<p><b style="color:var(--ink)">${esc(hi.city.name)}</b>${hi.city.cap ? ' (capital)' : ''} · ${hi.city.vp} VP · ${own ? esc(sideOf(own).name) : 'Unclaimed'}${hi.city.supply ? ' · supply source' : ''}</p>`;
-    }
+    if (E.nbrs(m, c, r).some(([nc, nr]) => m.roadEdges.has(k + '|' + K(nc, nr)))) parts.push('road (½ MP along it)');
+    let s = `<p>Hex ${hexId(c, r)} · ${parts.join(' · ')}</p><p>Defender shifts odds ${hi.shift} column${hi.shift === 1 ? '' : 's'} left.</p>`;
+    if (hi.city) { const own = state.owner[k]; s += `<p><b style="color:var(--ink)">${esc(hi.city.name)}</b>${hi.city.cap ? ' (capital)' : ''} · ${hi.city.vp} VP · ${own ? esc(sideOf(own).name) : 'Unclaimed'}${hi.city.supply ? ' · supply source' : ''}</p>`; }
     return s;
   }
   function renderDetail() {
-    const k = sel != null && E.byId(state, sel) ? K(E.byId(state, sel).c, E.byId(state, sel).r) : info;
-    const el = $('detail');
-    if (!k) { el.innerHTML = `<p class="empty">${TOUCH ? "Tap" : "Click"} a unit or hex to see its details. Counters read attack-defense-move.</p>`; return; }
-    const u = E.occMap(state).get(k);
+    if (PHONE.matches) return;
+    const v = V(), su = sel != null ? E.byId(v, sel) : null;
+    const k = su ? K(su.c, su.r) : info, el = $('detail');
+    if (!k) { $('detailTitle').textContent = 'Selection'; el.innerHTML = `<p class="empty">${tapWord('Click')} a unit or hex to see its details, or use Info in the toolbar. Counters read attack-defense-move.</p>`; return; }
+    const u = E.occMap(v).get(k);
     if (!u) { $('detailTitle').textContent = 'Terrain'; el.innerHTML = terrainLine(k); return; }
     $('detailTitle').textContent = 'Unit';
-    const t = E.TYPES[u.type], f = E.factors(state, u), side = sideOf(u.side), mine = u.side === state.active;
-    const tags = [];
-    if (u.steps < 2) tags.push('<span class="tag warn">Reduced</span>');
-    if (mine && u.oos) tags.push('<span class="tag warn">Out of supply</span>');
-    if (mine && u.moved) tags.push('<span class="tag">Moved</span>');
-    if (mine && u.attacked) tags.push('<span class="tag">Attacked</span>');
-    if (E.zocOf(state, E.other(u.side)).has(k)) tags.push('<span class="tag">In enemy ZOC</span>');
-    if (t.airdrop) tags.push(u.dropped ? '<span class="tag">Drop used</span>' : '<span class="tag go">Drop ready</span>');
-    el.innerHTML = `<div class="detail"><svg viewBox="-32 -32 64 64" width="64" height="64">${counterSVG(state.scen, u, 0, 0, 52, { f, oos: mine && u.oos })}</svg>
-      <div><h4>${esc(t.name)}</h4><p>${esc(side.name)} · attack ${f.a} · defense ${f.d} · move ${f.m}</p>${t.note ? `<p>${esc(t.note)}</p>` : ''}<div class="tags">${tags.join('')}</div></div></div>${terrainLine(k)}`;
+    const { f, t, rows } = unitFacts(u);
+    el.innerHTML = `<div class="detail">${miniCounter(u, 60, f)}<div><h4>${esc(u.name || t.name)}</h4><p>${esc(sideOf(u.side).name)} · ${esc(t.name)} · attack ${f.a} · defense ${f.d} · move ${f.m}</p>${t.note ? `<p>${esc(t.note)}</p>` : ''}</div></div>${rows.map(([a, b]) => `<p>${esc(a)}: ${esc(b)}</p>`).join('')}`;
   }
-  function crtCells(col, hitDie) {
-    return E.CRT[col].map((res, i) => `<div class="${res[0]}${hitDie === i + 1 ? ' hit' : ''}" title="${esc(E.RESULT_TEXT[res])}"><small>${i + 1}</small>${res}</div>`).join('');
-  }
-  function renderCombat() {
-    const sec = $('combatSec'), el = $('combat');
-    if (state.pending) {
-      sec.hidden = false;
-      const btns = state.pending.units.map(id => { const u = E.byId(state, id); return `<button type="button" data-adv="${id}">Advance ${esc(E.TYPES[u.type].name)}</button>`; }).join('');
-      el.innerHTML = `${lastResultHTML()}<p class="empty" style="margin-bottom:10px">The defender's hex is empty. Move one attacker in, or stay put.</p><div class="row">${btns}<button type="button" data-adv="none">Stay put</button></div>`;
-      return;
-    }
-    if (state.phase !== 'combat' || state.winner) { sec.hidden = true; return; }
-    sec.hidden = false;
-    if (!target) {
-      el.innerHTML = state.lastCombat ? lastResultHTML() + `<p class="empty">Pick the next target, or end your turn.</p>` : `<p class="empty">Click an enemy unit outlined in red. Each unit attacks once per turn and each enemy hex can be attacked once.</p>`;
-      return;
-    }
-    const elig = E.eligibleAttackers(state, target), ids = [...atk].filter(id => elig.includes(id));
-    const o = E.oddsFor(state, target, ids), tgt = E.occMap(state).get(target);
-    const list = elig.map(id => { const u = E.byId(state, id), f = E.factors(state, u), rng = E.dist([u.c, u.r], [tgt.c, tgt.r]) > 1; return `<li class="${atk.has(id) ? '' : 'off'}"><span>${esc(E.TYPES[u.type].name)}${rng ? ' (ranged)' : ''}${u.oos ? ' · halved' : ''}</span><b>${f.a}</b></li>`; }).join('');
-    const base = o.col >= 0 ? E.COLS[o.col] : '—', fin = o.fin >= 0 ? E.COLS[o.fin] : '—';
-    el.innerHTML = `<ul class="atklist">${list}<li style="border-top:1px solid var(--line);padding-top:4px"><span>Total attack vs ${esc(E.TYPES[tgt.type].name)} defense</span><b>${o.att} : ${o.def}</b></li></ul>
-      <div class="odds"><b>${fin}</b><span>${base} odds${o.shift ? `, shifted ${o.shift} left for ${o.hi.city ? 'city' : 'terrain'}${o.hi.river ? '/river' : ''}` : ''}</span></div>
-      ${o.fin >= 0 ? `<div class="crtrow">${crtCells(o.fin)}</div>` : ''}
-      ${o.valid ? '' : `<p class="empty" style="color:var(--danger);margin-bottom:10px">${esc(o.why)}</p>`}
-      <div class="row"><button type="button" class="primary" id="resolveBtn" ${o.valid ? '' : 'disabled'}>Roll the die</button><button type="button" id="cancelAtk">Cancel</button></div>`;
+  function crtCells(table, col, hitDie) {
+    return table[col].map((res, i) => `<div class="${res === '-' ? '' : res[0]}${hitDie === i + 1 ? ' hit' : ''}" title="${esc(E.RESULT_TEXT[res] || '')}"><small>${i + 1}</small>${res === '-' ? '—' : res}</div>`).join('');
   }
   function lastResultHTML() {
     const lc = state.lastCombat;
     if (!lc) return '';
-    return `<div class="result">Rolled <b>${lc.die}</b> at ${E.COLS[lc.col]} (${lc.att} vs ${lc.def}): <b>${lc.res}</b>. ${esc(E.RESULT_TEXT[lc.res])}.</div><div class="crtrow">${crtCells(lc.col, lc.die)}</div>`;
+    const tb = lc.bombard ? E.BOMBARD : E.CRT;
+    return `<div class="result">${lc.bombard ? 'Bombardment: rolled' : 'Rolled'} <b>${lc.die}</b> at ${E.COLS[lc.col]} (${lc.att} vs ${lc.def}): <b>${lc.res === '-' ? 'miss' : lc.res}</b>. ${esc(E.RESULT_TEXT[lc.res])}.</div><div class="crtrow">${crtCells(tb, lc.col, lc.die)}</div>`;
   }
-  function renderSide() {
-    const s = sc();
+  function renderCombat() {
+    const sec = $('combatSec'), el = $('combat');
+    const myTurn = !aiBusy && !isAI(state.active) && !state.winner;
+    if (state.pending && myTurn) {
+      sec.hidden = false;
+      const btns = state.pending.units.map(id => { const u = E.byId(state, id); return `<button type="button" data-adv="${id}">Advance ${esc(u.name || E.TYPES[u.type].name)}</button>`; }).join('');
+      el.innerHTML = `${lastResultHTML()}<p class="empty" style="margin-bottom:10px">The defender's hex is empty. Move one attacker in, or stay put.</p><div class="row">${btns}<button type="button" data-adv="none">Stay put</button></div>`;
+      return;
+    }
+    if (state.phase !== 'combat' || !myTurn) {
+      sec.hidden = !state.lastCombat;
+      el.innerHTML = state.lastCombat ? lastResultHTML() : `<p class="empty">${state.phase === 'move' ? 'Battles are fought in the combat phase. Finish moving, then tap Go to combat.' : 'Waiting for the other side.'}</p>`;
+      return;
+    }
+    sec.hidden = false;
+    if (!target) {
+      el.innerHTML = (state.lastCombat ? lastResultHTML() : '') + `<p class="empty">${tapWord('Click')} an enemy unit outlined in red to plan an attack. Each unit attacks once per turn. A hex can be bombarded once and assaulted once.</p>`;
+      return;
+    }
+    const elig = E.eligibleAttackers(state, target), ids = [...atk].filter(id => elig.includes(id));
+    const o = E.oddsFor(state, target, ids), tgt = E.occMap(state).get(target);
+    if (!tgt) { target = null; atk.clear(); return renderCombat(); }
+    const list = elig.map(id => { const u = E.byId(state, id), f = E.factors(state, u), rng = E.dist([u.c, u.r], [tgt.c, tgt.r]) > 1; return `<li data-atk="${id}" class="${atk.has(id) ? '' : 'off'}"><span>${esc(u.name || E.TYPES[u.type].name)}${rng ? ' (ranged)' : ''}${u.oos ? ' · halved' : ''}</span><b>${f.a}</b></li>`; }).join('');
+    const base = o.col >= 0 ? E.COLS[o.col] : '—', fin = o.fin >= 0 ? E.COLS[o.fin] : '—';
+    const why = [];
+    if (o.shift) why.push(`${o.shift} left for ${[o.hi.city ? (o.hi.city.cap ? 'capital' : 'city') : (o.hi.t.shift ? 'terrain' : ''), o.hi.river ? 'river' : '', o.dug ? 'entrenched' : ''].filter(Boolean).join(', ')}`);
+    const arts = elig.filter(id => E.TYPES[E.byId(state, id).type].range);
+    el.innerHTML = `<ul class="atklist">${list}<li class="total"><span>vs ${esc(tgt.name || E.TYPES[tgt.type].name)} (defense ${o.def})</span><b>${o.att} : ${o.def}</b></li></ul>
+      <div class="odds"><b>${fin}</b>${o.bombard ? '<span class="mode">Bombardment</span>' : ''}<span>${base} odds${why.length ? `, shifted ${why.join(' ')}` : ''}</span></div>
+      ${o.fin >= 0 ? `<div class="crtrow">${crtCells(o.bombard ? E.BOMBARD : E.CRT, o.fin)}</div>` : ''}
+      ${o.valid ? '' : `<p class="empty" style="color:var(--danger);margin-bottom:10px">${esc(o.why)}</p>`}
+      <div class="row"><button type="button" class="primary" id="resolveBtn" ${o.valid ? '' : 'disabled'}>${o.bombard ? 'Fire' : 'Roll the die'}</button>${arts.length && arts.length < elig.length && !o.bombard ? '<button type="button" id="artOnly">Artillery only</button>' : ''}<button type="button" id="cancelAtk">Cancel</button></div>`;
+  }
+  function renderObjectives() {
+    const s = sc(), who = viewer();
+    $('score').innerHTML = ['A', 'B'].map(sd => {
+      const sdd = sideOf(sd), n = state.units.filter(u => u.side === sd).length;
+      const hide = state.fog && who && sd !== who;
+      return `<div style="border-left-color:${sdd.color}"><small>${esc(sdd.name)}</small><b>${E.vp(state, sd)}</b> <em>VP · ${hide ? '?' : n} units</em></div>`;
+    }).join('');
+    const v = s.victory;
+    $('objective').textContent = v.type === 'more'
+      ? `Most VP after turn ${s.maxTurns} wins. Taking the enemy capital (★) wins at once.`
+      : `${s.sides[v.side].name} need ${v.vp} VP by the end of turn ${s.maxTurns}. Taking the enemy capital (★) wins at once.`;
+    if (!PHONE.matches) return;
+    const special = [...new Set(s.units.map(u => u[1]))].filter(t => !['inf', 'mech', 'arm', 'art'].includes(t)).map(t => `${E.TYPES[t].name}: ${E.TYPES[t].note}`);
+    const rules = [
+      'Capitals hold: a unit defending a capital never retreats; it loses a step instead.',
+      s.supplyRange !== Infinity ? `Supply reaches only ${s.supplyRange} hexes from a port or your home edge.` : 'Supply traces any distance to your home edge or a supply city.',
+      state.fog ? `Fog of war is on: you see ${E.SIGHT} hexes from your units (${E.SIGHT_RECON} for recon).` : 'Fog of war is off: all units are visible.',
+      ...special,
+    ];
+    $('objExtra').innerHTML = `<section><h3>Briefing</h3><p class="brief">${esc(s.blurb)}</p></section>
+      <section><h3>Scenario rules</h3><ul class="rulelist">${rules.map(r => `<li>${esc(r)}</li>`).join('')}</ul></section>
+      <section><h3>Cities</h3><ul class="citylist">${s.cities.map(ct => { const own = state.owner[K(ct.c, ct.r)]; return `<li><span>${ct.cap ? '★ ' : ''}${esc(ct.name)}</span><span class="own"><i style="background:${own ? sideOf(own).color : '#8a8572'}"></i>${own ? esc(sideOf(own).short) : 'Neutral'}</span><span class="vp">${ct.vp}</span></li>`; }).join('')}</ul></section>`;
+  }
+  function renderForces() {
+    if (!PHONE.matches) return;
+    const who = viewer() || state.active, sd = sideOf(who);
+    const mine = state.units.filter(u => u.side === who);
+    const status = u => {
+      const st = [];
+      if (u.steps < 2) st.push('Reduced');
+      if (u.oos && who === state.active) st.push('No supply');
+      if (u.dig === 'dug') st.push('Entrenched'); else if (u.dig === 'digging') st.push('Digging');
+      if (who === state.active && state.phase === 'move' && !u.moved) st.push('Ready');
+      if (who === state.active && state.phase === 'combat' && !u.attacked) st.push('Can attack');
+      return st.join(' · ') || '—';
+    };
+    const lost = (state.dead || []).filter(d => d.side === who);
+    $('forces').innerHTML = `<h3 style="margin:0 0 8px;font:600 13px/1 var(--ui);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)">${esc(sd.name)} · ${mine.length} units</h3>
+      <ul class="forces">${mine.map(u => `<li data-unit="${u.id}">${miniCounter(u, 36, E.factors(state, u))}<div><b>${esc(u.name || E.TYPES[u.type].name)}</b><small>${esc(E.TYPES[u.type].name)} · hex ${hexId(u.c, u.r)}</small></div><span class="st">${esc(status(u))}</span></li>`).join('')}
+      ${lost.map(d => `<li class="lost">${miniCounter({ side: d.side, type: d.type, steps: 1, name: d.name }, 36)}<div><b>${esc(d.name || E.TYPES[d.type].name)}</b><small>Lost on turn ${d.turn}</small></div><span class="st">Destroyed</span></li>`).join('')}</ul>`;
+  }
+  function chartsHTML() {
+    const tr = Object.entries(E.TERRAIN).map(([ch, t]) => `<tr><td style="text-align:left">${esc(E.terrainName(state.scen, ch))}</td><td>${t.impass ? '—' : t.mp}</td><td>${t.impass ? '—' : t.shift}</td></tr>`).join('');
+    const tbl = (T, f = r => r) => `<tr><th>Die</th>${E.COLS.map(c => `<th>${c}</th>`).join('')}</tr>` + [0, 1, 2, 3, 4, 5].map(d => `<tr><th>${d + 1}</th>${T.map(col => `<td>${f(col[d])}</td>`).join('')}</tr>`).join('');
+    const units = Object.entries(E.TYPES).map(([k, t]) => `<tr><td style="text-align:left">${t.name}</td><td>${t.a}-${t.d}-${t.m}</td><td style="text-align:left">${t.note || ''}</td></tr>`).join('');
+    return `<div class="tblwrap"><h3>Terrain</h3><table class="crt"><tr><th style="text-align:left">Terrain</th><th>MP</th><th>Odds shift</th></tr>${tr}<tr><td style="text-align:left">City / capital</td><td>1</td><td>1 / 2</td></tr><tr><td style="text-align:left">River hex</td><td>+1</td><td>+1</td></tr><tr><td style="text-align:left">Entrenched unit</td><td>—</td><td>+1</td></tr></table></div>
+    <div class="tblwrap"><h3>Combat results</h3><table class="crt">${tbl(E.CRT)}</table><p class="empty" style="margin-top:6px">AE all adjacent attackers lose a step · A1 strongest attacker loses a step · EX both lose a step · DR defender retreats · D1 defender loses a step and retreats · DE defender eliminated.</p></div>
+    <div class="tblwrap"><h3>Bombardment (artillery only)</h3><table class="crt">${tbl(E.BOMBARD, r => (r === '-' ? '—' : 'Hit'))}</table><p class="empty" style="margin-top:6px">A hit costs the defender one step. Artillery is never hurt; the defender never retreats.</p></div>
+    <div class="tblwrap"><h3>Units</h3><table class="crt"><tr><th style="text-align:left">Unit</th><th>A-D-M</th><th style="text-align:left">Notes</th></tr>${units}</table></div>`;
+  }
+  function rulesHTML() {
+    return `<div><h3>Turn</h3><ul><li>Each turn, one side moves, then fights, then hands over. Then the other side does the same.</li><li>Units have two steps. A reduced unit (corner tab) has its attack and defense halved. Losing a second step eliminates it.</li><li>One unit per hex.</li></ul></div>
+    <div><h3>Movement and orders</h3><ul><li>Spend movement points (MP) by terrain. Moving along a road costs ½ MP per hex. Entering a river hex costs +1 MP.</li><li>The six hexes around an enemy unit are its zone of control (ZOC). A unit entering one must stop, and cannot move directly from one enemy ZOC hex to another. A unit can always move at least one hex.</li><li><b>Entrench</b> (order): instead of moving, a unit digs in. If it is not attacked or bombarded before its side's next turn, it becomes entrenched: attacks on it shift one column left until it moves or retreats.</li></ul></div>
+    <div><h3>Combat</h3><ul><li>Add up the attack factors of the units you choose and compare them with the defender's defense (rounded down). Terrain, cities, rivers and entrenchment shift the odds column left. Then roll one die.</li><li><b>Bombardment:</b> artillery may attack alone from up to two hexes away, using the bombardment table. It is never hurt and the defender never retreats, but a hit costs a step, which can destroy an already reduced unit. A hex can be bombarded once and assaulted once per turn.</li><li><b>Capitals hold:</b> a unit defending a capital (★) never retreats; it loses a step instead.</li><li>If the defender's hex empties, one adjacent attacker may advance into it.</li></ul></div>
+    <div><h3>Supply</h3><ul><li>At the start of your turn, units that cannot trace a path to your home map edge or a friendly supply city (blocked by enemy units and enemy ZOC unless a friendly unit is there) are out of supply: half attack and half movement.</li></ul></div>
+    <div><h3>Fog of war (optional)</h3><ul><li>Each side sees ${E.SIGHT} hexes from its units (${E.SIGHT_RECON} for recon). Unseen enemy units are hidden; their last known position is shown faded.</li></ul></div>` + chartsHTML();
+  }
+  function renderStatus() {
+    const s = sc(), side = sideOf(state.active);
     $('scenName').innerHTML = `${esc(s.setting)}<b>${esc(s.name)}</b>`;
-    $('turnBox').innerHTML = `Turn<b>${state.turn}</b> / ${s.maxTurns}`;
-    const side = sideOf(state.active);
-    $('sideChip').innerHTML = `<i style="background:${side.color}"></i>${esc(side.name)}${isAI(state.active) ? '<span class="cpu">CPU</span>' : ''}`;
+    const phaseTxt = state.winner ? 'Game over' : state.phase === 'move' ? 'Movement' : 'Combat';
+    $('status').innerHTML = `${flagSVG(state.winner ? state.winner.side : state.active)}<div><b>${esc(state.winner ? (state.winner.side ? sideOf(state.winner.side).name + ' win' : 'Draw') : side.name)}${isAI(state.active) && !state.winner ? '<span class="cpu">CPU</span>' : ''}</b><small>Turn ${state.turn}/${s.maxTurns} · ${phaseTxt}</small></div>`;
     document.querySelectorAll('#phases span').forEach(sp => sp.classList.toggle('on', sp.dataset.p === state.phase && !state.winner));
     const mb = $('mainBtn');
     mb.disabled = false;
@@ -1676,48 +2012,99 @@ if (typeof module !== 'undefined') module.exports = AI;
     else if (aiBusy || isAI(state.active)) { mb.textContent = 'Computer playing'; mb.disabled = true; }
     else if (state.pending) { mb.textContent = 'Advance or stay'; mb.disabled = true; }
     else mb.textContent = state.phase === 'move' ? 'Go to combat' : 'End turn';
-    $('score').innerHTML = ['A', 'B'].map(sd => {
-      const sdd = sideOf(sd), n = state.units.filter(u => u.side === sd).length;
-      return `<div style="border-left-color:${sdd.color}"><small>${esc(sdd.name)}</small><b>${E.vp(state, sd)}</b> <em>VP · ${n} units</em></div>`;
-    }).join('');
-    const v = s.victory;
-    $('objective').textContent = v.type === 'more'
-      ? `Most VP after turn ${s.maxTurns} wins. Taking the enemy capital (★) wins at once.`
-      : `${s.sides[v.side].name} need ${v.vp} VP by the end of turn ${s.maxTurns}. Taking the enemy capital (★) wins at once.`;
-    $('log').innerHTML = state.log.slice(-60).map(l => `<li class="${l.kind}">${esc(l.text)}</li>`).join('');
-    $('undoBtn').disabled = !undo.length || aiBusy;
+    const tb = q => document.querySelector(`[data-tool="${q}"]`);
+    tb('tex').setAttribute('aria-pressed', useTex); tb('zoc').setAttribute('aria-pressed', showZoc); tb('sup').setAttribute('aria-pressed', showSup);
+    tb('info').setAttribute('aria-pressed', mode === 'info'); tb('orders').setAttribute('aria-pressed', mode === 'orders');
+    tb('undo').disabled = !undo.length || aiBusy;
+    const busy = aiBusy || isAI(state.active) || !!state.winner;
+    tb('next').disabled = busy; tb('orders').disabled = busy;
+    $('log').innerHTML = state.log.slice(-80).map(l => `<li class="${l.kind}">${esc(l.text)}</li>`).join('');
     let hint;
     if (state.winner) hint = `Game over. ${state.winner.reason}.`;
-    else if (aiBusy || isAI(state.active)) hint = `${sideOf(state.active).name} (computer) is ${state.phase === 'move' ? 'moving' : 'attacking'}…`;
+    else if (aiBusy || isAI(state.active)) hint = `${side.name} (computer) is ${state.phase === 'move' ? 'moving' : 'attacking'}…`;
+    else if (mode === 'info') hint = 'Info: click any unit to see its details. Tap Info again to stop.';
+    else if (mode === 'orders') hint = 'Orders: click one of your units to give it orders.';
     else if (state.pending) hint = 'Advance after combat: click a glowing unit to move it into the empty hex, or choose Stay put.';
     else if (state.phase === 'move') hint = sel != null ? (E.TYPES[E.byId(state, sel)?.type]?.airdrop && !E.byId(state, sel).dropped ? 'Click a lit hex to move there, or a blue dashed hex to airdrop.' : 'Click a lit hex to move there.') : 'Movement: click one of your units. Units must stop when they enter an enemy zone of control.';
     else hint = target ? 'Click your units to add or remove them, then roll the die.' : 'Combat: click an enemy unit outlined in red.';
-    if (TOUCH) hint = hint.replace(/\bclick\b/g, 'tap').replace(/\bClick\b/g, 'Tap');
-    $('hint').textContent = hint;
+    const hEl = $('hint'), txt = tapWord(hint);
+    if (hEl.textContent !== txt) {
+      hEl.textContent = txt; hEl.classList.remove('quiet');
+      clearTimeout(renderStatus.t);
+      if (PHONE.matches) renderStatus.t = setTimeout(() => hEl.classList.add('quiet'), 4500);
+    }
   }
   function render() {
-    if (staticFor !== state.scen) { renderStatic(); smartFit(); }
-    renderDyn(); renderSide(); renderDetail(); renderCombat();
+    if (staticFor !== state.scen) { renderStatic(); smartFit(); $('charts').innerHTML = chartsHTML(); }
+    renderDyn(); renderStatus(); renderObjectives(); renderDetail(); renderCombat(); renderForces();
+    if (pop) renderPop();
   }
 
+  // ---------- trays (phones) ----------
+  const TRAY_TITLES = Object.fromEntries(TRAYS);
+  function openTray(name) {
+    tray = name;
+    document.querySelectorAll('#trayBody .pane').forEach(p => (p.hidden = p.dataset.pane !== name));
+    $('trayTitle').textContent = TRAY_TITLES[name];
+    $('tray').classList.add('open');
+    document.body.classList.add('tray-on');
+    $('trayBack').classList.toggle('on', name !== 'battle'); // the map stays live under the Battle tray
+    document.querySelectorAll('#bnav [data-tray]').forEach(b => b.setAttribute('aria-pressed', b.dataset.tray === name));
+    $('trayBody').scrollTop = 0;
+  }
+  function closeTray() {
+    tray = null;
+    $('tray').classList.remove('open'); document.body.classList.remove('tray-on'); $('trayBack').classList.remove('on');
+    document.querySelectorAll('#bnav [data-tray]').forEach(b => b.setAttribute('aria-pressed', 'false'));
+  }
+  // Move shared panels between the desktop sidebar and the phone trays.
+  function placePanels() {
+    const pane = n => document.querySelector(`#trayBody [data-pane="${n}"]`);
+    if (PHONE.matches) {
+      pane('battle').append($('combat'));
+      pane('obj').prepend($('score'), $('objective'));
+      pane('log').append($('log'));
+    } else {
+      $('combatSec').append($('combat'));
+      $('scoreSec').append($('score'), $('objective'));
+      $('logSec').append($('log'));
+      closeTray();
+    }
+  }
+  PHONE.addEventListener?.('change', () => { placePanels(); if (state) { render(); smartFit(); } });
+
   // ---------- actions ----------
-  function toast(msg) { const t = $('toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 2200); }
+  function toast(msg) { const t = $('toast'); t.style.background = ''; t.textContent = msg; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('show'), 2400); }
+  function toast2(msg) { const t = $('toast'); t.style.background = 'var(--panel-2)'; t.textContent = msg; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => { t.classList.remove('show'); t.style.background = ''; }, 2600); }
   function persist() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch (e) { /* storage unavailable */ } }
   function act(a) {
     const before = JSON.stringify(state);
     const r = E.apply(state, a);
-    if (r.error) { toast(r.error); return r; }
-    if (a.t === 'move') undo.push(before); else undo = [];
+    if (r.error) {
+      toast(state.fog && a.t === 'move' && /cannot reach/.test(r.error) ? 'Blocked: an unseen enemy unit is in the way.' : r.error);
+      if (state.fog && a.t === 'move') { sel = null; render(); }
+      return r;
+    }
+    if (a.t === 'move' || a.t === 'entrench') undo.push(before); else undo = [];
     if (a.t === 'attack' || a.t === 'phase' || a.t === 'endTurn') { target = null; atk.clear(); sel = null; }
     if (a.t === 'move') { info = K(a.to[0], a.to[1]); sel = null; }
+    if (a.t === 'endTurn') { closePop(); mode = null; if (tray === 'battle') closeTray(); }
     persist(); render();
+    if (a.t === 'attack' && PHONE.matches && tray !== 'battle') openTray('battle');
     if (state.winner) showWinner();
     else if (a.t === 'endTurn') { if (isAI(state.active)) runAI(); else if (hasAI()) { smartFit(); toast2(`Your turn: ${sideOf(state.active).name}`); } else showHandoff(); }
     return r;
   }
   function onHex(c, r) {
-    if (!state || state.winner || aiBusy || isAI(state.active)) { info = K(c, r); render(); return; }
-    const k = K(c, r), u = E.occMap(state).get(k);
+    const k = K(c, r), v = V(), u = E.occMap(v).get(k);
+    if (mode === 'info') { if (u) openPop('info', u.id); else { closePop(); info = k; render(); } return; }
+    if (mode === 'orders') {
+      if (u && u.side === state.active && !isAI(u.side)) openPop('orders', u.id);
+      else { closePop(); toast(tapWord('Click one of your own units to give it orders.')); }
+      return;
+    }
+    closePop();
+    if (!state || state.winner || aiBusy || isAI(state.active)) { info = k; render(); return; }
     if (state.pending) {
       if (u && state.pending.units.includes(u.id)) act({ t: 'advance', unit: u.id });
       else if (k === K(...state.pending.hex) && state.pending.units.length === 1) act({ t: 'advance', unit: state.pending.units[0] });
@@ -1726,18 +2113,19 @@ if (typeof module !== 'undefined') module.exports = AI;
     }
     if (state.phase === 'move') {
       if (sel != null) {
-        const su = E.byId(state, sel);
-        if (su && E.reachable(state, su).has(k)) { act({ t: 'move', unit: sel, to: [c, r] }); return; }
+        const su = E.byId(v, sel);
+        if (su && E.reachable(v, su).has(k)) { act({ t: 'move', unit: sel, to: [c, r] }); return; }
       }
       if (u && u.side === state.active && !u.moved) sel = sel === u.id ? null : u.id;
-      else { sel = null; if (u && u.side === state.active && u.moved) toast('That unit has already moved this turn.'); }
+      else { sel = null; if (u && u.side === state.active && u.moved) toast(u.dig === 'digging' ? 'That unit is digging in this turn.' : 'That unit has already moved this turn.'); }
       info = k; render(); return;
     }
-    // combat
     if (u && u.side !== state.active) {
       const el = E.eligibleAttackers(state, k);
-      if (el.length) { if (target === k) { target = null; atk.clear(); } else { target = k; atk = new Set(el); } }
-      else { target = null; atk.clear(); toast(state.attacked.includes(k) ? 'That hex was already attacked this turn.' : 'None of your units can reach that enemy.'); }
+      if (el.length) {
+        if (target === k) { target = null; atk.clear(); }
+        else { target = k; atk = new Set(el); if (PHONE.matches) openTray('battle'); }
+      } else { target = null; atk.clear(); toast('None of your units can attack that enemy.'); }
     } else if (u && target && E.eligibleAttackers(state, target).includes(u.id)) {
       atk.has(u.id) ? atk.delete(u.id) : atk.add(u.id);
     }
@@ -1749,30 +2137,52 @@ if (typeof module !== 'undefined') module.exports = AI;
     if (state.phase === 'move') {
       const unmoved = state.units.filter(u => u.side === state.active && !u.moved).length;
       act({ t: 'phase' });
-      if (unmoved) toast(`${unmoved} unit${unmoved > 1 ? 's' : ''} did not move.`);
+      if (unmoved) toast2(`${unmoved} unit${unmoved > 1 ? 's' : ''} did not move or take orders.`);
     } else act({ t: 'endTurn' });
+  }
+  function centerOn(c, r) {
+    const [x, y] = center(c, r);
+    vb.x = x - vb.w / 2; vb.y = y - vb.h / 2; setVB();
+  }
+  function nextUnit() {
+    if (aiBusy || isAI(state.active) || state.winner) return;
+    let list;
+    if (state.phase === 'move') list = state.units.filter(u => u.side === state.active && !u.moved);
+    else {
+      const v = V();
+      const targets = v.units.filter(t => t.side !== state.active);
+      list = state.units.filter(u => u.side === state.active && !u.attacked && targets.some(t => E.eligibleAttackers(state, K(t.c, t.r)).includes(u.id)));
+    }
+    if (!list.length) { toast2(state.phase === 'move' ? 'Every unit has moved or has orders.' : 'No unit can attack anything else this turn.'); return; }
+    list.sort((a, b) => a.id - b.id);
+    const u = list[nextIdx++ % list.length];
+    closePop();
+    if (state.phase === 'move') sel = u.id;
+    info = K(u.c, u.r);
+    centerOn(u.c, u.r); render();
   }
 
   // ---------- computer player ----------
-  function toast2(msg) { const t = $('toast'); t.style.background = 'var(--panel-2)'; t.textContent = msg; t.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(() => { t.classList.remove('show'); t.style.background = ''; }, 2200); }
   const wait = ms => new Promise(res => setTimeout(res, ms));
   async function runAI() {
     if (aiBusy || !state || state.winner || !isAI(state.active)) return;
     const my = ++aiToken;
-    aiBusy = true; sel = null; target = null; atk.clear(); render();
+    aiBusy = true; sel = null; target = null; atk.clear(); mode = null; closePop(); render();
     await wait(450);
     if (my !== aiToken) return;
     let actions = [];
     try { actions = AI.takeTurn(state); } catch (e) { console.error(e); actions = [{ t: 'endTurn' }]; }
+    const who = viewer();
     for (const a of actions) {
       if (my !== aiToken) return;
-      if (a.t === 'move') { info = K(a.to[0], a.to[1]); }
-      if (a.t === 'attack') { info = K(a.target[0], a.target[1]); target = info; atk = new Set(a.attackers); render(); await wait(650); target = null; atk.clear(); }
+      // under fog, the human only sees what their units can see
+      const seen = !state.fog || !who || (a.t === 'attack' ? E.visibleHexes(state, who).has(K(...a.target)) : a.t === 'move' ? E.visibleHexes(state, who).has(K(...a.to)) : true);
+      if (a.t === 'attack' && seen) { target = K(...a.target); atk = new Set(a.attackers); render(); await wait(650); target = null; atk.clear(); }
       const r = E.apply(state, a);
       if (r.error) { console.warn('AI action refused', a, r.error); if (a.t !== 'endTurn') continue; }
       persist(); render();
       if (state.winner) break;
-      await wait(a.t === 'move' ? 260 : a.t === 'attack' ? 1100 : a.t === 'endTurn' ? 200 : 350);
+      if (seen) await wait(a.t === 'move' ? 240 : a.t === 'attack' ? 1100 : a.t === 'entrench' ? 60 : a.t === 'endTurn' ? 200 : 300);
     }
     if (my !== aiToken) return;
     if (!state.winner && isAI(state.active) && actions.length && actions[actions.length - 1].t !== 'endTurn') E.apply(state, { t: 'endTurn' });
@@ -1785,17 +2195,17 @@ if (typeof module !== 'undefined') module.exports = AI;
   }
 
   // ---------- cover screens ----------
-  function cover(html) { $('coverBox').innerHTML = html; $('cover').classList.add('show'); const b = $('coverBox').querySelector('button'); if (b) b.focus(); }
-  function hideCover() { $('cover').classList.remove('show'); if (svg.getBoundingClientRect().width < 700) smartFit(); }
+  function cover(html, opaque) { $('coverBox').innerHTML = html; $('cover').classList.toggle('opaque', !!opaque); $('cover').classList.add('show'); const b = $('coverBox').querySelector('button'); if (b) b.focus(); }
+  function hideCover() { $('cover').classList.remove('show'); if (PHONE.matches) smartFit(); }
   function showHandoff(kicker) {
     const side = sideOf(state.active), oos = state.units.filter(u => u.side === state.active && u.oos).length;
-    cover(`<div class="kicker">${esc(kicker || `Turn ${state.turn} of ${sc().maxTurns}`)}</div><div class="flag" style="background:${side.color}"></div><h2>${esc(side.name)}</h2>
-      <p>Playing on one screen? Hand it over. Playing by email? Send the turn code instead.${oos ? ` ${oos} of your units are out of supply.` : ''} Arrows on the map show the other side's last moves.</p>
-      <div class="row"><button type="button" class="primary" data-cv="start">Start ${esc(side.short)} turn</button><button type="button" data-cv="send">Send turn by email</button></div>`);
+    cover(`<div class="kicker">${esc(kicker || `Turn ${state.turn} of ${sc().maxTurns}`)}</div><div class="flagbig">${flagSVG(state.active, true)}</div><h2>${esc(side.name)}</h2>
+      <p>Playing on one screen? Hand it over${state.fog ? ' (the map stays hidden until the next player starts)' : ''}. Playing by email? Send the turn code instead.${oos ? ` ${oos} of your units are out of supply.` : ''}</p>
+      <div class="row"><button type="button" class="primary" data-cv="start">Start ${esc(side.short)} turn</button><button type="button" data-cv="send">Send turn by email</button></div>`, state.fog && !hasAI());
   }
   function showWinner() {
     const w = state.winner, side = w.side ? sideOf(w.side) : null;
-    cover(`<div class="kicker">Game over</div>${side ? `<div class="flag" style="background:${side.color}"></div>` : ''}<h2>${side ? esc(side.name) + ' win' : 'Draw'}</h2><p>${esc(w.reason)}. Final score ${E.vp(state, 'A')}–${E.vp(state, 'B')} VP.</p>
+    cover(`<div class="kicker">Game over</div>${side ? `<div class="flagbig">${flagSVG(w.side, true)}</div>` : ''}<h2>${side ? esc(side.name) + ' win' : 'Draw'}</h2><p>${esc(w.reason)}. Final score ${E.vp(state, 'A')}–${E.vp(state, 'B')} VP.</p>
       <div class="row"><button type="button" class="primary" data-cv="new">New game</button><button type="button" data-cv="start">View the map</button></div>`);
   }
 
@@ -1822,12 +2232,12 @@ if (typeof module !== 'undefined') module.exports = AI;
   async function openSend() {
     $('sendMsg').textContent = '';
     lastCode = await encode(state);
-    const s = sc(), turnIdx = state.log.map((l, i) => l.kind === 'turn' ? i : -1).filter(i => i >= 0);
+    const s = sc(), turnIdx = state.log.map((l, i) => (l.kind === 'turn' ? i : -1)).filter(i => i >= 0);
     const fromIdx = turnIdx.length >= 2 ? turnIdx[turnIdx.length - 2] + 1 : 0;
     const recent = state.log.slice(fromIdx, turnIdx[turnIdx.length - 1] ?? state.log.length).filter(l => l.kind !== 'turn').map(l => `- ${l.text}`);
     const status = state.winner ? `Game over: ${state.winner.reason}.` : `Turn ${state.turn}: ${sideOf(state.active).name} to ${state.phase === 'move' ? 'move' : 'fight'}.`;
     lastMail = `HEXFRONT · ${s.name} (${s.setting})\n${status}\nScore: ${s.sides.A.name} ${E.vp(state, 'A')} VP, ${s.sides.B.name} ${E.vp(state, 'B')} VP.\n\n` +
-      (recent.length ? `Last turn:\n${recent.join('\n')}\n\n` : '') +
+      (recent.length && !state.fog ? `Last turn:\n${recent.join('\n')}\n\n` : '') +
       `To play: open Hexfront, choose Load turn, and paste this whole email.\n\n${lastCode}\n`;
     $('sendText').value = lastMail;
     $('sendDlg').showModal();
@@ -1846,59 +2256,63 @@ if (typeof module !== 'undefined') module.exports = AI;
     } catch (e) { $('loadErr').textContent = e.message || 'That code could not be read.'; }
   }
 
-  // ---------- dialogs ----------
+  // ---------- new game ----------
   function openNew() {
     $('scenCards').innerHTML = E.SCEN_ORDER.map(id => {
       const s = E.SCEN[id];
       const special = [...new Set(s.units.map(u => u[1]))].filter(t => !['inf', 'mech', 'arm', 'art'].includes(t)).map(t => E.TYPES[t].name);
-      const mini = side => `<svg viewBox="-20 -20 40 40">${counterSVG(id, { side, type: side === 'A' ? 'arm' : 'inf', steps: 2 }, 0, 0, 34)}</svg>`;
+      const mini = side => `<svg viewBox="-20 -20 40 40">${counterSVG(id, { side, type: side === 'A' ? 'arm' : 'inf', steps: 2, name: '' }, 0, 0, 34, { lod: 'near' })}</svg>`;
       return `<button type="button" class="card" data-scen="${id}"><span class="set">${esc(s.setting)}</span><h4>${esc(s.name)}</h4>
         <div class="vs">${mini('A')}${esc(s.sides.A.name)} <span style="color:var(--muted)">vs</span> ${mini('B')}${esc(s.sides.B.name)}</div>
         <p>${esc(s.blurb)}</p><p>${s.maxTurns} turns${special.length ? ` · Special units: ${esc(special.join(', '))}` : ''}${s.supplyRange !== Infinity ? ` · Supply range ${s.supplyRange}` : ''}</p></button>`;
     }).join('');
-    pickScen = null; $('setup').hidden = true;
-    $('newRow').innerHTML = '<button type="button" data-close>Cancel</button>';
-    $('newRow').querySelector('[data-close]').addEventListener('click', () => $('newDlg').close());
+    pickScen = null; renderSetup();
     $('newDlg').showModal();
+  }
+  function renderSetup() {
+    const box = $('setup'), row = $('newRow');
+    $('scenCards').querySelectorAll('.card').forEach(c => c.setAttribute('aria-pressed', c.dataset.scen === pickScen));
+    if (!pickScen) { box.hidden = true; row.innerHTML = '<button type="button" data-nr="cancel">Cancel</button>'; return; }
+    const sc2 = E.SCEN[pickScen];
+    box.hidden = false;
+    box.innerHTML = `<div class="setup"><h3>Who commands each side?</h3>${['A', 'B'].map(sd => `<div class="who"><span class="nm"><i style="background:${sc2.sides[sd].color}"></i>${esc(sc2.sides[sd].name)}${sd === 'A' ? ' <small style="color:var(--muted);font-weight:500">moves first</small>' : ''}</span>
+      <div class="seg" role="group" aria-label="${esc(sc2.sides[sd].name)}"><button type="button" data-who="${sd}:human" aria-pressed="${pickWho[sd] === 'human'}">Human</button><button type="button" data-who="${sd}:ai" aria-pressed="${pickWho[sd] === 'ai'}">Computer</button></div></div>`).join('')}
+      <div class="who"><span class="nm">Fog of war</span><div class="seg" role="group" aria-label="Fog of war"><button type="button" data-fog="0" aria-pressed="${!pickFog}">Off</button><button type="button" data-fog="1" aria-pressed="${pickFog}">On</button></div></div>
+      <p style="margin:0;font-size:13.5px">Computer opponents play on Hard and obey the fog. Two humans can share this screen or play by email.</p></div>`;
+    row.innerHTML = `<button type="button" class="primary" data-nr="start">Start ${esc(sc2.name)}</button><button type="button" data-nr="cancel">Cancel</button>`;
   }
   function seed() { try { return crypto.getRandomValues(new Int32Array(1))[0]; } catch (e) { return (Math.random() * 2 ** 31) | 0; } }
   function setState(s) {
     aiToken++; aiBusy = false;
-    state = s; sel = null; target = null; atk.clear(); info = null; undo = [];
+    state = s; sel = null; target = null; atk.clear(); info = null; undo = []; mode = null; pop = null; $('pop').classList.remove('show');
     staticFor = null; render();
     if (isAI(state.active) && !state.winner) runAI();
   }
-  function rulesHTML() {
-    const tr = Object.entries(E.TERRAIN).map(([ch, t]) => `<tr><td style="text-align:left">${t.name}</td><td>${t.impass ? '—' : t.mp}</td><td>${t.impass ? '—' : t.shift}</td></tr>`).join('');
-    const crt = `<tr><th>Die</th>${E.COLS.map(c => `<th>${c}</th>`).join('')}</tr>` + [0, 1, 2, 3, 4, 5].map(d => `<tr><th>${d + 1}</th>${E.CRT.map(col => `<td>${col[d]}</td>`).join('')}</tr>`).join('');
-    const units = Object.entries(E.TYPES).map(([k, t]) => `<tr><td style="text-align:left">${t.name}</td><td>${t.a}-${t.d}-${t.m}</td><td style="text-align:left">${t.note || ''}</td></tr>`).join('');
-    return `<div><h3>Turn</h3><ul><li>Each turn, one side moves, then fights, then hands over. Then the other side does the same.</li><li>Units have two steps. A reduced unit (corner tab) has its attack and defense halved. Losing a second step eliminates it.</li><li>One unit per hex.</li></ul></div>
-    <div><h3>Movement</h3><ul><li>Spend movement points (MP) by terrain. Moving along a road costs ½ MP per hex. Entering a river hex costs +1 MP.</li><li>The six hexes around an enemy unit are its zone of control (ZOC). A unit entering one must stop, and cannot move directly from one enemy ZOC hex to another.</li><li>A unit can always move at least one hex.</li></ul></div>
-    <div><h3>Combat</h3><ul><li>Add up the attack factors of the units you choose and compare them with the defender's defense to get the odds (rounded down). Terrain, cities and rivers shift the odds column left.</li><li>Roll one die: AE all adjacent attackers lose a step · A1 the strongest attacker loses a step · EX both sides lose a step · DR the defender retreats · D1 the defender loses a step and retreats · DE the defender is eliminated. A defender that cannot retreat loses a step instead.</li><li><b>Capitals hold:</b> a unit defending a capital (★) never retreats. It loses a step instead, so a capital falls only when its garrison is destroyed.</li><li>If the defender's hex empties, one adjacent attacker may advance into it.</li></ul></div>
-    <div><h3>Supply</h3><ul><li>At the start of your turn, units that cannot trace a path to your home map edge or a friendly supply city (blocked by enemy units and by enemy ZOC unless a friendly unit is there) are out of supply. They move and attack at half strength.</li><li>In the desert, supply only reaches 8 hexes.</li></ul></div>
-    <div><h3>Play by email</h3><ul><li>Finish your turn, choose Send turn and paste the text into an email. Your opponent chooses Load turn and pastes it in. The dice are stored in the code, so reloading cannot change a roll.</li></ul></div>
-    <div class="tblwrap"><h3>Terrain</h3><table class="crt"><tr><th style="text-align:left">Terrain</th><th>MP</th><th>Odds shift</th></tr>${tr}<tr><td style="text-align:left">City / capital</td><td>1</td><td>1 / 2</td></tr><tr><td style="text-align:left">River hex</td><td>+1</td><td>+1</td></tr></table></div>
-    <div class="tblwrap"><h3>Combat results table</h3><table class="crt">${crt}</table></div>
-    <div class="tblwrap"><h3>Units</h3><table class="crt"><tr><th style="text-align:left">Unit</th><th>A-D-M</th><th style="text-align:left">Notes</th></tr>${units}</table></div>`;
-  }
 
   // ---------- view: pan & zoom ----------
-  function setVB() { svg.setAttribute('viewBox', `${vb.x} ${vb.y} ${vb.w} ${vb.h}`); }
+  function setVB() {
+    svg.setAttribute('viewBox', `${vb.x} ${vb.y} ${vb.w} ${vb.h}`);
+    const r = svg.getBoundingClientRect();
+    if (r.width) { const scale = Math.min(r.width / vb.w, r.height / vb.h); svg.classList.toggle('far', 40 * scale < 44); }
+    if (pop) placePop();
+  }
   function fit() { vb = { x: -30, y: -30, w: mapW + 60, h: mapH + 60 }; setVB(); }
-  // On phones, start zoomed in on the active side's units so counters are big enough to tap.
   function smartFit() {
     const r = svg.getBoundingClientRect();
     if (!r.width || r.width >= 700 || !state) { fit(); return; }
-    const mine = state.units.filter(u => u.side === state.active);
+    const who = viewer() || state.active;
+    const mine = state.units.filter(u => u.side === who);
     let cx = mapW / 2, cy = mapH / 2;
     if (mine.length) { cx = mine.reduce((t, u) => t + center(u.c, u.r)[0], 0) / mine.length; cy = mine.reduce((t, u) => t + center(u.c, u.r)[1], 0) / mine.length; }
-    const w = Math.max(mapW * 0.42, r.width * 1.6), h = w * r.height / r.width;
-    vb = { x: Math.min(Math.max(cx - w / 2, -30), mapW + 30 - w), y: Math.min(Math.max(cy - h / 2, -30), mapH + 30 - h), w, h };
+    let w = Math.max(mapW * 0.42, r.width * 1.6);
+    w = Math.min(w, (mapH + 60) * r.width / r.height); // never leave empty space below the map
+    const h = w * r.height / r.width;
+    vb = { x: Math.min(Math.max(cx - w / 2, -30), mapW + 30 - w), y: Math.min(Math.max(cy - h / 2, -30), Math.max(-30, mapH + 30 - h)), w, h };
     setVB();
   }
   function svgPt(e) { const p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; return p.matrixTransform(svg.getScreenCTM().inverse()); }
   function zoomAt(px, py, f) {
-    const nw = Math.min(mapW * 1.6, Math.max(mapW * 0.22, vb.w * f)), k = nw / vb.w;
+    const nw = Math.min(mapW * 1.6, Math.max(mapW * 0.18, vb.w * f)), k = nw / vb.w;
     vb.x = px - (px - vb.x) * k; vb.y = py - (py - vb.y) * k; vb.w = nw; vb.h *= k; setVB();
   }
   svg.addEventListener('wheel', e => { e.preventDefault(); const p = svgPt(e); zoomAt(p.x, p.y, Math.exp(e.deltaY * 0.0015)); }, { passive: false });
@@ -1957,13 +2371,36 @@ if (typeof module !== 'undefined') module.exports = AI;
   $('mainBtn').addEventListener('click', mainButton);
   $('zIn').addEventListener('click', () => zoomAt(vb.x + vb.w / 2, vb.y + vb.h / 2, 0.8));
   $('zOut').addEventListener('click', () => zoomAt(vb.x + vb.w / 2, vb.y + vb.h / 2, 1.25));
-  $('zFit').addEventListener('click', fit);
-  $('tZoc').addEventListener('click', e => { showZoc = !showZoc; e.currentTarget.setAttribute('aria-pressed', showZoc); renderDyn(); });
-  $('tTex').setAttribute('aria-pressed', useTex);
-  $('tTex').addEventListener('click', e => { useTex = !useTex; e.currentTarget.setAttribute('aria-pressed', useTex); try { localStorage.setItem('hexfront.tex', useTex ? '1' : '0'); } catch (er) { /* ignore */ } renderStatic(); });
-  $('tSup').addEventListener('click', e => { showSup = !showSup; e.currentTarget.setAttribute('aria-pressed', showSup); renderDyn(); });
-  $('undoBtn').addEventListener('click', () => { if (!undo.length || aiBusy) return; state = JSON.parse(undo.pop()); sel = null; persist(); render(); });
-  $('newBtn').addEventListener('click', openNew);
+  $('toolbar').addEventListener('click', e => {
+    const b = e.target.closest('[data-tool]'); if (!b || b.disabled) return;
+    const t = b.dataset.tool;
+    if (t === 'fit') fit();
+    else if (t === 'tex') { useTex = !useTex; try { localStorage.setItem('hexfront.tex', useTex ? '1' : '0'); } catch (er) { /* ignore */ } renderStatic(); }
+    else if (t === 'zoc') showZoc = !showZoc;
+    else if (t === 'sup') showSup = !showSup;
+    else if (t === 'info' || t === 'orders') {
+      mode = mode === t ? null : t;
+      if (!mode) closePop();
+      else {
+        // act on the selected unit straight away, if there is one
+        const v = V(), su = sel != null ? E.byId(v, sel) : (info ? E.occMap(v).get(info) : null);
+        if (su && (t === 'info' || su.side === state.active)) openPop(t, su.id); else closePop();
+      }
+    }
+    else if (t === 'undo') { if (undo.length && !aiBusy) { state = JSON.parse(undo.pop()); sel = null; closePop(); persist(); } }
+    else if (t === 'next') { nextUnit(); return; }
+    render();
+  });
+  $('bnav').addEventListener('click', e => { const b = e.target.closest('[data-tray]'); if (!b) return; tray === b.dataset.tray ? closeTray() : openTray(b.dataset.tray); });
+  $('trayBack').addEventListener('click', closeTray);
+  $('trayClose').addEventListener('click', closeTray);
+  $('forces').addEventListener('click', e => {
+    const li = e.target.closest('[data-unit]'); if (!li) return;
+    const u = E.byId(state, Number(li.dataset.unit)); if (!u) return;
+    closeTray(); mode = null;
+    if (state.phase === 'move' && u.side === state.active && !u.moved && !aiBusy && !isAI(u.side)) sel = u.id;
+    info = K(u.c, u.r); centerOn(u.c, u.r); render(); openPop('info', u.id);
+  });
   $('menuBtn').addEventListener('click', () => $('menuDlg').showModal());
   $('menuDlg').addEventListener('click', e => {
     const b = e.target.closest('[data-menu]'); if (!b) return;
@@ -1978,50 +2415,40 @@ if (typeof module !== 'undefined') module.exports = AI;
   $('rulesBtn').addEventListener('click', () => { $('rulesBody').innerHTML = rulesHTML(); $('rulesDlg').showModal(); });
   $('sendBtn').addEventListener('click', openSend);
   $('loadBtn').addEventListener('click', () => { $('loadErr').textContent = ''; $('loadDlg').showModal(); });
+  $('newBtn').addEventListener('click', openNew);
   $('loadGo').addEventListener('click', doLoad);
   $('loadFile').addEventListener('change', async e => { const f = e.target.files[0]; if (f) { $('loadText').value = await f.text(); doLoad(); } });
   $('copyMail').addEventListener('click', () => copy(lastMail));
   $('copyCode').addEventListener('click', () => copy(lastCode));
   document.querySelectorAll('dialog [data-close]').forEach(b => b.addEventListener('click', () => b.closest('dialog').close()));
-  function renderSetup() {
-    const box = $('setup');
-    if (!pickScen) { box.hidden = true; return; }
-    const sc2 = E.SCEN[pickScen];
-    box.hidden = false;
-    box.innerHTML = `<div class="setup"><h3>Who commands each side?</h3>${['A', 'B'].map(sd => `<div class="who"><span class="nm"><i style="background:${sc2.sides[sd].color}"></i>${esc(sc2.sides[sd].name)}${sd === 'A' ? ' <small style="color:var(--muted);font-weight:500">moves first</small>' : ''}</span>
-      <div class="seg" role="group" aria-label="${esc(sc2.sides[sd].name)}"><button type="button" data-who="${sd}:human" aria-pressed="${pickWho[sd] === 'human'}">Human</button><button type="button" data-who="${sd}:ai" aria-pressed="${pickWho[sd] === 'ai'}">Computer</button></div></div>`).join('')}
-      <p style="margin:0;font-size:13.5px">Computer opponents play on Hard. Two humans can share this screen or play by email.</p></div>`;
-    $('newRow').innerHTML = `<button type="button" class="primary" id="startGame">Start ${esc(sc2.name)}</button><button type="button" data-close>Cancel</button>`;
-    $('newRow').querySelector('[data-close]').addEventListener('click', () => $('newDlg').close());
-    $('scenCards').querySelectorAll('.card').forEach(c => c.setAttribute('aria-pressed', c.dataset.scen === pickScen));
-  }
   $('scenCards').addEventListener('click', e => {
     const card = e.target.closest('[data-scen]'); if (!card) return;
     pickScen = card.dataset.scen; renderSetup();
     $('setup').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
   });
   $('setup').addEventListener('click', e => {
-    const b = e.target.closest('[data-who]'); if (!b) return;
-    const [sd, who] = b.dataset.who.split(':'); pickWho[sd] = who; renderSetup();
+    const b = e.target.closest('[data-who],[data-fog]'); if (!b) return;
+    if (b.dataset.who) { const [sd, who] = b.dataset.who.split(':'); pickWho[sd] = who; }
+    if (b.dataset.fog) pickFog = b.dataset.fog === '1';
+    renderSetup();
   });
   $('newRow').addEventListener('click', e => {
-    if (!e.target.closest('#startGame')) return;
-    const g = E.newGame(pickScen, seed());
+    const b = e.target.closest('[data-nr]'); if (!b) return;
+    if (b.dataset.nr === 'cancel') { $('newDlg').close(); return; }
+    const g = E.newGame(pickScen, seed(), { fog: pickFog });
     g.players = { A: pickWho.A, B: pickWho.B };
-    $('newDlg').close();
+    $('newDlg').close(); closeTray();
     setState(g); persist();
     if (!isAI('A')) { if (hasAI()) { smartFit(); toast2(`Your turn: ${sideOf('A').name}`); } else showHandoff('Turn 1 · New game'); }
   });
   $('combat').addEventListener('click', e => {
+    const li = e.target.closest('[data-atk]');
+    if (li && target) { const id = Number(li.dataset.atk); atk.has(id) ? atk.delete(id) : atk.add(id); render(); return; }
     const b = e.target.closest('button'); if (!b) return;
     if (b.id === 'resolveBtn') { const [c, r] = P(target); act({ t: 'attack', target: [c, r], attackers: [...atk] }); }
+    else if (b.id === 'artOnly') { atk = new Set([...atk].filter(id => E.TYPES[E.byId(state, id).type].range)); if (!atk.size) atk = new Set(E.eligibleAttackers(state, target).filter(id => E.TYPES[E.byId(state, id).type].range)); render(); }
     else if (b.id === 'cancelAtk') { target = null; atk.clear(); render(); }
     else if (b.dataset.adv) act({ t: 'advance', unit: b.dataset.adv === 'none' ? null : Number(b.dataset.adv) });
-  });
-  $('combat').addEventListener('click', e => {
-    const li = e.target.closest('.atklist li'); if (!li || !target) return;
-    const idx = [...li.parentNode.children].indexOf(li), elig = E.eligibleAttackers(state, target);
-    if (idx < elig.length) { const id = elig[idx]; atk.has(id) ? atk.delete(id) : atk.add(id); render(); }
   });
   $('coverBox').addEventListener('click', e => {
     const b = e.target.closest('[data-cv]'); if (!b) return;
@@ -2030,20 +2457,24 @@ if (typeof module !== 'undefined') module.exports = AI;
     if (b.dataset.cv === 'new') openNew();
   });
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape' && !document.querySelector('dialog[open]')) { sel = null; target = null; atk.clear(); render(); }
+    if (e.key === 'Escape' && !document.querySelector('dialog[open]')) { sel = null; target = null; atk.clear(); mode = null; closePop(); closeTray(); render(); }
   });
   window.addEventListener('resize', () => { if (vb) setVB(); });
 
   // ---------- boot ----------
   function start(data) {
+    placePanels();
     let s = data && data.state;
     if (!s) { try { const raw = localStorage.getItem(SAVE_KEY); if (raw) s = JSON.parse(raw); } catch (e) { /* no storage */ } }
     if (!s || !E.SCEN[s.scen]) { s = E.newGame('generic', seed()); s.players = { A: 'human', B: 'ai' }; }
+    // games saved before unit names existed: fill them in from the scenario
+    const tpl = E.SCEN[s.scen].units;
+    s.units.forEach(u => { if (u.name == null && tpl[u.id - 1]) u.name = tpl[u.id - 1][4] || ''; });
     setState(s);
   }
   window.claude?.hot?.snapshot?.(() => ({ state }));
   window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
-  window.Hexfront = { get state() { return state; }, act, setState };
+  window.Hexfront = { get state() { return state; }, act, setState, openTray };
 })();
 
 </script>
