@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Hexfront</title>
-<meta name="theme-color" content="#1b1f1a">
+<meta name="theme-color" content="#000000">
 <meta name="description" content="A classic hex-and-counter WWII wargame for two players, against the computer, hotseat or by email.">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <meta name="apple-mobile-web-app-title" content="Hexfront">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
@@ -38,6 +38,7 @@
 }
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
+html { touch-action: manipulation; -webkit-text-size-adjust: 100%; }
 body { background: var(--chrome); color: var(--ink); font: 15px/1.4 var(--body); display: grid; grid-template-columns: 76px 1fr 340px 80px; grid-template-rows: auto 1fr; grid-template-areas: "head head head head" "tools map panel rail"; overflow: hidden; }
 button { -webkit-tap-highlight-color: transparent; font: 600 15px/1 var(--ui); letter-spacing: .04em; text-transform: uppercase; color: var(--ink); background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 9px 12px; cursor: pointer; }
 button:hover:not(:disabled) { border-color: var(--muted); }
@@ -54,7 +55,11 @@ button.primary:hover:not(:disabled) { background: #f3b84e; }
 .scen { grid-area: scen; font: 600 13px/1.1 var(--ui); text-transform: uppercase; letter-spacing: .1em; color: var(--muted); }
 .scen b { color: var(--ink); font-weight: 600; display: block; letter-spacing: .04em; font-size: 17px; }
 .status { grid-area: status; display: flex; align-items: center; gap: 10px; min-width: 0; }
-.status svg { width: 30px; height: 32px; flex: none; }
+.status svg.flag { width: 34px; height: 24px; flex: none; border-radius: 2px; box-shadow: 0 2px 4px rgba(0,0,0,.4); }
+.phasepill { display: inline-block; font: 700 11px/1 var(--ui); letter-spacing: .12em; text-transform: uppercase; padding: 3px 7px 3px; border-radius: 3px; margin-left: 4px; vertical-align: 1px; }
+.tshort { display: none; }
+.phasepill.move { background: #2f6f8f; color: #eaf6fb; }
+.phasepill.combat { background: #b9432d; color: #fff1ec; }
 .status b { display: block; font: 700 18px/1.05 var(--ui); text-transform: uppercase; letter-spacing: .04em; white-space: nowrap; }
 .status small { display: block; font: 500 13px/1.2 var(--ui); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .cpu { font: 700 11px/1 var(--ui); letter-spacing: .1em; color: #1d1606; background: var(--signal); border-radius: 3px; padding: 2px 4px; margin-left: 6px; vertical-align: 2px; }
@@ -201,7 +206,7 @@ aside h3, .pane h3 { margin: 0 0 10px; font: 600 13px/1 var(--ui); text-transfor
 .forceseg { width: 100%; }
 .forceseg button { flex: 1; }
 #log li.turn { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-left-width: 4px; border-radius: 0 4px 4px 0; }
-#log li.turn svg { width: 16px; height: 18px; flex: none; }
+#log li.turn svg { width: 20px; height: 14px; flex: none; }
 #log li { border-left-width: 3px; border-left-style: solid; }
 
 
@@ -211,7 +216,7 @@ aside h3, .pane h3 { margin: 0 0 10px; font: 600 13px/1 var(--ui); text-transfor
 .bm-card { width: min(520px, 100%); max-height: calc(100dvh - 40px); overflow-y: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 24px 70px rgba(0,0,0,.6); padding: 18px 18px 16px; display: grid; gap: 12px; animation: bmIn .32s cubic-bezier(.2,.8,.2,1); }
 @keyframes bmIn { from { transform: translateY(40px); opacity: 0; } to { transform: none; opacity: 1; } }
 .bm-k { font: 600 13px/1 var(--ui); letter-spacing: .18em; text-transform: uppercase; color: var(--signal); display: flex; align-items: center; gap: 8px; }
-.bm-k svg { width: 16px; height: 18px; }
+.bm-k svg { width: 22px; height: 15px; flex: none; }
 .bm-h { font: 30px/1.05 var(--display); letter-spacing: .02em; margin: 0; text-wrap: balance; }
 .bm-h.good { color: var(--ok); } .bm-h.bad { color: var(--danger); } .bm-h.mid { color: var(--signal); } .bm-h.none { color: var(--muted); }
 .bm-roll { display: flex; align-items: center; gap: 12px; font: 500 15px/1.3 var(--ui); color: var(--muted); }
@@ -226,7 +231,7 @@ aside h3, .pane h3 { margin: 0 0 10px; font: 600 13px/1 var(--ui); text-transfor
 .bm-note { margin: 0; font-size: 13.5px; color: var(--muted); }
 .bm .row button { padding: 12px; }
 @media (max-width: 700px) {
-  .bm { align-items: flex-end; padding: 0 0 calc(var(--nav-h) + env(safe-area-inset-bottom)); background: rgba(8,10,7,.45); }
+  .bm { align-items: flex-end; padding: 0 0 calc(var(--nav-h) + max(0px, calc(env(safe-area-inset-bottom) - 14px))); background: rgba(8,10,7,.45); }
   .bm-card { width: 100%; border-radius: 12px 12px 0 0; max-height: 70dvh; }
   .bm-h { font-size: 26px; }
   .bm-sides { grid-template-columns: 1fr; }
@@ -282,7 +287,7 @@ table.crt th { color: var(--muted); font-weight: 600; }
 .cover.opaque { background: #141712; }
 .cover.show { display: grid; }
 .cover .box { text-align: center; display: grid; gap: 14px; justify-items: center; max-width: 520px; }
-.cover .flagbig svg { width: 74px; height: 80px; }
+.cover .flagbig svg { width: 96px; height: 66px; box-shadow: 0 6px 18px rgba(0,0,0,.5); }
 .cover h2 { margin: 0; font: 44px/1 var(--display); letter-spacing: .03em; text-wrap: balance; }
 .cover p { margin: 0; color: var(--muted); }
 .cover .kicker { font: 600 15px/1 var(--ui); text-transform: uppercase; letter-spacing: .2em; color: var(--signal); }
@@ -293,8 +298,8 @@ table.crt th { color: var(--muted); font-weight: 600; }
 /* ================= PHONES ================= */
 @media (max-width: 700px) {
   html, body { overflow: hidden; overscroll-behavior: none; }
-  body { display: flex; flex-direction: column; height: 100dvh; }
-  .bar { flex: none; grid-template-columns: 1fr auto; grid-template-areas: "brand menu" "status main"; gap: 6px 10px; padding: calc(4px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) 8px calc(12px + env(safe-area-inset-left)); border-bottom: 0; }
+  body { display: flex; flex-direction: column; height: 100%; height: 100dvh; }
+  .bar { flex: none; grid-template-columns: 1fr auto; grid-template-areas: "brand menu" "status main"; gap: 6px 10px; padding: calc(8px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) 8px calc(12px + env(safe-area-inset-left)); border-bottom: 0; }
   .brand img { height: 34px; }
   .brand span { font-size: 20px; }
   .scen, .phases { display: none; }
@@ -303,6 +308,9 @@ table.crt th { color: var(--muted); font-weight: 600; }
   #menuBtn { padding: 6px; }
   #mainBtn { padding: 10px 14px; font-size: 14px; }
   .status b { font-size: 16px; }
+  .tlong { display: none; } .tshort { display: inline; }
+  .phasepill { font-size: 10px; padding: 3px 5px; letter-spacing: .1em; }
+  .status { min-width: 0; overflow: hidden; }
   .status small { font-size: 12px; }
   .toolbar { flex: none; grid-template-columns: repeat(8, 1fr); grid-auto-rows: auto; border-top: 1px solid var(--line); border-right: 0; border-bottom: 1px solid var(--line); padding: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left); overflow: visible; }
   .toolbar button, .bnav button { border-bottom: 0; border-right: 1px solid var(--line); }
@@ -317,11 +325,12 @@ table.crt th { color: var(--muted); font-weight: 600; }
   .hint.quiet { opacity: 0; }
   .toast { bottom: 16px; }
 
-  .bnav { display: grid; flex: none; grid-template-columns: repeat(5, 1fr); grid-auto-rows: auto; position: relative; z-index: 12; padding-bottom: env(safe-area-inset-bottom); background: var(--cell); border-left: 0; border-top: 1px solid var(--line); }
+  .bnav { display: grid; flex: none; grid-template-columns: repeat(5, 1fr); grid-auto-rows: auto; position: relative; z-index: 12; padding-bottom: max(0px, calc(env(safe-area-inset-bottom) - 14px)); background: var(--cell); border-left: 0; border-top: 1px solid var(--line); }
   .bnav button { height: var(--nav-h); }
+  :root { --nav-h: 56px; }
   .trayback { display: block; position: fixed; inset: 0; z-index: 9; pointer-events: none; }
   .trayback.on { pointer-events: auto; }
-  .tray { display: flex; flex-direction: column; border-left: 0; position: fixed; left: 0; right: 0; bottom: calc(var(--nav-h) + env(safe-area-inset-bottom)); max-height: min(62dvh, 560px); z-index: 10; background: var(--panel); border-top: 1px solid var(--line); border-radius: 12px 12px 0 0; box-shadow: 0 -12px 40px rgba(0,0,0,.5); transform: translateY(110%); transition: transform .26s cubic-bezier(.2,.8,.2,1), visibility 0s linear .26s; visibility: hidden; }
+  .tray { display: flex; flex-direction: column; border-left: 0; position: fixed; left: 0; right: 0; bottom: calc(var(--nav-h) + max(0px, calc(env(safe-area-inset-bottom) - 14px))); max-height: min(62dvh, 560px); z-index: 10; background: var(--panel); border-top: 1px solid var(--line); border-radius: 12px 12px 0 0; box-shadow: 0 -12px 40px rgba(0,0,0,.5); transform: translateY(110%); transition: transform .26s cubic-bezier(.2,.8,.2,1), visibility 0s linear .26s; visibility: hidden; }
   .tray.open { transform: none; visibility: visible; transition: transform .26s cubic-bezier(.2,.8,.2,1); }
   .trayhead { padding: 8px 14px 6px; }
   .trayhead::before { content: ""; position: absolute; left: 50%; top: 5px; width: 36px; height: 4px; border-radius: 2px; background: #4a5444; transform: translateX(-50%); }
@@ -574,8 +583,8 @@ const Engine = (() => {
       blurb: 'Two evenly matched powers race for the river crossing at Midbridge. Capture the enemy capital to win at once, or hold the most victory points after 12 turns.',
       maxTurns: 12, victory: { type: 'more' }, supplyRange: Infinity, theme: 'temperate',
       sides: {
-        A: { name: 'Azure League', short: 'Azure', color: '#3f6ea5', ink: '#f6f1e2', edge: 'W' },
-        B: { name: 'Crimson Pact', short: 'Crimson', color: '#a6423a', ink: '#f6f1e2', edge: 'E' },
+        A: { name: 'Azure League', short: 'Azure', color: '#3f6ea5', ink: '#f6f1e2', edge: 'W', flag: 'azure' },
+        B: { name: 'Crimson Pact', short: 'Crimson', color: '#a6423a', ink: '#f6f1e2', edge: 'E', flag: 'crimson' },
       },
       rows: [
         '..ff....hhmmmmhh....ff..',
@@ -625,8 +634,8 @@ const Engine = (() => {
       blurb: 'The Allies break out of the Normandy beachhead. They need 10 victory points by turn 14 (Paris, Rouen, Brussels and Antwerp will do it). The Axis wins at once by taking Bayeux, the beachhead.',
       maxTurns: 14, victory: { type: 'target', side: 'A', vp: 10 }, supplyRange: Infinity, theme: 'europe',
       sides: {
-        A: { name: 'Allies', short: 'Allies', color: '#6c7a3a', ink: '#f4efd9', edge: 'W' },
-        B: { name: 'Axis', short: 'Axis', color: '#5c656d', ink: '#f2f2ee', edge: 'E' },
+        A: { name: 'Allies', short: 'Allies', color: '#6c7a3a', ink: '#f4efd9', edge: 'W', flag: 'allies' },
+        B: { name: 'Axis', short: 'Axis', color: '#5c656d', ink: '#f2f2ee', edge: 'E', flag: 'axis' },
       },
       rows: [
         'wwwwwwwwwwwwwww.........',
@@ -685,8 +694,8 @@ const Engine = (() => {
       blurb: 'The Afrika Korps strikes at the Gazala line. Supply runs only 8 hexes from a port or home edge. The Axis needs 9 victory points by turn 12 (Tobruk is the prize) or wins at once by taking Alexandria.',
       maxTurns: 12, victory: { type: 'target', side: 'A', vp: 9 }, supplyRange: 8, theme: 'desert',
       sides: {
-        A: { name: 'Axis', short: 'Axis', color: '#8a96a0', ink: '#1b2024', edge: 'W' },
-        B: { name: 'Allies', short: 'Allies', color: '#6e4526', ink: '#f4e7c9', edge: 'E' },
+        A: { name: 'Axis', short: 'Axis', color: '#8a96a0', ink: '#1b2024', edge: 'W', flag: 'axis' },
+        B: { name: 'Allies', short: 'Allies', color: '#6e4526', ink: '#f4e7c9', edge: 'E', flag: 'allies' },
       },
       terrainNames: { '.': 'Desert', h: 'Escarpment', s: 'Salt marsh', x: 'Qattara Depression', w: 'Mediterranean' },
       rows: [
@@ -1627,7 +1636,7 @@ if (typeof module !== 'undefined') module.exports = AI;
 // ===================== HEXFRONT UI =====================
 (() => {
   const E = Engine, K = E.K, P = E.P;
-  const VERSION = '0.8.0', BUILD = '2026-11-19';
+  const VERSION = '0.9.0', BUILD = '2026-11-19';
   const S = 30, SQ3 = Math.sqrt(3), SAVE_KEY = 'hexfront.v1';
   try { console.info(`Hexfront v${VERSION} (${BUILD})`); } catch (e) { /* ignore */ }
   const THEMES = {
@@ -1690,9 +1699,18 @@ if (typeof module !== 'undefined') module.exports = AI;
   const TRAYS = [['unit', 'Unit'], ['battle', 'Battle'], ['obj', 'Objectives'], ['forces', 'Forces'], ['log', 'Log'], ['charts', 'Charts']];
   $('toolbar').innerHTML = TOOLS.map(([k, l]) => `<button type="button" data-tool="${k}" aria-label="${l}">${ICONS[k]}<span>${l}</span></button>`).join('');
   $('bnav').innerHTML = TRAYS.map(([k, l]) => `<button type="button" data-tray="${k}" aria-label="${l}"${k === 'unit' ? ' class="desk"' : ''}>${ICONS[k]}<span>${l}</span></button>`).join('');
+  // Flag designs: plain rectangles. Axis uses the Balkenkreuz insignia; Allies the white invasion star.
+  const star = (cx, cy, r, fill) => { let d = ''; for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * 0.42 : r; d += (i ? 'L' : 'M') + (cx + Math.cos(a) * rr).toFixed(2) + ' ' + (cy + Math.sin(a) * rr).toFixed(2); } return `<path d="${d}Z" fill="${fill}"/>`; };
+  const FLAGS = {
+    azure: () => `<rect width="30" height="20" fill="#3f6ea5"/><rect y="7.5" width="30" height="5" fill="#f2ecd8"/><rect x="5" width="5" height="20" fill="#f2ecd8"/>${star(7.5, 10, 2.6, '#e8a83a')}`,
+    crimson: () => `<rect width="30" height="20" fill="#a6423a"/><rect width="30" height="6" y="14" fill="#2a1513"/><circle cx="15" cy="9" r="4.6" fill="none" stroke="#f2ecd8" stroke-width="1.8"/>${star(15, 9, 2.2, '#f2ecd8')}`,
+    axis: () => `<rect width="30" height="20" fill="#6f777c"/><path d="M11.5 2.5h7v4h4v7h-4v4h-7v-4h-4v-7h4z" fill="#f2f2ee"/><path d="M13 4h4v4h4v4h-4v4h-4v-4h-4v-4h4z" fill="#111"/>`,
+    allies: () => `<rect width="30" height="20" fill="#5f6d34"/><circle cx="15" cy="10" r="6.6" fill="none" stroke="#f4f0dc" stroke-width="1.4"/>${star(15, 10.3, 5.4, '#f4f0dc')}`,
+  };
   function flagSVG(side, big) {
-    const sd = side ? E.SCEN[state.scen].sides[side] : { color: '#8a8572', ink: '#fff' };
-    return `<svg viewBox="0 0 30 32" ${big ? '' : 'aria-hidden="true"'}><path d="M4 2v29" stroke="#c9c2a8" stroke-width="2" stroke-linecap="round"/><path d="M5 3.5c4-2 8 1.5 12 0s6-1.4 10 .3v14c-4-1.7-6-1.4-10 0s-8-2-12 0z" fill="${sd.color}" stroke="rgba(0,0,0,.45)" stroke-width="1"/><path d="M5 9.5c4-2 8 1.5 12 0s6-1.4 10 .3" stroke="${sd.ink}" stroke-width="1.6" fill="none" opacity=".7"/><circle cx="4" cy="2" r="1.6" fill="#e8a83a"/></svg>`;
+    const sd = side ? E.SCEN[state.scen].sides[side] : null;
+    const body = sd && FLAGS[sd.flag] ? FLAGS[sd.flag]() : `<rect width="30" height="20" fill="${sd ? sd.color : '#8a8572'}"/>`;
+    return `<svg class="flag" viewBox="-1 -1 32 22" ${big ? '' : 'aria-hidden="true"'}>${body}<rect width="30" height="20" fill="none" stroke="rgba(0,0,0,.55)" stroke-width="1"/></svg>`;
   }
 
   // ---------- geometry ----------
@@ -1828,7 +1846,7 @@ if (typeof module !== 'undefined') module.exports = AI;
     }
     if (showSup) {
       const net = E.supplyNet(v, who || state.active);
-      for (const k of net.keys()) { const [x, y] = center(...P(k)); o += `<circle cx="${x}" cy="${(y + S * 0.55).toFixed(1)}" r="2.6" fill="#3d7a35" opacity=".8"/>`; }
+      for (const k of net.keys()) { const [x, y] = center(...P(k)); o += `<circle cx="${x}" cy="${(y + S * 0.52).toFixed(1)}" r="4.6" fill="#3d7a35" stroke="#e9f2d8" stroke-width="1.2" opacity=".9"/>`; }
     }
     const su = sel != null ? E.byId(v, sel) : null;
     if (su) for (const [k, r] of E.reachable(v, su)) {
@@ -2125,7 +2143,8 @@ if (typeof module !== 'undefined') module.exports = AI;
     const s = sc(), side = sideOf(state.active);
     $('scenName').innerHTML = `${esc(s.setting)}<b>${esc(s.name)}</b>`;
     const phaseTxt = state.winner ? 'Game over' : state.phase === 'move' ? 'Movement' : 'Combat';
-    $('status').innerHTML = `${flagSVG(state.winner ? state.winner.side : state.active)}<div><b>${esc(state.winner ? (state.winner.side ? sideOf(state.winner.side).name + ' win' : 'Draw') : side.name)}${isAI(state.active) && !state.winner ? '<span class="cpu">CPU</span>' : ''}</b><small>Turn ${state.turn}/${s.maxTurns} · ${phaseTxt}</small></div>`;
+    const pill = state.winner ? '' : `<span class="phasepill ${state.phase}">${state.phase === 'move' ? 'Movement' : 'Combat'}</span>`;
+    $('status').innerHTML = `${flagSVG(state.winner ? state.winner.side : state.active)}<div><b>${esc(state.winner ? (state.winner.side ? sideOf(state.winner.side).name + ' win' : 'Draw') : side.name)}${isAI(state.active) && !state.winner ? '<span class="cpu">CPU</span>' : ''}</b><small><span class="tlong">Turn ${state.turn} of ${s.maxTurns}</span><span class="tshort">Turn ${state.turn}/${s.maxTurns}</span> ${pill || '· Game over'}</small></div>`;
     document.querySelectorAll('#phases span').forEach(sp => sp.classList.toggle('on', sp.dataset.p === state.phase && !state.winner));
     const mb = $('mainBtn');
     mb.disabled = false;
@@ -2237,8 +2256,8 @@ if (typeof module !== 'undefined') module.exports = AI;
         if (su && E.reachable(v, su).has(k)) { act({ t: 'move', unit: sel, to: [c, r] }); return; }
       }
       if (u && u.side === state.active && !u.moved) sel = sel === u.id ? null : u.id;
-      if (u && !PHONE.matches) openTray('unit');
       else { sel = null; if (u && u.side === state.active && u.moved) toast(u.dig === 'digging' ? 'That unit is digging in this turn.' : 'That unit has already moved this turn.'); }
+      if (u && !PHONE.matches) openTray('unit');
       info = k; render(); return;
     }
     if (u && u.side !== state.active) {
@@ -2264,8 +2283,7 @@ if (typeof module !== 'undefined') module.exports = AI;
   }
   function centerOn(c, r) {
     const [x, y] = center(c, r);
-    const clamp = (v, size, total) => (size >= total + 60 ? (total - size) / 2 : Math.min(Math.max(v, -30), total + 30 - size));
-    vb.x = clamp(x - vb.w / 2, vb.w, mapW); vb.y = clamp(y - vb.h / 2, vb.h, mapH); setVB();
+    vb.x = x - vb.w / 2; vb.y = y - vb.h / 2; setVB();
   }
   function nextUnit() {
     if (aiBusy || isAI(state.active) || state.winner) return;
@@ -2552,16 +2570,28 @@ if (typeof module !== 'undefined') module.exports = AI;
   }
 
   // ---------- view: pan & zoom ----------
+  // The map (with its paper border) must always cover the screen: no zooming out past it, no panning off it.
+  function clampVB() {
+    const r = svg.getBoundingClientRect();
+    if (!r.width || !r.height || !mapW) return;
+    const x0 = -22, y0 = -22, bw = mapW + 44, bh = mapH + 44, aspect = r.width / r.height;
+    const maxW = Math.min(bw, bh * aspect), minW = Math.min(maxW, 220);
+    const cx = vb.x + vb.w / 2, cy = vb.y + vb.h / 2;
+    vb.w = Math.min(maxW, Math.max(minW, vb.w)); vb.h = vb.w / aspect;
+    vb.x = Math.min(Math.max(cx - vb.w / 2, x0), x0 + bw - vb.w);
+    vb.y = Math.min(Math.max(cy - vb.h / 2, y0), y0 + bh - vb.h);
+  }
   function setVB() {
+    clampVB();
     svg.setAttribute('viewBox', `${vb.x} ${vb.y} ${vb.w} ${vb.h}`);
     const r = svg.getBoundingClientRect();
     if (r.width) { const scale = Math.min(r.width / vb.w, r.height / vb.h); svg.classList.toggle('far', 40 * scale < 44); }
     if (pop) placePop();
   }
-  function fit() { vb = { x: -30, y: -30, w: mapW + 60, h: mapH + 60 }; setVB(); }
+  function fit() { vb = { x: -22, y: -22, w: 1e6, h: 1e6 }; setVB(); } // as far out as the map allows
   function smartFit() {
     const r = svg.getBoundingClientRect();
-    if (!r.width || r.width >= 700 || !state) { fit(); return; }
+    if (!r.width || !PHONE.matches || !state) { fit(); return; }
     const who = viewer() || state.active;
     const mine = state.units.filter(u => u.side === who);
     let cx = mapW / 2, cy = mapH / 2;
@@ -2574,7 +2604,7 @@ if (typeof module !== 'undefined') module.exports = AI;
   }
   function svgPt(e) { const p = svg.createSVGPoint(); p.x = e.clientX; p.y = e.clientY; return p.matrixTransform(svg.getScreenCTM().inverse()); }
   function zoomAt(px, py, f) {
-    const nw = Math.min(mapW * 1.6, Math.max(mapW * 0.18, vb.w * f)), k = nw / vb.w;
+    const nw = Math.max(mapW * 0.18, vb.w * f), k = nw / vb.w;
     vb.x = px - (px - vb.x) * k; vb.y = py - (py - vb.y) * k; vb.w = nw; vb.h *= k; setVB();
   }
   svg.addEventListener('wheel', e => { e.preventDefault(); const p = svgPt(e); zoomAt(p.x, p.y, Math.exp(e.deltaY * 0.0015)); }, { passive: false });
@@ -2587,6 +2617,7 @@ if (typeof module !== 'undefined') module.exports = AI;
     down = null;
   };
   svg.addEventListener('pointerdown', e => {
+    if (e.isPrimary) { pts.clear(); pinch = null; }
     pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
     try { svg.setPointerCapture(e.pointerId); } catch (er) { /* ignore */ }
     if (pts.size === 2) { startPinch(); return; }
@@ -2609,7 +2640,7 @@ if (typeof module !== 'undefined') module.exports = AI;
     }
     if (down) {
       const dx = e.clientX - down.x, dy = e.clientY - down.y;
-      if (!down.moved && Math.hypot(dx, dy) > 6) { down.moved = true; svg.classList.add('panning'); }
+      if (!down.moved && Math.hypot(dx, dy) > (e.pointerType === 'touch' ? 12 : 6)) { down.moved = true; svg.classList.add('panning'); }
       if (down.moved) { const m = svg.getScreenCTM(); vb.x = down.vx - dx / m.a; vb.y = down.vy - dy / m.d; setVB(); }
       return;
     }
@@ -2627,6 +2658,11 @@ if (typeof module !== 'undefined') module.exports = AI;
     }
     down = null; svg.classList.remove('panning');
   });
+  svg.addEventListener('lostpointercapture', e => { pts.delete(e.pointerId); if (pts.size < 2) pinch = null; });
+  // iOS: never zoom the whole page (pinch zooms the map instead)
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach(ev => document.addEventListener(ev, e => e.preventDefault(), { passive: false }));
+  let lastTouchEnd = 0;
+  document.addEventListener('touchend', e => { const now = Date.now(); if (now - lastTouchEnd < 320) e.preventDefault(); lastTouchEnd = now; }, { passive: false });
   svg.addEventListener('pointerleave', () => { if (hoverEl) hoverEl.setAttribute('visibility', 'hidden'); });
 
   // ---------- wiring ----------
