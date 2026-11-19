@@ -39,7 +39,7 @@
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
 html { touch-action: manipulation; -webkit-text-size-adjust: 100%; }
-body { background: var(--chrome); color: var(--ink); font: 15px/1.4 var(--body); display: grid; grid-template-columns: 76px 1fr 340px 80px; grid-template-rows: auto 1fr; grid-template-areas: "head head head head" "tools map panel rail"; overflow: hidden; }
+body { background: var(--chrome); color: var(--ink); font: 15px/1.4 var(--body); display: grid; grid-template-columns: 76px 1fr 80px 340px; grid-template-rows: auto 1fr; grid-template-areas: "head head head head" "tools map rail panel"; overflow: hidden; }
 button { -webkit-tap-highlight-color: transparent; font: 600 15px/1 var(--ui); letter-spacing: .04em; text-transform: uppercase; color: var(--ink); background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 9px 12px; cursor: pointer; }
 button:hover:not(:disabled) { border-color: var(--muted); }
 button:disabled { opacity: .4; cursor: default; }
@@ -81,11 +81,11 @@ button.primary:hover:not(:disabled) { background: #f3b84e; }
 .cells button.blank { pointer-events: none; }
 /* desktop: both button sets run vertically, tools on the left edge, panel buttons on the right edge */
 .toolbar { grid-area: tools; grid-template-columns: 1fr; grid-auto-rows: 66px; align-content: start; border-top: 0; border-right: 1px solid var(--line); overflow-y: auto; }
-.bnav { grid-area: rail; display: grid; grid-template-columns: 1fr; grid-auto-rows: 66px; align-content: start; border-top: 0; border-left: 1px solid var(--line); }
+.bnav { grid-area: rail; display: grid; grid-template-columns: 1fr; grid-auto-rows: 66px; align-content: start; border-top: 0; border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
 .toolbar button, .bnav button { border-right: 0; border-bottom: 1px solid var(--line); }
 .bnav button span, .toolbar button span { font-size: 10.5px; letter-spacing: .05em; }
 .toolbar button[aria-pressed="true"]::before { left: auto; right: 0; top: 18%; bottom: 18%; width: 2px; height: auto; border-radius: 2px 0 0 2px; }
-.bnav button[aria-pressed="true"]::before { left: 0; right: auto; top: 18%; bottom: 18%; width: 2px; height: auto; border-radius: 0 2px 2px 0; }
+.bnav button[aria-pressed="true"]::before { left: auto; right: 0; top: 18%; bottom: 18%; width: 2px; height: auto; border-radius: 2px 0 0 2px; }
 .tray { grid-area: panel; display: flex; flex-direction: column; min-height: 0; background: var(--panel); border-left: 1px solid var(--line); }
 .trayhead { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px 10px; border-bottom: 1px solid var(--line); flex: none; }
 .trayhead h3 { margin: 0; font: 600 14px/1 var(--ui); text-transform: uppercase; letter-spacing: .14em; color: var(--signal); }
@@ -585,6 +585,20 @@ const Engine = (() => {
     return short.split(' ').map(w => WORDS[w] || w).join(' ');
   }
 
+  // Contingents that fight alongside the main army get a slightly different counter colour.
+  const NATS = {
+    europe: { nations: { GB: { name: 'British', color: '#7d6c3a' }, CA: { name: 'Canadian', color: '#7a6432' }, PL: { name: 'Polish', color: '#6e5c4c' } },
+      units: { '50th Inf': 'GB', 'Gds Armd': 'GB', 'XXX Art': 'GB', '3rd Can': 'CA', 'Pol Armd': 'PL' }, main: { A: 'American', B: 'German' } },
+    desert: { nations: { IT: { name: 'Italian', color: '#8c9873' }, ZA: { name: 'South African', color: '#80562c' }, FR: { name: 'Free French', color: '#5d4c5c' } },
+      units: { Trento: 'IT', Brescia: 'IT', Pavia: 'IT', Ariete: 'IT', Trieste: 'IT', '2nd SA': 'ZA', '1st SA': 'ZA', '1st FF': 'FR' }, main: { A: 'German', B: 'British' } },
+  };
+  function natOf(scen, name) { return (NATS[scen] && NATS[scen].units[name]) || ''; }
+  function nation(scen, u) {
+    const N = NATS[scen]; if (!N) return null;
+    const code = u.nat != null ? u.nat : natOf(scen, u.name);
+    return code ? { code, ...N.nations[code] } : { code: '', name: N.main[u.side] };
+  }
+
   // ---------- scenarios ----------
   const SCEN = {
     generic: {
@@ -823,7 +837,7 @@ const Engine = (() => {
   function newGame(scenId, seed, opts = {}) {
     const sc = SCEN[scenId];
     let id = 1;
-    const units = sc.units.map(([side, type, c, r, name]) => ({ id: id++, side, type, c, r, name: name || '', full: fullName(name), steps: 2, moved: false, attacked: false, dropped: false, oos: false, dig: null }));
+    const units = sc.units.map(([side, type, c, r, name]) => ({ id: id++, side, type, c, r, name: name || '', full: fullName(name), nat: natOf(scenId, name), steps: 2, moved: false, attacked: false, dropped: false, oos: false, dig: null }));
     const owner = {};
     sc.cities.forEach(ct => { if (ct.owner) owner[K(ct.c, ct.r)] = ct.owner; });
     const s = { v: 2, scen: scenId, turn: 1, active: 'A', phase: 'move', rng: seed | 0, units, owner, log: [], trails: [], prevTrails: [], attacked: [], bombarded: [], pending: null, winner: null, dead: [], lastCombat: null, fog: !!opts.fog, seen: { A: {}, B: {} } };
@@ -952,11 +966,14 @@ const Engine = (() => {
       return d === 1 || (t.range && d <= t.range);
     }).map(u => u.id);
   }
+  // Attack strength in this attack: artillery firing from hills or mountains gets +1 (observation).
+  function highGround(s, u) { return !!TYPES[u.type].range && ['h', 'm'].includes(getMap(s.scen).terr[K(u.c, u.r)]); }
+  function attackValue(s, u) { return factors(s, u).a + (highGround(s, u) ? 1 : 0); }
   function oddsFor(s, tk, ids) {
     const m = getMap(s.scen), tgt = occMap(s).get(tk);
     if (!tgt) return { valid: false, why: 'No unit there.' };
     const us = ids.map(id => byId(s, id)).filter(Boolean);
-    const att = us.reduce((a, u) => a + factors(s, u).a, 0), def = factors(s, tgt).d;
+    const att = us.reduce((a, u) => a + attackValue(s, u), 0), def = factors(s, tgt).d;
     const ratio = def ? att / def : 99;
     let col = -1;
     THR.forEach((t, i) => { if (ratio >= t - 1e-9) col = i; });
@@ -976,7 +993,7 @@ const Engine = (() => {
     u.steps -= 1;
     if (u.steps <= 0) {
       s.units = s.units.filter(x => x !== u);
-      s.dead.push({ side: u.side, type: u.type, name: u.name || '', full: u.full || fullName(u.name), turn: s.turn });
+      s.dead.push({ side: u.side, type: u.type, nat: u.nat || '', name: u.name || '', full: u.full || fullName(u.name), turn: s.turn });
       log(s, 'loss', `${unitLabel(s, u)} eliminated`);
       return true;
     }
@@ -1012,13 +1029,13 @@ const Engine = (() => {
   function vp(s, side) {
     return SCEN[s.scen].cities.reduce((t, ct) => t + (s.owner[K(ct.c, ct.r)] === side ? ct.vp : 0), 0);
   }
-  function checkWin(s) {
+  function checkWin(s, endOfTurn = false) {
     if (s.winner) return;
     const sc = SCEN[s.scen];
     for (const side of ['A', 'B']) {
       const cap = sc.cities.find(ct => ct.cap && ct.owner === other(side));
       if (cap && s.owner[K(cap.c, cap.r)] === side) { s.winner = { side, reason: `${sc.sides[side].name} captured ${cap.name}` }; break; }
-      if (!s.units.some(u => u.side === other(side))) { s.winner = { side, reason: `${sc.sides[other(side)].name} has no units left` }; break; }
+      if (endOfTurn && !s.units.some(u => u.side === other(side))) { s.winner = { side, reason: `${sc.sides[other(side)].name} has no units left` }; break; }
     }
     if (s.winner) log(s, 'end', `Game over: ${s.winner.reason}`);
   }
@@ -1086,7 +1103,7 @@ const Engine = (() => {
         const o = oddsFor(s, tk, a.attackers);
         if (!o.valid) return { error: o.why };
         const tgt = occMap(s).get(tk), us = a.attackers.map(id => byId(s, id));
-        const brief = u => ({ id: u.id, side: u.side, type: u.type, name: u.name, full: u.full || fullName(u.name), steps: u.steps, c: u.c, r: u.r, ranged: dist([u.c, u.r], [tgt.c, tgt.r]) > 1 });
+        const brief = u => ({ id: u.id, side: u.side, type: u.type, nat: u.nat || '', name: u.name, full: u.full || fullName(u.name), steps: u.steps, c: u.c, r: u.r, ranged: dist([u.c, u.r], [tgt.c, tgt.r]) > 1 });
         const before = [...us, tgt].map(brief);
         const report = () => before.map(b => {
           const now = byId(s, b.id);
@@ -1100,6 +1117,7 @@ const Engine = (() => {
         if (o.bombard) {
           const die = roll(s), res = BOMBARD[o.fin][die - 1];
           us.forEach(u => (u.attacked = true));
+          if (tgt.dig === 'dug') { tgt.dig = null; log(s, 'loss', `${unitLabel(s, tgt)}: entrenchment destroyed by shelling`); }
           s.bombarded.push(tk);
           log(s, 'combat', `${us.length > 1 ? us.length + ' batteries' : unitLabel(s, us[0])} bombard ${unitLabel(s, tgt)} at ${COLS[o.fin]} odds: rolled ${die}, ${res === 'B1' ? 'a hit' : 'a miss'}`);
           if (res === 'B1') loseStep(s, tgt);
@@ -1108,7 +1126,7 @@ const Engine = (() => {
           return { ok: true, die, res };
         }
         const die = roll(s), res = CRT[o.fin][die - 1];
-        us.forEach(u => (u.attacked = true));
+        us.forEach(u => { u.attacked = true; if (u.dig && !TYPES[u.type].range) u.dig = null; });
         s.attacked.push(tk);
         log(s, 'combat', `${us.length > 1 ? us.length + ' units' : unitLabel(s, us[0])} attack ${unitLabel(s, tgt)} at ${COLS[o.fin]} odds: rolled ${die}, ${RESULT_TEXT[res].toLowerCase()}`);
         const adjAtt = us.filter(u => dist([u.c, u.r], [tgt.c, tgt.r]) === 1);
@@ -1147,6 +1165,8 @@ const Engine = (() => {
       }
       case 'endTurn': {
         if (s.pending) return { error: 'Advance or skip first.' };
+        checkWin(s, true);
+        if (s.winner) return { ok: true };
         s.units.forEach(u => { u.moved = false; u.attacked = false; });
         s.prevTrails = s.trails; s.trails = []; s.attacked = []; s.bombarded = []; s.lastCombat = null;
         if (s.active === 'B') {
@@ -1171,7 +1191,7 @@ const Engine = (() => {
     return out;
   }
 
-  return { K, P, other, dist, nbrs, toCube, fromCube, TERRAIN, TYPES, COLS, THR, CRT, BOMBARD, RESULT_TEXT, SIGHT, SIGHT_RECON, fullName, SCEN, SCEN_ORDER, getMap, hexInfo, terrainName, newGame, apply, reachable, eligibleAttackers, oddsFor, factors, supplyNet, zocOf, occMap, byId, vp, legalMoves, visibleHexes, canSee, fogView, defShift };
+  return { K, P, other, dist, nbrs, toCube, fromCube, TERRAIN, TYPES, COLS, THR, CRT, BOMBARD, RESULT_TEXT, SIGHT, SIGHT_RECON, fullName, attackValue, highGround, nation, natOf, SCEN, SCEN_ORDER, getMap, hexInfo, terrainName, newGame, apply, reachable, eligibleAttackers, oddsFor, factors, supplyNet, zocOf, occMap, byId, vp, legalMoves, visibleHexes, canSee, fogView, defShift };
 })();
 if (typeof module !== 'undefined') module.exports = Engine;
 
@@ -1333,14 +1353,14 @@ const AI = (() => {
   function attackEV(s, side, tgt, members, canRet, bonus = 0) {
     const m = E.getMap(s.scen), tk = K(tgt.c, tgt.r);
     const adj = members.filter(x => x.adj);
-    const att = members.reduce((t, x) => t + E.factors(s, x.u).a, 0);
+    const att = members.reduce((t, x) => t + E.attackValue(s, x.u), 0);
     const shift = E.defShift(s, tgt);
     if (members.length && members.every(x => E.TYPES[x.u.type].range)) {
       // bombardment: no risk, chance of one step
       const fb = oddsCol(att, E.factors(s, tgt).d, shift);
       if (fb < 0) return { ev: -Infinity };
       const p = E.BOMBARD[fb].filter(r => r === 'B1').length / 6;
-      return { ev: p * (lossVal(tgt) + (tgt.steps <= 1 ? bonus * 0.5 : 0)), fin: fb, bombard: true };
+      return { ev: p * (lossVal(tgt) + (tgt.steps <= 1 ? bonus * 0.5 : 0)) + (tgt.dig === 'dug' ? 1.2 : 0), fin: fb, bombard: true };
     }
     if (!adj.length) return { ev: -Infinity };
     const fin = oddsCol(att, E.factors(s, tgt).d, shift);
@@ -1645,7 +1665,7 @@ if (typeof module !== 'undefined') module.exports = AI;
 // ===================== HEXFRONT UI =====================
 (() => {
   const E = Engine, K = E.K, P = E.P;
-  const VERSION = '0.10.0', BUILD = '2026-11-19';
+  const VERSION = '0.11.0', BUILD = '2026-11-19';
   const S = 30, SQ3 = Math.sqrt(3), SAVE_KEY = 'hexfront.v1';
   try { console.info(`Hexfront v${VERSION} (${BUILD})`); } catch (e) { /* ignore */ }
   const THEMES = {
@@ -1769,11 +1789,12 @@ if (typeof module !== 'undefined') module.exports = AI;
   // The map toggles between them by zoom; previews always use near.
   function counterSVG(scenId, u, x, y, z = 40, opts = {}) {
     const side = E.SCEN[scenId].sides[u.side], h = z / 2, ink = side.ink, t = E.TYPES[u.type];
+    const nat = E.nation(scenId, u), fill = (nat && nat.color) || side.color;
     const f = opts.f || (u.steps < 2 ? { a: Math.ceil(t.a / 2), d: Math.ceil(t.d / 2), m: t.m } : t);
     const fac = `${f.a}-${f.d}-${f.m}`;
     let g = `<g${opts.uid != null ? ` data-uid="${opts.uid}"` : ''} transform="translate(${x.toFixed(1)},${y.toFixed(1)})" opacity="${opts.ghost ? 0.45 : opts.dim ? 0.55 : 1}">`;
     g += `<rect x="${-h + 1.6}" y="${-h + 2.6}" width="${z}" height="${z}" rx="3" fill="rgba(0,0,0,.38)"/>`;
-    g += `<rect x="${-h}" y="${-h}" width="${z}" height="${z}" rx="3" fill="${side.color}" stroke="rgba(10,8,4,.85)" stroke-width="1.4"${opts.ghost ? ' stroke-dasharray="3 2"' : ''}/>`;
+    g += `<rect x="${-h}" y="${-h}" width="${z}" height="${z}" rx="3" fill="${fill}" stroke="rgba(10,8,4,.85)" stroke-width="1.4"${opts.ghost ? ' stroke-dasharray="3 2"' : ''}/>`;
     g += `<rect x="${-h + 1.5}" y="${-h + 1.5}" width="${z - 3}" height="${z - 3}" rx="2" fill="none" stroke="rgba(255,255,255,.18)"/>`;
     if (u.steps < 2) g += `<path d="M${h - z * 0.28} ${-h}H${h - 3}Q${h} ${-h} ${h} ${-h + 3}V${-h + z * 0.28}Z" fill="${ink}" opacity=".8"/>`;
     const name = opts.ghost ? 'Last seen' : (u.name || t.name);
@@ -1918,7 +1939,10 @@ if (typeof module !== 'undefined') module.exports = AI;
     const m = E.getMap(state.scen), k = K(u.c, u.r), hi = E.hexInfo(m, k), t = E.TYPES[u.type];
     const real = E.byId(state, u.id) || u, f = E.factors(state, real), mine = u.side === state.active;
     const rows = [];
+    const nat = E.nation(state.scen, u);
+    if (nat) rows.push(['Nationality', nat.name + (nat.code ? ' (allied contingent)' : '')]);
     rows.push(['Strength', u.steps < 2 ? 'Reduced (1 step left)' : 'Full (2 steps)']);
+    if (E.highGround(state, real)) rows.push(['High ground', '+1 attack when firing from here']);
     rows.push(['Terrain', `${E.terrainName(state.scen, hi.ch)}${hi.river ? ' + river' : ''}${hi.city ? ` · ${hi.city.name}` : ''}`]);
     const shift = E.defShift(state, real);
     rows.push(['Defending here', shift ? `Attacks shift ${shift} column${shift > 1 ? 's' : ''} left` : 'No terrain bonus']);
@@ -2058,23 +2082,22 @@ if (typeof module !== 'undefined') module.exports = AI;
     if (state.pending && myTurn) {
       sec.hidden = false;
       const btns = state.pending.units.map(id => { const u = E.byId(state, id); return `<button type="button" data-adv="${id}">Advance ${esc(fname(u))}</button>`; }).join('');
-      el.innerHTML = `${lastResultHTML()}<p class="empty" style="margin-bottom:10px">The defender's hex is empty. Move one attacker in, or stay put.</p><div class="row actbar">${btns}<button type="button" data-adv="none">Stay put</button></div>`;
+      el.innerHTML = `<p class="empty" style="margin-bottom:10px">The defender's hex is empty. Move one attacker in, or stay put.</p><div class="row actbar">${btns}<button type="button" data-adv="none">Stay put</button></div>`;
       return;
     }
     if (state.phase !== 'combat' || !myTurn) {
-      sec.hidden = !state.lastCombat;
-      el.innerHTML = state.lastCombat ? lastResultHTML() : `<p class="empty">${state.phase === 'move' ? 'Battles are fought in the combat phase. Finish moving, then tap Go to combat.' : 'Waiting for the other side.'}</p>`;
+      el.innerHTML = `<p class="empty">${state.phase === 'move' ? 'Battles are fought in the combat phase. Finish moving, then tap Go to combat.' : 'Waiting for the other side.'}</p>`;
       return;
     }
     sec.hidden = false;
     if (!target) {
-      el.innerHTML = (state.lastCombat ? lastResultHTML() : '') + `<p class="empty">${tapWord('Click')} an enemy unit outlined in red to plan an attack. Each unit attacks once per turn. A hex can be bombarded once and assaulted once.</p>`;
+      el.innerHTML = `<p class="empty">${tapWord('Click')} an enemy unit outlined in red to plan an attack. Each unit attacks once per turn. A hex can be bombarded once and assaulted once.</p>`;
       return;
     }
     const elig = E.eligibleAttackers(state, target), ids = [...atk].filter(id => elig.includes(id));
     const o = E.oddsFor(state, target, ids), tgt = E.occMap(state).get(target);
     if (!tgt) { target = null; atk.clear(); return renderCombat(); }
-    const list = elig.map(id => { const u = E.byId(state, id), f = E.factors(state, u), rng = E.dist([u.c, u.r], [tgt.c, tgt.r]) > 1; return `<li data-atk="${id}" class="${atk.has(id) ? '' : 'off'}"><span>${esc(fname(u))}${rng ? ' (firing from range)' : ''}${u.oos ? ' · out of supply, halved' : ''}</span><b>${f.a}</b></li>`; }).join('');
+    const list = elig.map(id => { const u = E.byId(state, id), av = E.attackValue(state, u), rng = E.dist([u.c, u.r], [tgt.c, tgt.r]) > 1; return `<li data-atk="${id}" class="${atk.has(id) ? '' : 'off'}"><span>${esc(fname(u))}${rng ? ' (firing from range)' : ''}${E.highGround(state, u) ? ' · high ground +1' : ''}${u.oos ? ' · out of supply, halved' : ''}</span><b>${av}</b></li>`; }).join('');
     const base = o.col >= 0 ? E.COLS[o.col] : '—', fin = o.fin >= 0 ? E.COLS[o.fin] : '—';
     const why = [];
     if (o.shift) why.push(`${o.shift} left for ${[o.hi.city ? (o.hi.city.cap ? 'capital' : 'city') : (o.hi.t.shift ? 'terrain' : ''), o.hi.river ? 'river' : '', o.dug ? 'entrenched' : ''].filter(Boolean).join(', ')}`);
@@ -2082,6 +2105,7 @@ if (typeof module !== 'undefined') module.exports = AI;
     el.innerHTML = `<ul class="atklist">${list}<li class="total"><span>Against ${esc(fname(tgt))} (defense ${o.def})</span><b>${o.att} : ${o.def}</b></li></ul>
       <div class="odds"><b>${fin}</b>${o.bombard ? '<span class="mode">Bombardment</span>' : ''}<span>${base} odds${why.length ? `, shifted ${why.join(' ')}` : ''}</span></div>
       ${o.fin >= 0 ? `<p class="empty" style="margin:0 0 6px">If you roll:</p>${crtCells(o.bombard ? E.BOMBARD : E.CRT, o.fin)}` : ''}
+      ${o.dug && o.bombard ? '<p class="empty" style="color:var(--ok);margin-bottom:8px">Shelling will destroy its entrenchment, hit or miss.</p>' : ''}
       ${o.valid ? '' : `<p class="empty" style="color:var(--danger);margin-bottom:10px">${esc(o.why)}</p>`}
       <div class="row actbar"><button type="button" class="primary" id="resolveBtn" ${o.valid ? '' : 'disabled'}>${o.bombard ? 'Fire' : 'Roll the die'}</button>${arts.length && arts.length < elig.length && !o.bombard ? '<button type="button" id="artOnly">Artillery only</button>' : ''}<button type="button" id="cancelAtk">Cancel</button></div>`;
   }
@@ -2130,7 +2154,7 @@ if (typeof module !== 'undefined') module.exports = AI;
       <ul class="forces">${mine.map(u => `<li data-unit="${u.id}">${miniCounter(u, 36, E.factors(state, E.byId(state, u.id)))}<div><b>${esc(fname(u))}</b><small>${esc(E.TYPES[u.type].name)} · hex ${hexId(u.c, u.r)}</small></div><span class="st">${esc(status2(u))}</span></li>`).join('')}
       ${ghosts.map(([id, g]) => `<li class="lost" data-ghost="${id}">${miniCounter({ side: who, type: g.type, steps: g.steps, name: g.name }, 36)}<div><b>${esc(E.fullName(g.name) || E.TYPES[g.type].name)}</b><small>Last seen at hex ${hexId(g.c, g.r)}, turn ${g.turn}</small></div><span class="st">Not in sight</span></li>`).join('')}
       ${!mine.length && !ghosts.length ? '<li class="lost" style="grid-template-columns:1fr"><small>No enemy units in sight.</small></li>' : ''}</ul>
-      ${lost.length ? `<h3 style="margin:14px 0 8px;font:600 13px/1 var(--ui);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)">Destroyed · ${lost.length}</h3><ul class="forces">${lost.map(d => `<li class="lost">${miniCounter({ side: d.side, type: d.type, steps: 1, name: d.name }, 36)}<div><b>${esc(d.full || E.fullName(d.name) || E.TYPES[d.type].name)}</b><small>${esc(E.TYPES[d.type].name)} · lost on turn ${d.turn}</small></div><span class="st">Destroyed</span></li>`).join('')}</ul>` : ''}`;
+      ${lost.length ? `<h3 style="margin:14px 0 8px;font:600 13px/1 var(--ui);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)">Destroyed · ${lost.length}</h3><ul class="forces">${lost.map(d => `<li class="lost">${miniCounter({ side: d.side, type: d.type, steps: 1, name: d.name, nat: d.nat }, 36)}<div><b>${esc(d.full || E.fullName(d.name) || E.TYPES[d.type].name)}</b><small>${esc(E.TYPES[d.type].name)} · lost on turn ${d.turn}</small></div><span class="st">Destroyed</span></li>`).join('')}</ul>` : ''}`;
   }
   function chartsHTML() {
     const tr = Object.entries(E.TERRAIN).map(([ch, t]) => `<tr><td style="text-align:left">${esc(E.terrainName(state.scen, ch))}</td><td>${t.impass ? '—' : t.mp}</td><td>${t.impass ? '—' : t.shift}</td></tr>`).join('');
@@ -2144,7 +2168,7 @@ if (typeof module !== 'undefined') module.exports = AI;
   function rulesHTML() {
     return `<div><h3>Turn</h3><ul><li>Each turn, one side moves, then fights, then hands over. Then the other side does the same.</li><li>Units have two steps. A reduced unit (corner tab) has its attack and defense halved. Losing a second step eliminates it.</li><li>One unit per hex.</li></ul></div>
     <div><h3>Movement and orders</h3><ul><li>Spend movement points (MP) by terrain. Moving along a road costs ½ MP per hex. Entering a river hex costs +1 MP.</li><li>The six hexes around an enemy unit are its zone of control (ZOC). A unit entering one must stop, and cannot move directly from one enemy ZOC hex to another. A unit can always move at least one hex.</li><li><b>Entrench</b> (order): instead of moving, a unit digs in. If it is not attacked or bombarded before its side's next turn, it becomes entrenched: attacks on it shift one column left until it moves or retreats.</li></ul></div>
-    <div><h3>Combat</h3><ul><li>Add up the attack factors of the units you choose and compare them with the defender's defense (rounded down). Terrain, cities, rivers and entrenchment shift the odds column left. Then roll one die.</li><li><b>Bombardment:</b> artillery may attack alone from up to two hexes away, using the bombardment table. It is never hurt and the defender never retreats, but a hit costs a step, which can destroy an already reduced unit. A hex can be bombarded once and assaulted once per turn.</li><li><b>Capitals hold:</b> a unit defending a capital (★) never retreats; it loses a step instead.</li><li>If the defender's hex empties, one adjacent attacker may advance into it.</li></ul></div>
+    <div><h3>Combat</h3><ul><li>Add up the attack factors of the units you choose and compare them with the defender's defense (rounded down). Terrain, cities, rivers and entrenchment shift the odds column left. Then roll one die.</li><li><b>Bombardment:</b> artillery may attack alone from up to two hexes away, using the bombardment table. It is never hurt and the defender never retreats, but a hit costs a step, which can destroy an already reduced unit. A hex can be bombarded once and assaulted once per turn.</li><li>Shelling an entrenched unit always destroys its entrenchment, hit or miss. Infantry, armor and mechanized units that attack give up their entrenchment; artillery keeps it.</li><li><b>High ground:</b> artillery firing from hills or mountains adds +1 to its attack.</li><li><b>Capitals hold:</b> a unit defending a capital (★) never retreats; it loses a step instead.</li><li>If the defender's hex empties, one adjacent attacker may advance into it.</li></ul></div>
     <div><h3>Supply</h3><ul><li>At the start of your turn, units that cannot trace a path to your home map edge or a friendly supply city (blocked by enemy units and enemy ZOC unless a friendly unit is there) are out of supply: half attack and half movement.</li></ul></div>
     <div><h3>Fog of war (optional)</h3><ul><li>Each side sees ${E.SIGHT} hexes from its units (${E.SIGHT_RECON} for recon). Unseen enemy units are hidden; their last known position is shown faded.</li></ul></div>` + chartsHTML();
   }
@@ -2394,7 +2418,7 @@ if (typeof module !== 'undefined') module.exports = AI;
       if (!lc || !lc.units) { res(); return; }
       const atkSide = lc.side, defSide = E.other(lc.side);
       const atkU = lc.units.filter(u => u.side === atkSide), defU = lc.units.filter(u => u.side === defSide);
-      const unitRow = u => `<div class="bm-u">${miniCounter({ side: u.side, type: u.type, steps: u.outcome === 'destroyed' ? u.steps : (u.outcome.startsWith('reduced') ? u.steps - 1 : u.steps), name: u.name }, 34)}<div><b>${esc(u.full || E.fullName(u.name) || E.TYPES[u.type].name)}</b><i class="${u.outcome.replace(/ /g, '')}">${OUTCOME[u.outcome]}</i></div></div>`;
+      const unitRow = u => `<div class="bm-u">${miniCounter({ side: u.side, nat: u.nat, type: u.type, steps: u.outcome === 'destroyed' ? u.steps : (u.outcome.startsWith('reduced') ? u.steps - 1 : u.steps), name: u.name }, 34)}<div><b>${esc(u.full || E.fullName(u.name) || E.TYPES[u.type].name)}</b><i class="${u.outcome.replace(/ /g, '')}">${OUTCOME[u.outcome]}</i></div></div>`;
       const sideBox = (side, list, label) => `<div class="bm-side" style="border-top-color:${sideOf(side).color}"><h4>${label} · ${esc(sideOf(side).name)}</h4>${list.map(unitRow).join('')}</div>`;
       const where = lc.city ? `at ${lc.city}` : `at hex ${hexId(...lc.target)}`;
       const shiftTxt = lc.shift ? `, shifted ${lc.shift} column${lc.shift > 1 ? 's' : ''} for the defender's position` : '';
@@ -2405,6 +2429,7 @@ if (typeof module !== 'undefined') module.exports = AI;
         <h2 class="bm-h ${povTone}">${esc(SHORT[lc.res])}</h2>
         <div class="bm-roll">${dieFace(lc.die, 46)}<span>Rolled <b>${lc.die}</b> at <b>${E.COLS[lc.col]}</b> odds: attack ${lc.att} against defense ${lc.def}${shiftTxt}.</span></div>
         <div class="bm-sides">${sideBox(atkSide, atkU, lc.bombard ? 'Firing' : 'Attackers')}${sideBox(defSide, defU, 'Defender')}</div>
+        ${lc.bombard && state.log.slice(-4).some(l => /entrenchment destroyed/.test(l.text)) ? '<p class="bm-note">The shelling destroyed the defender’s entrenchment.</p>' : ''}
         ${lc.held ? '<p class="bm-note">Capitals hold: the defender stood its ground and took a loss instead of retreating.</p>' : ''}
         ${lc.vacated && !fromAI && state.pending ? '<p class="bm-note">The defender’s hex is empty. After closing this, choose a unit to advance into it, or stay put.</p>' : ''}
         <div class="row"><button type="button" class="primary" id="bmOk">Continue</button>${fromAI ? '<button type="button" id="bmSkip">Skip the rest of this turn’s battles</button>' : ''}</div>`;
@@ -2824,7 +2849,7 @@ if (typeof module !== 'undefined') module.exports = AI;
     if (!s || !E.SCEN[s.scen]) { s = E.newGame('generic', seed()); s.players = { A: 'human', B: 'ai' }; }
     // games saved before unit names existed: fill them in from the scenario
     const tpl = E.SCEN[s.scen].units;
-    s.units.forEach(u => { if (u.name == null && tpl[u.id - 1]) u.name = tpl[u.id - 1][4] || ''; if (!u.full) u.full = E.fullName(u.name); });
+    s.units.forEach(u => { if (u.name == null && tpl[u.id - 1]) u.name = tpl[u.id - 1][4] || ''; if (!u.full) u.full = E.fullName(u.name); if (u.nat == null) u.nat = E.natOf(s.scen, u.name); });
     setState(s);
   }
   window.claude?.hot?.snapshot?.(() => ({ state }));
