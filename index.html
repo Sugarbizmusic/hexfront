@@ -250,6 +250,9 @@ aside h3, .pane h3 { margin: 0 0 10px; font: 600 13px/1 var(--ui); text-transfor
 .ts-list li { font: 500 14px/1.3 var(--ui); padding: 6px 9px; background: var(--panel-2); border-radius: 4px; border-left: 3px solid var(--danger); }
 .ts-list li.cap { border-left-color: var(--signal); color: var(--signal); }
 .ts-wrap { width: 100%; text-align: left; display: grid; gap: 8px; }
+.natrow { display: inline-flex; align-items: center; gap: 7px; justify-content: flex-end; }
+.natrow svg { width: 30px; height: 21px; flex: none; border-radius: 2px; box-shadow: 0 1px 3px rgba(0,0,0,.4); }
+.natrow em { font-style: normal; color: var(--muted); font-size: 12.5px; }
 /* ---------- dialogs ---------- */
 dialog { background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 0; max-width: min(760px, calc(100vw - 32px)); width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
 dialog::backdrop { background: rgba(8,10,7,.72); }
@@ -527,8 +530,8 @@ const Engine = (() => {
     arm: { name: 'Armor', a: 6, d: 3, m: 6, sym: 'arm' },
     art: { name: 'Artillery', a: 4, d: 2, m: 3, sym: 'art', range: 2, note: 'Joins attacks from 2 hexes away, or bombards on its own with no risk.' },
     abn: { name: 'Airborne', a: 3, d: 3, m: 3, sym: 'abn', airdrop: 8, note: 'Airdrop once per game: land in any empty hex up to 8 away that is not next to the enemy.' },
-    hvy: { name: 'Heavy Panzer', a: 8, d: 5, m: 4, sym: 'hvy', note: 'Tiger battalion. Hardest-hitting unit on the map.' },
-    dak: { name: 'DAK Panzer', a: 7, d: 4, m: 7, sym: 'arm', note: 'Afrika Korps armor: faster and stronger than standard armor.' },
+    hvy: { name: 'Heavy Panzer', a: 8, d: 5, m: 4, sym: 'hvy', elite: true, note: 'Tiger battalion. Hardest-hitting unit on the map.' },
+    dak: { name: 'DAK Panzer', a: 7, d: 4, m: 7, sym: 'arm', elite: true, note: 'Afrika Korps armor: faster and stronger than standard armor.' },
     rcn: { name: 'LRDG Recon', a: 1, d: 2, m: 8, sym: 'rcn', ignoresZoc: true, note: 'Long Range Desert Group: ignores zones of control.' },
   };
   // Combat results table. Columns by odds; die 1-6 (low is good for the attacker).
@@ -587,16 +590,16 @@ const Engine = (() => {
 
   // Contingents that fight alongside the main army get a slightly different counter colour.
   const NATS = {
-    europe: { nations: { GB: { name: 'British', color: '#7d6c3a' }, CA: { name: 'Canadian', color: '#7a6432' }, PL: { name: 'Polish', color: '#6e5c4c' } },
-      units: { '50th Inf': 'GB', 'Gds Armd': 'GB', 'XXX Art': 'GB', '3rd Can': 'CA', 'Pol Armd': 'PL' }, main: { A: 'American', B: 'German' } },
-    desert: { nations: { IT: { name: 'Italian', color: '#8c9873' }, ZA: { name: 'South African', color: '#80562c' }, FR: { name: 'Free French', color: '#5d4c5c' } },
-      units: { Trento: 'IT', Brescia: 'IT', Pavia: 'IT', Ariete: 'IT', Trieste: 'IT', '2nd SA': 'ZA', '1st SA': 'ZA', '1st FF': 'FR' }, main: { A: 'German', B: 'British' } },
+    europe: { nations: { GB: { name: 'British', color: '#757639' }, CA: { name: 'Canadian', color: '#737438' }, PL: { name: 'Polish', color: '#6a7440' } },
+      units: { '50th Inf': 'GB', 'Gds Armd': 'GB', 'XXX Art': 'GB', '3rd Can': 'CA', 'Pol Armd': 'PL' }, main: { A: ['US', 'American'], B: ['DE', 'German'] } },
+    desert: { nations: { IT: { name: 'Italian', color: '#8b9993' }, ZA: { name: 'South African', color: '#80562c' }, FR: { name: 'Free French', color: '#5d4c5c' } },
+      units: { Trento: 'IT', Brescia: 'IT', Pavia: 'IT', Ariete: 'IT', Trieste: 'IT', '2nd SA': 'ZA', '1st SA': 'ZA', '1st FF': 'FR' }, main: { A: ['DE', 'German'], B: ['GB', 'British'] } },
   };
   function natOf(scen, name) { return (NATS[scen] && NATS[scen].units[name]) || ''; }
   function nation(scen, u) {
     const N = NATS[scen]; if (!N) return null;
     const code = u.nat != null ? u.nat : natOf(scen, u.name);
-    return code ? { code, ...N.nations[code] } : { code: '', name: N.main[u.side] };
+    return code ? { code, flag: code, allied: true, ...N.nations[code] } : { code: '', flag: N.main[u.side][0], name: N.main[u.side][1] };
   }
 
   // ---------- scenarios ----------
@@ -1665,7 +1668,7 @@ if (typeof module !== 'undefined') module.exports = AI;
 // ===================== HEXFRONT UI =====================
 (() => {
   const E = Engine, K = E.K, P = E.P;
-  const VERSION = '0.11.0', BUILD = '2026-11-19';
+  const VERSION = '0.12.2', BUILD = '2026-11-19';
   const S = 30, SQ3 = Math.sqrt(3), SAVE_KEY = 'hexfront.v1';
   try { console.info(`Hexfront v${VERSION} (${BUILD})`); } catch (e) { /* ignore */ }
   const THEMES = {
@@ -1736,6 +1739,22 @@ if (typeof module !== 'undefined') module.exports = AI;
     axis: () => `<rect width="30" height="20" fill="#6f777c"/><path d="M11.5 2.5h7v4h4v7h-4v4h-7v-4h-4v-7h4z" fill="#f2f2ee"/><path d="M13 4h4v4h4v4h-4v4h-4v-4h-4v-4h4z" fill="#111"/>`,
     allies: () => `<rect width="30" height="20" fill="#5f6d34"/><circle cx="15" cy="10" r="6.6" fill="none" stroke="#f4f0dc" stroke-width="1.4"/>${star(15, 10.3, 5.4, '#f4f0dc')}`,
   };
+  // Real national flags, simplified for small sizes (Germany uses the grey with the black cross).
+  const UJ = (x, y, w, h) => `<svg x="${x}" y="${y}" width="${w}" height="${h}" viewBox="0 0 30 20" preserveAspectRatio="none"><rect width="30" height="20" fill="#012169"/><path d="M0 0L30 20M30 0L0 20" stroke="#fff" stroke-width="4"/><path d="M0 0L30 20M30 0L0 20" stroke="#c8102e" stroke-width="1.4"/><path d="M15 0v20M0 10h30" stroke="#fff" stroke-width="6"/><path d="M15 0v20M0 10h30" stroke="#c8102e" stroke-width="3.4"/></svg>`;
+  const NATFLAG = {
+    US: () => `<rect width="30" height="20" fill="#fff"/>${[0, 2, 4, 6, 8, 10, 12].map(i => `<rect y="${(i * 20 / 13).toFixed(2)}" width="30" height="${(20 / 13).toFixed(2)}" fill="#b22234"/>`).join('')}<rect width="13" height="10.8" fill="#3c3b6e"/>${[[2, 2], [5, 2], [8, 2], [11, 2], [3.5, 4.5], [6.5, 4.5], [9.5, 4.5], [2, 7], [5, 7], [8, 7], [11, 7], [3.5, 9.2], [6.5, 9.2], [9.5, 9.2]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r=".55" fill="#fff"/>`).join('')}`,
+    GB: () => UJ(0, 0, 30, 20),
+    CA: () => `<rect width="30" height="20" fill="#c8102e"/>${UJ(0, 0, 15, 10)}<path d="M21 6h4.4v4.2c0 2.2-1.6 3.4-2.2 3.8-.6-.4-2.2-1.6-2.2-3.8z" fill="#f2ecd8" stroke="#1a1e18" stroke-width=".4"/><path d="M21.6 8.4h3.2M23.2 6.8v5" stroke="#c8102e" stroke-width=".8"/>`,
+    PL: () => `<rect width="30" height="10" fill="#fff"/><rect y="10" width="30" height="10" fill="#dc143c"/>`,
+    IT: () => `<rect width="10" height="20" fill="#009246"/><rect x="10" width="10" height="20" fill="#fff"/><rect x="20" width="10" height="20" fill="#ce2b37"/><path d="M12.6 6.5h4.8v4.6c0 2.2-1.7 3.2-2.4 3.6-.7-.4-2.4-1.4-2.4-3.6z" fill="#ce2b37" stroke="#1f4fa0" stroke-width=".6"/><path d="M15 7.6v6M13.4 10.3h3.2" stroke="#fff" stroke-width="1"/>`,
+    ZA: () => `<rect width="30" height="6.67" fill="#ec7a1c"/><rect y="6.67" width="30" height="6.67" fill="#fff"/><rect y="13.33" width="30" height="6.67" fill="#1c3f94"/>`,
+    FR: () => `<rect width="10" height="20" fill="#0055a4"/><rect x="10" width="10" height="20" fill="#fff"/><rect x="20" width="10" height="20" fill="#ef4135"/><path d="M15 4.5v11M12.8 7.5h4.4M12 10h6" stroke="#ef4135" stroke-width="1.2"/>`,
+    DE: () => FLAGS.axis(),
+  };
+  function natFlagSVG(code, cls = 'natflag') {
+    const body = NATFLAG[code] ? NATFLAG[code]() : '';
+    return `<svg class="${cls}" viewBox="-1 -1 32 22" aria-hidden="true">${body}<rect width="30" height="20" fill="none" stroke="rgba(0,0,0,.55)" stroke-width="1"/></svg>`;
+  }
   function flagSVG(side, big) {
     const sd = side ? E.SCEN[state.scen].sides[side] : null;
     const body = sd && FLAGS[sd.flag] ? FLAGS[sd.flag]() : `<rect width="30" height="20" fill="${sd ? sd.color : '#8a8572'}"/>`;
@@ -1800,11 +1819,12 @@ if (typeof module !== 'undefined') module.exports = AI;
     const name = opts.ghost ? 'Last seen' : (u.name || t.name);
     const fitName = name.length > 8 ? ` textLength="${(z - 7).toFixed(1)}" lengthAdjust="spacingAndGlyphs"` : '';
     const near = `<text y="${(-h + z * 0.24).toFixed(1)}" text-anchor="middle" font-family="${FONT}" font-weight="600" font-size="${(z * 0.2).toFixed(1)}" fill="${ink}"${fitName}>${esc(name)}</text>` +
-      `<g transform="translate(0,${(z * 0.03).toFixed(1)})">${symbol(u.type, z * 0.5, z * 0.28, ink)}</g>` +
+      `<g transform="translate(0,${(-z * 0.02).toFixed(1)})">${symbol(u.type, z * 0.5, z * 0.28, ink)}</g>` +
       `<text y="${(h - z * 0.08).toFixed(1)}" text-anchor="middle" font-family="${FONT}" font-weight="700" font-size="${(z * 0.27).toFixed(1)}" fill="${ink}" letter-spacing=".4">${opts.ghost ? '?' : fac}</text>`;
     const far = `<g transform="translate(0,${(-z * 0.12).toFixed(1)})">${symbol(u.type, z * 0.64, z * 0.4, ink)}</g>` +
       `<text y="${(h - z * 0.08).toFixed(1)}" text-anchor="middle" font-family="${FONT}" font-weight="700" font-size="${(z * 0.3).toFixed(1)}" fill="${ink}" letter-spacing=".4">${opts.ghost ? '?' : fac}</text>`;
     g += opts.lod === 'near' ? near : `<g class="lod-near">${near}</g><g class="lod-far">${far}</g>`;
+    if (t.elite && !opts.ghost) g += `<g transform="translate(${((z * 0.25 + h - 1.5) / 2).toFixed(2)},${(-z * 0.02).toFixed(1)})">${star(0, 0.4, z * 0.08, ink)}</g>`;
     if (opts.oos) g += `<g transform="translate(${-h + 1},${-h + 1})"><circle r="6.5" fill="#c4412d" stroke="#1a1e18" stroke-width="1.2"/><text y="3.4" text-anchor="middle" font-family="${FONT}" font-weight="700" font-size="10" fill="#fff">S</text></g>`;
     if (u.dig) { // amber while digging in, green once entrenched
       const dug = u.dig === 'dug';
@@ -1940,7 +1960,9 @@ if (typeof module !== 'undefined') module.exports = AI;
     const real = E.byId(state, u.id) || u, f = E.factors(state, real), mine = u.side === state.active;
     const rows = [];
     const nat = E.nation(state.scen, u);
-    if (nat) rows.push(['Nationality', nat.name + (nat.code ? ' (allied contingent)' : '')]);
+    if (nat) rows.push(['Nationality', { html: `<span class="natrow">${natFlagSVG(nat.flag)}${esc(nat.name)}${nat.allied ? ' <em>allied contingent</em>' : ''}</span>` }]);
+    else rows.push(['Nationality', { html: `<span class="natrow">${flagSVG(u.side)}${esc(sideOf(u.side).name)}</span>` }]);
+    if (t.elite) rows.push(['Elite', '★ Veteran formation']);
     rows.push(['Strength', u.steps < 2 ? 'Reduced (1 step left)' : 'Full (2 steps)']);
     if (E.highGround(state, real)) rows.push(['High ground', '+1 attack when firing from here']);
     rows.push(['Terrain', `${E.terrainName(state.scen, hi.ch)}${hi.river ? ' + river' : ''}${hi.city ? ` · ${hi.city.name}` : ''}`]);
@@ -1990,7 +2012,7 @@ if (typeof module !== 'undefined') module.exports = AI;
     let html = `<div class="pop-h">${miniCounter(u, 44, f)}<div><b>${esc(fname(u))}</b><small>${esc(sd.name)} · ${esc(t.name)}${u.name ? ` · counter “${esc(u.name)}”` : ''}</small></div><button type="button" class="pop-x" data-pop="close" aria-label="Close">×</button></div>`;
     if (pop.kind === 'info') {
       html += statsHTML(f, base);
-      html += `<ul>${rows.map(([a, b]) => `<li><span>${esc(a)}</span><span>${esc(b)}</span></li>`).join('')}</ul>`;
+      html += `<ul>${rows.map(([a, b]) => `<li><span>${esc(a)}</span><span>${b && b.html ? b.html : esc(b)}</span></li>`).join('')}</ul>`;
       if (t.note) html += `<p class="note">${esc(t.note)}</p>`;
     } else html += orderBlock(u);
     el.innerHTML = html;
@@ -2056,7 +2078,7 @@ if (typeof module !== 'undefined') module.exports = AI;
     const { f, t, rows, base } = unitFacts(u), sd = sideOf(u.side);
     const showOrders = u.side === state.active && !isAI(u.side);
     el.innerHTML = `<div class="unitcard"><div class="pop-h">${miniCounter(u, 44, f)}<div><b>${esc(fname(u))}</b><small>${esc(sd.name)} · ${esc(t.name)}</small></div><span></span></div>
-      ${statsHTML(f, base)}<ul>${rows.map(([a, b]) => `<li><span>${esc(a)}</span><span>${esc(b)}</span></li>`).join('')}</ul>
+      ${statsHTML(f, base)}<ul>${rows.map(([a, b]) => `<li><span>${esc(a)}</span><span>${b && b.html ? b.html : esc(b)}</span></li>`).join('')}</ul>
       ${t.note ? `<p class="note">${esc(t.note)}</p>` : ''}
       ${showOrders || mode === 'orders' ? `<h3 style="margin:16px 0 0">Orders</h3>${orderBlock(u)}` : ''}
       <h3 style="margin:16px 0 6px">Hex</h3>${terrainLine(k)}</div>`;
