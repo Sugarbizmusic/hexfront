@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Hexfront</title>
-<meta name="theme-color" content="#151813">
+<meta name="theme-color" content="#000000">
 <meta name="description" content="A classic hex-and-counter WWII wargame for two players, against the computer, hotseat or by email.">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -313,9 +313,10 @@ table.crt th { color: var(--muted); font-weight: 600; }
 
 /* ================= PHONES ================= */
 @media (max-width: 700px) {
-  html, body { overflow: hidden; overscroll-behavior: none; background: var(--bar); }
+  html, body { overflow: hidden; overscroll-behavior: none; background: #000; }
   body { display: flex; flex-direction: column; height: 100%; height: var(--app-h, 100dvh); }
-  .bar { flex: none; grid-template-columns: 1fr auto; grid-template-areas: "brand menu" "status main"; gap: 6px 10px; padding: calc(8px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) 8px calc(12px + env(safe-area-inset-left)); border-bottom: 0; }
+  .bar { background: linear-gradient(#000 0 env(safe-area-inset-top), var(--bar) env(safe-area-inset-top)); }
+  .bar { flex: none; grid-template-columns: 1fr auto; grid-template-areas: "brand menu" "status main"; gap: 6px 10px; padding: calc(12px + env(safe-area-inset-top)) calc(12px + env(safe-area-inset-right)) 8px calc(12px + env(safe-area-inset-left)); border-bottom: 0; }
   .brand img { height: 34px; }
   .brand span { font-size: 20px; }
   .scen, .phases { display: none; }
@@ -2026,7 +2027,7 @@ if (typeof module !== 'undefined') module.exports = AI;
 // ===================== HEXFRONT UI =====================
 (() => {
   const E = Engine, K = E.K, P = E.P;
-  const VERSION = '0.15.2', BUILD = '2026-11-19';
+  const VERSION = '0.15.3', BUILD = '2026-11-19';
   const S = 30, SQ3 = Math.sqrt(3), SAVE_KEY = 'hexfront.v1';
   try { console.info(`Hexfront v${VERSION} (${BUILD})`); } catch (e) { /* ignore */ }
   const THEMES = {
