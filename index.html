@@ -1668,7 +1668,7 @@ if (typeof module !== 'undefined') module.exports = AI;
 // ===================== HEXFRONT UI =====================
 (() => {
   const E = Engine, K = E.K, P = E.P;
-  const VERSION = '0.12.2', BUILD = '2026-11-19';
+  const VERSION = '0.12.3', BUILD = '2026-11-19';
   const S = 30, SQ3 = Math.sqrt(3), SAVE_KEY = 'hexfront.v1';
   try { console.info(`Hexfront v${VERSION} (${BUILD})`); } catch (e) { /* ignore */ }
   const THEMES = {
@@ -1821,10 +1821,14 @@ if (typeof module !== 'undefined') module.exports = AI;
     const near = `<text y="${(-h + z * 0.24).toFixed(1)}" text-anchor="middle" font-family="${FONT}" font-weight="600" font-size="${(z * 0.2).toFixed(1)}" fill="${ink}"${fitName}>${esc(name)}</text>` +
       `<g transform="translate(0,${(-z * 0.02).toFixed(1)})">${symbol(u.type, z * 0.5, z * 0.28, ink)}</g>` +
       `<text y="${(h - z * 0.08).toFixed(1)}" text-anchor="middle" font-family="${FONT}" font-weight="700" font-size="${(z * 0.27).toFixed(1)}" fill="${ink}" letter-spacing=".4">${opts.ghost ? '?' : fac}</text>`;
-    const far = `<g transform="translate(0,${(-z * 0.12).toFixed(1)})">${symbol(u.type, z * 0.64, z * 0.4, ink)}</g>` +
+    // Zoomed out: elite units get a slightly smaller symbol nudged left, so the star fits beside it.
+    const el = t.elite && !opts.ghost;
+    const farW = el ? z * 0.54 : z * 0.64, farH = el ? z * 0.36 : z * 0.4, farX = el ? -z * 0.08 : 0;
+    const farStar = el ? `<g transform="translate(${((farX + farW / 2 + h - 1.5) / 2).toFixed(2)},${(-z * 0.12).toFixed(1)})">${star(0, 0.4, z * 0.085, ink)}</g>` : '';
+    const nearStar = el ? `<g transform="translate(${((z * 0.25 + h - 1.5) / 2).toFixed(2)},${(-z * 0.02).toFixed(1)})">${star(0, 0.4, z * 0.08, ink)}</g>` : '';
+    const far = `<g transform="translate(${farX.toFixed(1)},${(-z * 0.12).toFixed(1)})">${symbol(u.type, farW, farH, ink)}</g>` + farStar +
       `<text y="${(h - z * 0.08).toFixed(1)}" text-anchor="middle" font-family="${FONT}" font-weight="700" font-size="${(z * 0.3).toFixed(1)}" fill="${ink}" letter-spacing=".4">${opts.ghost ? '?' : fac}</text>`;
-    g += opts.lod === 'near' ? near : `<g class="lod-near">${near}</g><g class="lod-far">${far}</g>`;
-    if (t.elite && !opts.ghost) g += `<g transform="translate(${((z * 0.25 + h - 1.5) / 2).toFixed(2)},${(-z * 0.02).toFixed(1)})">${star(0, 0.4, z * 0.08, ink)}</g>`;
+    g += opts.lod === 'near' ? near + nearStar : `<g class="lod-near">${near}${nearStar}</g><g class="lod-far">${far}</g>`;
     if (opts.oos) g += `<g transform="translate(${-h + 1},${-h + 1})"><circle r="6.5" fill="#c4412d" stroke="#1a1e18" stroke-width="1.2"/><text y="3.4" text-anchor="middle" font-family="${FONT}" font-weight="700" font-size="10" fill="#fff">S</text></g>`;
     if (u.dig) { // amber while digging in, green once entrenched
       const dug = u.dig === 'dug';
