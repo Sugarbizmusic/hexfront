@@ -241,6 +241,15 @@ aside h3, .pane h3 { margin: 0 0 10px; font: 600 13px/1 var(--ui); text-transfor
 .brandver { font: 600 11px/1 var(--ui); letter-spacing: .08em; color: var(--muted); align-self: flex-end; margin: 0 0 3px -4px; }
 .ver { font: 500 12.5px/1 var(--ui) !important; letter-spacing: .08em; color: var(--muted); text-align: center; margin: 0 !important; max-width: none !important; }
 
+.actbar { position: sticky; bottom: -14px; z-index: 2; background: var(--panel); padding: 10px 0 14px; margin: 0 0 -14px; box-shadow: 0 -10px 14px -6px var(--panel); }
+.ts-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(68px, 1fr)); gap: 6px; }
+.ts-stats div { background: var(--panel-2); border-radius: 5px; padding: 8px 6px; text-align: center; }
+.ts-stats b { display: block; font: 24px/1 var(--display); color: var(--ink); }
+.ts-stats small { display: block; margin-top: 4px; font: 600 11px/1.15 var(--ui); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.ts-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; max-height: 32dvh; overflow-y: auto; }
+.ts-list li { font: 500 14px/1.3 var(--ui); padding: 6px 9px; background: var(--panel-2); border-radius: 4px; border-left: 3px solid var(--danger); }
+.ts-list li.cap { border-left-color: var(--signal); color: var(--signal); }
+.ts-wrap { width: 100%; text-align: left; display: grid; gap: 8px; }
 /* ---------- dialogs ---------- */
 dialog { background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 0; max-width: min(760px, calc(100vw - 32px)); width: 100%; box-shadow: 0 20px 60px rgba(0,0,0,.6); }
 dialog::backdrop { background: rgba(8,10,7,.72); }
@@ -1636,7 +1645,7 @@ if (typeof module !== 'undefined') module.exports = AI;
 // ===================== HEXFRONT UI =====================
 (() => {
   const E = Engine, K = E.K, P = E.P;
-  const VERSION = '0.9.0', BUILD = '2026-11-19';
+  const VERSION = '0.10.0', BUILD = '2026-11-19';
   const S = 30, SQ3 = Math.sqrt(3), SAVE_KEY = 'hexfront.v1';
   try { console.info(`Hexfront v${VERSION} (${BUILD})`); } catch (e) { /* ignore */ }
   const THEMES = {
@@ -2049,7 +2058,7 @@ if (typeof module !== 'undefined') module.exports = AI;
     if (state.pending && myTurn) {
       sec.hidden = false;
       const btns = state.pending.units.map(id => { const u = E.byId(state, id); return `<button type="button" data-adv="${id}">Advance ${esc(fname(u))}</button>`; }).join('');
-      el.innerHTML = `${lastResultHTML()}<p class="empty" style="margin-bottom:10px">The defender's hex is empty. Move one attacker in, or stay put.</p><div class="row">${btns}<button type="button" data-adv="none">Stay put</button></div>`;
+      el.innerHTML = `${lastResultHTML()}<p class="empty" style="margin-bottom:10px">The defender's hex is empty. Move one attacker in, or stay put.</p><div class="row actbar">${btns}<button type="button" data-adv="none">Stay put</button></div>`;
       return;
     }
     if (state.phase !== 'combat' || !myTurn) {
@@ -2074,7 +2083,7 @@ if (typeof module !== 'undefined') module.exports = AI;
       <div class="odds"><b>${fin}</b>${o.bombard ? '<span class="mode">Bombardment</span>' : ''}<span>${base} odds${why.length ? `, shifted ${why.join(' ')}` : ''}</span></div>
       ${o.fin >= 0 ? `<p class="empty" style="margin:0 0 6px">If you roll:</p>${crtCells(o.bombard ? E.BOMBARD : E.CRT, o.fin)}` : ''}
       ${o.valid ? '' : `<p class="empty" style="color:var(--danger);margin-bottom:10px">${esc(o.why)}</p>`}
-      <div class="row"><button type="button" class="primary" id="resolveBtn" ${o.valid ? '' : 'disabled'}>${o.bombard ? 'Fire' : 'Roll the die'}</button>${arts.length && arts.length < elig.length && !o.bombard ? '<button type="button" id="artOnly">Artillery only</button>' : ''}<button type="button" id="cancelAtk">Cancel</button></div>`;
+      <div class="row actbar"><button type="button" class="primary" id="resolveBtn" ${o.valid ? '' : 'disabled'}>${o.bombard ? 'Fire' : 'Roll the die'}</button>${arts.length && arts.length < elig.length && !o.bombard ? '<button type="button" id="artOnly">Artillery only</button>' : ''}<button type="button" id="cancelAtk">Cancel</button></div>`;
   }
   function renderObjectives() {
     const s = sc(), who = viewer();
@@ -2229,6 +2238,7 @@ if (typeof module !== 'undefined') module.exports = AI;
     if (a.t === 'endTurn') { closePop(); mode = null; if (tray === 'battle') closeTray(); }
     persist(); render();
     if (a.t === 'attack' && tray !== 'battle') { openTray('battle'); render(); }
+    if (a.t === 'advance' && PHONE.matches && tray === 'battle') closeTray();
     if (state.winner) showWinner();
     else if (a.t === 'endTurn') { if (isAI(state.active)) runAI(); else if (hasAI()) { smartFit(); toast2(`Your turn: ${sideOf(state.active).name}`); } else showHandoff(); }
     return r;
@@ -2420,9 +2430,55 @@ if (typeof module !== 'undefined') module.exports = AI;
     render(); if (!PHONE.matches) openTray('battle'); render();
     await showBattleModal(state.lastCombat, false);
     fxBusy = false;
-    if (PHONE.matches && (state.pending || state.phase === 'combat')) openTray('battle');
+    if (PHONE.matches && state.pending) openTray('battle');
     render();
     if (state.winner) showWinner();
+  }
+
+  // What the side that just finished did on its turn (from the log), as seen by the viewer.
+  function turnSummary() {
+    const L = state.log, idx = [];
+    L.forEach((l, i) => { if (l.kind === 'turn') idx.push(i); });
+    if (idx.length < 2) return null;
+    const from = idx[idx.length - 2], to = idx[idx.length - 1], side = L[from].side;
+    const ent = L.slice(from + 1, to);
+    const moves = state.prevTrails.filter(t => t.side === side && !t.retreat && !t.advance).length;
+    const battles = ent.filter(l => l.kind === 'combat').map(l => l.text);
+    const captures = ent.filter(l => l.kind === 'capture').map(l => l.text);
+    const dug = ent.filter(l => /starts digging in/.test(l.text)).length;
+    const meShort = sideOf(E.other(side)).short, themShort = sideOf(side).short;
+    const lostMine = ent.filter(l => l.kind === 'loss' && / eliminated$/.test(l.text) && l.text.startsWith(meShort + ' ')).length;
+    const lostTheirs = ent.filter(l => l.kind === 'loss' && / eliminated$/.test(l.text) && l.text.startsWith(themShort + ' ')).length;
+    return { side, moves, battles, captures, dug, lostMine, lostTheirs };
+  }
+  function summaryHTML(sm) {
+    if (!sm) return '';
+    const fog = state.fog;
+    const stats = [];
+    if (!fog) stats.push([sm.moves, sm.moves === 1 ? 'unit moved' : 'units moved']);
+    stats.push([sm.battles.length, sm.battles.length === 1 ? 'battle' : 'battles']);
+    stats.push([sm.lostMine, 'of your units lost']);
+    stats.push([sm.lostTheirs, 'of theirs lost']);
+    if (!fog && sm.dug) stats.push([sm.dug, 'dug in']);
+    const lines = [...sm.captures.map(t => ['cap', t]), ...sm.battles.map(t => ['bat', t])];
+    return `<div class="ts-stats">${stats.map(([n, l]) => `<div><b>${n}</b><small>${esc(l)}</small></div>`).join('')}</div>
+      ${lines.length ? `<ul class="ts-list">${lines.map(([k, t]) => `<li class="${k}">${esc(t)}</li>`).join('')}</ul>` : '<p class="bm-note">No battles or captures.</p>'}
+      ${fog ? '<p class="bm-note">Fog of war: only what your units could see is reported.</p>' : ''}`;
+  }
+  function showTurnModal() {
+    return new Promise(res => {
+      const sm = turnSummary(), side = sideOf(state.active);
+      $('bmCard').innerHTML = `<div class="bm-k">${flagSVG(state.active)}Turn ${state.turn} of ${sc().maxTurns}</div>
+        <h2 class="bm-h">Your turn: ${esc(side.name)}</h2>
+        <p style="margin:0"><span class="phasepill move">Movement</span> <span style="color:var(--muted);font:500 15px/1.3 var(--ui)">Move your units, then go to combat.</span></p>
+        ${sm ? `<h3 style="margin:4px 0 0;font:600 13px/1 var(--ui);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)">${esc(sideOf(sm.side).name)} last turn</h3>${summaryHTML(sm)}` : ''}
+        <div class="row"><button type="button" class="primary" id="bmOk">Start my turn</button></div>`;
+      $('bm').classList.add('show');
+      const done = () => { $('bm').classList.remove('show'); document.removeEventListener('keydown', key); res(); };
+      const key = e => { if (e.key === 'Escape' || e.key === 'Enter') { e.preventDefault(); done(); } };
+      document.addEventListener('keydown', key);
+      $('bmOk').onclick = done; $('bmOk').focus();
+    });
   }
 
   // ---------- computer player ----------
@@ -2471,7 +2527,7 @@ if (typeof module !== 'undefined') module.exports = AI;
     if (state.winner) { showWinner(); return; }
     if (isAI(state.active)) { runAI(); return; }
     smartFit(); render();
-    toast2(`Your turn: ${sideOf(state.active).name}`);
+    await showTurnModal();
   }
 
   // ---------- cover screens ----------
@@ -2480,6 +2536,7 @@ if (typeof module !== 'undefined') module.exports = AI;
   function showHandoff(kicker) {
     const side = sideOf(state.active), oos = state.units.filter(u => u.side === state.active && u.oos).length;
     cover(`<div class="kicker">${esc(kicker || `Turn ${state.turn} of ${sc().maxTurns}`)}</div><div class="flagbig">${flagSVG(state.active, true)}</div><h2>${esc(side.name)}</h2>
+      ${kicker ? '' : `<div class="ts-wrap">${summaryHTML(turnSummary())}</div>`}
       <p>Playing on one screen? Hand it over${state.fog ? ' (the map stays hidden until the next player starts)' : ''}. Playing by email? Send the turn code instead.${oos ? ` ${oos} of your units are out of supply.` : ''}</p>
       <div class="row"><button type="button" class="primary" data-cv="start">Start ${esc(side.short)} turn</button><button type="button" data-cv="send">Send turn by email</button></div>`, state.fog && !hasAI());
   }
