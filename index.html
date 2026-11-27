@@ -101,7 +101,24 @@ main { grid-area: map; min-height: 0; position: relative; }
 #map .lod-far { display: none; }
 #map.far .lod-far { display: inline; }
 #map.far .lod-near { display: none; }
+#map .lod-op, #map .terr { display: none; }
+#map.op .lod-op, #map.far .terr, #map.op .terr { display: inline; }
+#map.op .lod-near, #map.op .lod-far, #map.op .cmark { display: none; }
 .zoomctl { position: absolute; left: 12px; bottom: 12px; display: flex; gap: 6px; }
+.routectl { position: absolute; right: 12px; bottom: 12px; }
+.routectl button { padding: 9px 14px; background: rgba(26,30,24,.9); font-size: 15px; }
+.routectl button[aria-pressed="true"] { background: #4ea0d8; color: #0d1418; }
+.toolbar button[hidden] { display: none !important; }
+.toolbar button[data-badge] { position: relative; }
+.toolbar button[data-badge]::after { content: attr(data-badge); position: absolute; top: 4px; right: 6px; min-width: 17px; height: 17px; border-radius: 9px; background: #4ea0d8; color: #0d1418; font: 700 11px/17px var(--ui); text-align: center; }
+.status small.wxline { color: var(--signal); }
+.status small.wxline em { font-style: normal; color: var(--muted); }
+.citylist.grades li.now { outline: 2px solid var(--signal); }
+.forces li button.mini { padding: 6px 10px; font-size: 13px; }
+.slots { list-style: none; padding: 0; margin: 12px 0; display: grid; gap: 8px; }
+.slots li { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; align-items: center; padding: 10px 12px; background: var(--panel-2); border-radius: 4px; }
+.slots li b { display: block; font: 700 16px/1.1 var(--ui); }
+.slots li small { color: var(--muted); font-size: 13px; }
 .zoomctl button { padding: 8px 12px; background: rgba(26,30,24,.88); font-size: 17px; }
 .hint { position: absolute; left: 50%; top: 10px; transform: translateX(-50%); background: rgba(21,24,19,.9); border: 1px solid var(--line); border-radius: 4px; padding: 6px 12px; font: 500 15px/1.2 var(--ui); letter-spacing: .03em; max-width: calc(100% - 24px); text-align: center; pointer-events: none; z-index: 2; }
 .toast { position: absolute; left: 50%; bottom: 60px; transform: translateX(-50%); background: var(--danger); color: #fff; padding: 8px 14px; border-radius: 4px; font: 600 15px/1.2 var(--ui); opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 6; max-width: calc(100% - 32px); text-align: center; }
@@ -402,6 +419,7 @@ table.crt th { color: var(--muted); font-weight: 600; }
     </svg>
     <div class="hint" id="hint"></div>
     <div class="zoomctl"><button type="button" id="zIn" aria-label="Zoom in">+</button><button type="button" id="zOut" aria-label="Zoom out">−</button></div>
+    <div class="routectl"><button type="button" id="routeBtn" hidden aria-pressed="false">Route</button></div>
     <div class="pop" id="pop" role="dialog" aria-label="Unit details"></div>
     <div class="toast" id="toast"></div>
     <div class="cover" id="cover"><div class="box" id="coverBox"></div></div>
@@ -433,9 +451,18 @@ table.crt th { color: var(--muted); font-weight: 600; }
     <button type="button" data-menu="send">Send turn by email <small>Copy a turn code</small></button>
     <button type="button" data-menu="load">Load turn <small>Paste a code from your opponent</small></button>
     <button type="button" data-menu="rules">Rules and tables <small>Full rules, terrain, combat results</small></button>
+    <button type="button" data-menu="slots">Save and load <small>Three save slots on this device</small></button>
+    <button type="button" data-menu="tex">Terrain textures <small id="texState"></small></button>
   </div>
   <div class="row"><button type="button" data-close>Close</button></div>
   <p class="ver" id="verTag"></p>
+</div></dialog>
+
+<dialog id="slotDlg"><div class="dlg">
+  <h2>Save and load</h2>
+  <p>Your game also saves itself after every move. Use a slot to keep a copy you can come back to.</p>
+  <ul class="slots" id="slotList"></ul>
+  <div class="row"><button type="button" data-close>Close</button></div>
 </div></dialog>
 
 <dialog id="howDlg"><div class="dlg">
@@ -457,6 +484,8 @@ table.crt th { color: var(--muted); font-weight: 600; }
       <li>If the defender is destroyed or retreats, you may move one attacker into the empty hex. Then tap <span class="kbd">End turn</span>.</li>
     </ol></div>
     <div><h3>Fog of war</h3><p>If fog is switched on for a game, you only see 3 hexes from your units (5 for recon, and 2 more from hills or mountains). Grey hexes are unseen; faded counters show where an enemy was last spotted. The computer plays under the same fog.</p></div>
+    <div><h3>Campaigns</h3><p>Campaigns are long battles with one turn per week. Weather changes the rules (mud stops movement off the roads; winter slows everyone and chills German attacks). Units tire, lose heart and gain experience. Headquarters support units within 3 hexes. Reinforcements arrive by rail, so cutting a railway delays them. Engineers bridge rivers, blow bridges, fortify and lay mines (Orders). Tap <span class="kbd">Intel</span> to see estimated enemy strength and send recon flights. The Objectives panel explains every rule and shows the score.</p></div>
+    <div><h3>Choosing a route</h3><p>Select a unit and tap <span class="kbd">Route</span> to pick the hexes it passes through, one at a time. Under fog of war a unit that runs into an unseen enemy stops there, so the route matters.</p></div>
     <div><h3>Seeing moves</h3><p>Tap <span class="kbd">Moves</span> in the toolbar to show every move from the last turn, hex by hex. Opening a unit’s Info shows its own last move.</p></div>
     <div><h3>Panels</h3><p>The bottom bar opens Battle (odds and results), Objectives (score, cities, scenario rules), Forces (all your units: tap one to find it), Log (what just happened) and Charts (terrain and combat tables). Tap outside a panel or its button again to close it.</p></div>
     <div><h3>Tips</h3><ol>
@@ -804,6 +833,169 @@ const EXTRA_SCEN = {
 const EXTRA_ORDER = ['torch', 'stalingrad', 'kursk', 'bulge', 'fulda'];
 
 
+// ===================== HEXFRONT: campaigns =====================
+// Campaign maps use every Scenario rule plus the campaign systems (weather, fatigue, morale, experience,
+// HQs, engineers, reinforcements, replacements, railheads, air recon). Tuples: [side, type, col, row, name, 'dug'?]
+// Reinforcements: units [type, name, experience level?, steps?]; `at` = arrival city, `then` = fallbacks.
+const CAMP_SCEN = {
+  // The Road to Moscow is generated by gen/moscow.py (geography from latitude/longitude); edit there and regenerate.
+  moscow: {"id": "moscow", "name": "The Road to Moscow", "setting": "Army Group Center 1941", "campaign": {"start": "1941-06-22", "weather": [{"w": "summer"}, {"w": "mud", "from": "1941-10-05", "shift": true}, {"w": "frost", "from": "1941-11-09"}, {"w": "winter", "from": "1941-12-07", "shift": true}], "cold": "A", "railSide": "A", "railDelay": 2, "supply": {"A": {"range": 12, "mud": 6}}, "recon": {"A": {"summer": 3, "mud": 1, "frost": 2, "winter": 1}, "B": {"summer": 1, "mud": 1, "frost": 2, "winter": 2}}, "partisans": {"side": "B", "from": 8}, "rp": {"A": [[1, 0.5]], "B": [[1, 2], [15, 3]]}, "rebuild": {"side": "B", "at": "Moscow", "cost": 3, "types": ["inf"]}, "xp": {"A": {"_": 1, "arm": 2, "mech": 2}, "B": {"_": 0, "hq": 1}}, "kiev": {"side": "A", "from": 9, "to": 11, "hq": "PzGr 2", "min": 4, "away": 4, "vp": 4, "cut": 2, "cutFrom": 15, "cutTo": 20}, "forts": [[28, 6], [27, 7], [27, 9], [28, 10], [27, 11]], "rails": [[[0, 22], [1, 22], [10, 15], [16, 12], [19, 11], [24, 10], [28, 8], [31, 7], [33, 7]], [[0, 18], [1, 18], [6, 18], [10, 15]], [[1, 18], [2, 16], [0, 13]], [[10, 15], [13, 18], [17, 21]], [[12, 8], [15, 10], [19, 11]], [[15, 10], [16, 12], [16, 15], [17, 21]], [[17, 21], [24, 18], [28, 19], [31, 14], [31, 7]], [[19, 11], [21, 15], [24, 18]], [[24, 5], [24, 10], [28, 12], [31, 14]], [[28, 3], [31, 7]], [[31, 14], [33, 15]], [[28, 3], [33, 2]]], "reinf": [{"side": "B", "date": "1941-06-29", "units": [["inf", "62nd Rifle Corps", 0], ["inf", "51st Rifle Corps", 0]], "at": "Vitebsk", "then": ["Smolensk", "Vyazma"]}, {"side": "B", "date": "1941-07-06", "units": [["inf", "69th Rifle Corps", 0], ["arm", "7th MC", 0]], "at": "Orsha", "then": ["Smolensk", "Vyazma"]}, {"side": "B", "date": "1941-07-06", "units": [["inf", "63rd Rifle Corps", 0], ["inf", "66th Rifle Corps", 0]], "at": "Gomel", "then": ["Bryansk", "Orel"]}, {"side": "B", "date": "1941-07-13", "units": [["inf", "25th Rifle Corps", 0], ["inf", "34th Rifle Corps", 0]], "at": "Smolensk", "then": ["Vyazma", "Mozhaisk"]}, {"side": "B", "date": "1941-07-20", "units": [["inf", "16th Army", 0], ["arm", "5th MC", 0]], "at": "Smolensk", "then": ["Vyazma", "Mozhaisk"]}, {"side": "B", "date": "1941-07-27", "units": [["inf", "24th Army", 0], ["inf", "24th Army II", 0]], "at": "Vyazma", "then": ["Mozhaisk", "Moscow"]}, {"side": "B", "date": "1941-08-03", "units": [["inf", "28th Army", 0], ["inf", "28th Army II", 0]], "at": "Roslavl", "then": ["Bryansk", "Kaluga"]}, {"side": "B", "date": "1941-08-17", "units": [["inf", "43rd Army", 0], ["inf", "43rd Army II", 0]], "at": "Bryansk", "then": ["Orel", "Tula"]}, {"side": "B", "date": "1941-09-07", "units": [["inf", "49th Army", 0], ["inf", "49th Army II", 0]], "at": "Kaluga", "then": ["Tula", "Moscow"]}, {"side": "B", "date": "1941-09-21", "units": [["inf", "50th Army", 0], ["inf", "50th Army II", 0]], "at": "Bryansk", "then": ["Orel", "Tula"]}, {"side": "B", "date": "1941-10-12", "units": [["inf", "1st Militia", 0, 1], ["inf", "2nd Militia", 0, 1]], "at": "Moscow"}, {"side": "B", "date": "1941-10-19", "units": [["inf", "5th Army", 1], ["grf", "1st Gds Rifle", 1]], "at": "Mozhaisk", "then": ["Moscow"]}, {"side": "B", "date": "1941-10-26", "units": [["inf", "3rd Militia", 0, 1], ["inf", "4th Militia", 0, 1]], "at": "Moscow"}, {"side": "B", "date": "1941-11-09", "units": [["grf", "78th Siberian", 2], ["grf", "32nd Siberian", 2]], "at": "Moscow"}, {"side": "B", "date": "1941-11-16", "units": [["grf", "Far East Gds", 2], ["hcv", "2nd Cav Corps", 2]], "at": "Moscow"}, {"side": "B", "date": "1941-11-23", "units": [["inf", "1st Shock Army", 1], ["ski", "Siberian Ski", 2]], "at": "Kalinin", "then": ["Moscow"]}, {"side": "B", "date": "1941-11-30", "units": [["inf", "10th Army", 1], ["inf", "10th Army II", 1]], "at": "Tula", "then": ["Moscow"]}, {"side": "B", "date": "1941-12-07", "units": [["inf", "20th Army", 1], ["arm", "112th Tank Div", 1]], "at": "Moscow"}, {"side": "A", "date": "1941-07-27", "units": [["inf", "XXXV Corps", 1], ["inf", "LIII Corps", 1]], "row": 20}, {"side": "A", "date": "1941-10-05", "units": [["arm", "2nd Pz", 2], ["arm", "5th Pz", 2], ["mech", "3rd Mot", 2]], "row": 12}]}, "blurb": "Operation Barbarossa, 22 June 1941: Army Group Center strikes from the border toward Minsk, Smolensk and Moscow, aiming to encircle the Soviet Western Front before the reserves arrive and the autumn rains come. Taking Moscow wins at once. Otherwise victory is graded on cities held and armies destroyed after 27 weeks. On turn 9, 10 or 11 Germany may send Panzer Group 2 south to Kiev.", "maxTurns": 27, "theme": "temperate", "victory": {"type": "grades", "side": "A", "material": 4, "fail": {"turn": 12, "vp": 6}, "checkpoints": [{"city": "Minsk", "turn": 4}, {"city": "Smolensk", "turn": 8}, {"city": "Vyazma", "turn": 17}], "grades": [{"min": 35, "side": "A", "name": "German major victory"}, {"min": 30, "side": "A", "name": "German minor victory"}, {"min": 24, "side": null, "name": "Draw: the historical result"}, {"min": 18, "side": "B", "name": "Soviet minor victory"}, {"min": -99, "side": "B", "name": "Soviet major victory"}]}, "sides": {"A": {"name": "Germany", "short": "German", "color": "#5c656d", "ink": "#f2f2ee", "edge": "W", "flag": "axis"}, "B": {"name": "Soviet Union", "short": "Soviet", "color": "#8e3b2f", "ink": "#f6ece0", "edge": "E", "flag": "soviet"}}, "rows": ["...............h..hhh...h.h.......", "...............h.hhhh...h.........", "................hhhh.....hh.......", "...........s.....hhh..............", "..........s..................f....", ".........s.s..................f...", "....................ss............", "..................................", "......f...........................", ".....f.............h......ff.ff...", ".....fff.....ff......f.f..ff.ff...", "............fff......ffff.....f...", ".............ff.....ff.fff........", ".....................fff..........", ".......f...........f.....f........", ".......fff........ff......f.......", ".......ff...........f....ff.......", ".......ff...............ffff......", "...........ff............fff......", ".fff.....fffff...........ff.......", ".fff......fff.....................", ".fff......fff.....................", "..................................", ".....sssssss.ss...................", "...sssssssssssss..................", "..ssssssssxssssss.................", "..sssssxxssxsssss.................", "..sssssssssssssss................."], "rivers": [[[0, 18], [1, 22], [1, 27]], [[2, 16], [4, 12], [2, 8], [0, 6]], [[12, 9], [12, 13], [13, 18], [16, 22]], [[23, 10], [19, 11], [16, 12], [16, 15], [15, 18], [16, 22], [16, 27]], [[20, 4], [17, 8], [15, 10], [12, 8], [8, 5], [4, 3]], [[21, 12], [19, 16], [17, 21]], [[22, 11], [23, 14], [24, 18], [22, 23], [20, 27]], [[24, 11], [26, 11], [28, 12]], [[28, 20], [29, 16], [28, 12], [31, 11], [33, 12]], [[20, 4], [24, 5], [28, 3], [33, 2]], [[28, 8], [31, 7], [33, 9]], [[3, 24], [10, 25], [16, 26]]], "roads": [[[0, 22], [1, 22], [10, 15], [12, 13], [16, 12], [19, 11], [24, 10], [28, 8], [31, 7], [33, 7]], [[1, 18], [2, 16], [6, 15], [10, 15]], [[1, 18], [6, 18], [10, 15]], [[1, 22], [8, 19], [13, 18], [15, 18], [17, 21]], [[13, 18], [16, 15]], [[10, 15], [15, 10]], [[12, 8], [15, 10], [19, 11]], [[16, 15], [21, 15], [24, 18], [28, 19], [31, 14], [31, 7]], [[19, 11], [21, 15]], [[19, 11], [22, 12], [26, 12], [29, 10], [31, 7]], [[17, 21], [24, 18]], [[24, 10], [24, 5], [29, 6], [31, 7]], [[28, 3], [30, 5], [31, 7]], [[28, 12], [31, 14]], [[24, 10], [28, 12]], [[0, 12], [2, 16]], [[0, 25], [1, 22]], [[33, 14], [31, 14]]], "cities": [{"name": "Moscow", "c": 31, "r": 7, "vp": 10, "owner": "B", "cap": true, "supply": true, "rail": true}, {"name": "Minsk", "c": 10, "r": 15, "vp": 3, "owner": "B", "rail": true}, {"name": "Smolensk", "c": 19, "r": 11, "vp": 3, "owner": "B", "rail": true}, {"name": "Vyazma", "c": 24, "r": 10, "vp": 2, "owner": "B", "rail": true}, {"name": "Bryansk", "c": 24, "r": 18, "vp": 2, "owner": "B", "rail": true}, {"name": "Gomel", "c": 17, "r": 21, "vp": 2, "owner": "B", "rail": true}, {"name": "Kalinin", "c": 28, "r": 3, "vp": 2, "owner": "B", "rail": true}, {"name": "Tula", "c": 31, "r": 14, "vp": 2, "owner": "B", "rail": true}, {"name": "Orel", "c": 28, "r": 19, "vp": 2, "owner": "B", "rail": true}, {"name": "Vitebsk", "c": 15, "r": 10, "vp": 1, "owner": "B", "rail": true}, {"name": "Orsha", "c": 16, "r": 12, "vp": 1, "owner": "B", "rail": true}, {"name": "Mogilev", "c": 16, "r": 15, "vp": 1, "owner": "B", "rail": true}, {"name": "Bobruisk", "c": 13, "r": 18, "vp": 1, "owner": "B", "rail": true}, {"name": "Polotsk", "c": 12, "r": 8, "vp": 1, "owner": "B", "rail": true}, {"name": "Roslavl", "c": 21, "r": 15, "vp": 1, "owner": "B", "rail": true}, {"name": "Yelnya", "c": 22, "r": 12, "vp": 1, "owner": "B"}, {"name": "Rzhev", "c": 24, "r": 5, "vp": 1, "owner": "B", "rail": true}, {"name": "Kaluga", "c": 28, "r": 12, "vp": 1, "owner": "B", "rail": true}, {"name": "Mozhaisk", "c": 28, "r": 8, "vp": 1, "owner": "B", "rail": true}, {"name": "Bialystok", "c": 1, "r": 18, "vp": 1, "owner": "B", "rail": true}, {"name": "Grodno", "c": 2, "r": 16, "vp": 1, "owner": "B", "rail": true}, {"name": "Brest", "c": 1, "r": 22, "vp": 1, "owner": "B", "rail": true}], "units": [["A", "arm", 2, 12, "7th Pz"], ["A", "arm", 1, 12, "12th Pz"], ["A", "arm", 3, 11, "19th Pz"], ["A", "arm", 2, 11, "20th Pz"], ["A", "mech", 1, 11, "14th Mot"], ["A", "mech", 0, 11, "18th Mot"], ["A", "mech", 0, 12, "20th Mot"], ["A", "hq", 0, 10, "PzGr 3"], ["A", "inf", 1, 13, "V Corps"], ["A", "inf", 0, 13, "VI Corps"], ["A", "inf", 0, 14, "VIII Corps"], ["A", "inf", 0, 15, "XX Corps"], ["A", "hq", 0, 16, "9th Army"], ["A", "inf", 0, 19, "VII Corps"], ["A", "inf", 0, 20, "IX Corps"], ["A", "inf", 0, 21, "XII Corps"], ["A", "inf", 0, 17, "XIII Corps"], ["A", "inf", 0, 26, "XLIII Corps"], ["A", "hq", 0, 18, "4th Army"], ["A", "arm", 0, 23, "3rd Pz"], ["A", "arm", 0, 24, "4th Pz"], ["A", "arm", 1, 24, "10th Pz"], ["A", "arm", 0, 22, "17th Pz"], ["A", "arm", 1, 25, "18th Pz"], ["A", "mech", 0, 25, "10th Mot"], ["A", "mech", 1, 26, "29th Mot"], ["A", "epz", 2, 24, "Das Reich"], ["A", "hq", 0, 27, "PzGr 2"], ["A", "art", 0, 9, "Arko 9"], ["A", "art", 1, 23, "Arko 4"], ["A", "eng", 1, 14, "Pi Btl 9"], ["A", "eng", 2, 23, "Pi Btl 4"], ["A", "rcn", 1, 10, "Aufkl Abt"], ["B", "inf", 2, 15, "4th RC", "dug"], ["B", "inf", 2, 17, "1st RC", "dug"], ["B", "inf", 1, 19, "5th RC", "dug"], ["B", "inf", 1, 21, "28th RC", "dug"], ["B", "inf", 1, 22, "Brest Fortress", "dug"], ["B", "inf", 3, 13, "Grodno FR", "dug"], ["B", "inf", 1, 17, "6th RC", "dug"], ["B", "inf", 4, 21, "47th RC"], ["B", "inf", 6, 16, "21st RC"], ["B", "inf", 8, 13, "2nd RC"], ["B", "inf", 9, 17, "44th RC"], ["B", "inf", 11, 15, "Minsk FR", "dug"], ["B", "inf", 5, 12, "29th RC"], ["B", "inf", 7, 19, "62nd RC"], ["B", "arm", 3, 17, "6th MC"], ["B", "arm", 3, 15, "11th MC"], ["B", "arm", 3, 20, "13th MC"], ["B", "arm", 3, 23, "14th MC"], ["B", "arm", 10, 18, "17th MC"], ["B", "arm", 11, 13, "20th MC"], ["B", "hcv", 4, 18, "6th Cav Corps"], ["B", "art", 5, 17, "10th Army Art"], ["B", "art", 9, 15, "Front Art"], ["B", "hq", 11, 16, "Western Front"], ["B", "hq", 4, 19, "10th Army HQ"], ["B", "hq", 4, 15, "3rd Army"]], "names": {"7th Pz": "7th Panzer Division", "12th Pz": "12th Panzer Division", "19th Pz": "19th Panzer Division", "20th Pz": "20th Panzer Division", "14th Mot": "14th Motorized Division", "18th Mot": "18th Motorized Division", "20th Mot": "20th Motorized Division", "10th Mot": "10th Motorized Division", "29th Mot": "29th Motorized Division", "3rd Mot": "3rd Motorized Division", "PzGr 3": "Panzer Group 3 (Hoth)", "PzGr 2": "Panzer Group 2 (Guderian)", "9th Army": "9th Army HQ", "4th Army": "4th Army HQ", "XLIII Corps": "XLIII Army Corps", "XXXV Corps": "XXXV Army Corps", "LIII Corps": "LIII Army Corps", "18th Pz": "18th Panzer Division", "10th Pz": "10th Panzer Division", "17th Pz": "17th Panzer Division", "Arko 9": "9th Army Artillery", "Pi Btl 9": "Pioneer Battalion (9th Army)", "Pi Btl 4": "Pioneer Battalion (4th Army)", "4th RC": "4th Rifle Corps", "1st RC": "1st Rifle Corps", "5th RC": "5th Rifle Corps", "28th RC": "28th Rifle Corps", "6th RC": "6th Rifle Corps", "47th RC": "47th Rifle Corps", "21st RC": "21st Rifle Corps", "2nd RC": "2nd Rifle Corps", "44th RC": "44th Rifle Corps", "29th RC": "29th Rifle Corps", "62nd RC": "62nd Rifle Corps", "Brest Fortress": "Brest Fortress garrison", "Grodno FR": "Grodno Fortified Region", "Minsk FR": "Minsk Fortified Region", "6th MC": "6th Mechanized Corps", "11th MC": "11th Mechanized Corps", "13th MC": "13th Mechanized Corps", "14th MC": "14th Mechanized Corps", "17th MC": "17th Mechanized Corps", "20th MC": "20th Mechanized Corps", "7th MC": "7th Mechanized Corps", "5th MC": "5th Mechanized Corps", "6th Cav Corps": "6th Cavalry Corps", "10th Army Art": "10th Army Artillery", "Front Art": "Western Front Artillery", "Western Front": "Western Front HQ (Pavlov)", "10th Army": "10th Army", "3rd Army": "3rd Army HQ", "24th Army II": "24th Army (second corps)", "28th Army II": "28th Army (second corps)", "43rd Army II": "43rd Army (second corps)", "49th Army II": "49th Army (second corps)", "50th Army II": "50th Army (second corps)", "10th Army II": "10th Army (second corps)", "1st Militia": "1st Moscow Militia", "3rd Militia": "3rd Moscow Militia", "4th Militia": "4th Moscow Militia", "Far East Gds": "Far Eastern Guards Rifle Corps", "16th Army": "16th Army", "24th Army": "24th Army", "28th Army": "28th Army", "43rd Army": "43rd Army", "49th Army": "49th Army", "50th Army": "50th Army", "20th Army": "20th Army", "10th Army HQ": "10th Army HQ"}},
+
+  typhoon: {
+    id: 'typhoon', name: 'Operation Typhoon', setting: 'Moscow 1941', campaign: true,
+    blurb: 'Autumn 1941. Army Group Center makes its final drive on Moscow: three panzer groups strike for the Vyazma and Bryansk pockets before the autumn rains turn the roads to mud and winter comes. Moscow falls: Germany wins at once. Otherwise victory is graded on cities held and armies destroyed after turn 12.',
+    maxTurns: 12, theme: 'temperate',
+    victory: {
+      type: 'grades', side: 'A', material: 4, fail: { turn: 4, vp: 7 },
+      grades: [
+        { min: 26, side: 'A', name: 'German major victory' },
+        { min: 21, side: 'A', name: 'German minor victory' },
+        { min: 15, side: null, name: 'Draw: the historical result' },
+        { min: 10, side: 'B', name: 'Soviet minor victory' },
+        { min: -99, side: 'B', name: 'Soviet major victory' },
+      ],
+    },
+    sides: {
+      A: { name: 'Germany', short: 'German', color: '#5c656d', ink: '#f2f2ee', edge: 'W', flag: 'axis' },
+      B: { name: 'Soviet Union', short: 'Soviet', color: '#8e3b2f', ink: '#f6ece0', edge: 'E', flag: 'soviet' },
+    },
+    campaign: {
+      start: '1941-09-28',
+      weather: [{ w: 'summer' }, { w: 'mud', from: '1941-10-12', shift: true }, { w: 'frost', from: '1941-11-09' }, { w: 'winter', from: '1941-12-07', shift: true }],
+      cold: 'A', railSide: 'A', railDelay: 2,
+      supply: { A: { range: 8, mud: 5 } },
+      recon: { A: { summer: 3, mud: 1, frost: 2, winter: 1 }, B: { summer: 1, mud: 1, frost: 2, winter: 2 } },
+      partisans: { side: 'B', from: 4 },
+      rp: { A: [[1, 0.5]], B: [[1, 1], [6, 2]] },
+      rebuild: { side: 'B', at: 'Moscow', cost: 3, types: ['inf'] },
+      xp: { A: { _: 1, arm: 2, mech: 2 }, B: { _: 0, hq: 1, art: 1, eng: 1 } },
+      forts: [[16, 3], [16, 5], [16, 6], [16, 8], [16, 9], [17, 11]],
+      rails: [
+        [[0, 7], [1, 7], [9, 7], [16, 7], [23, 7], [25, 7]],
+        [[10, 2], [9, 7], [15, 12], [19, 16]],
+        [[1, 7], [3, 13], [6, 16], [10, 17], [19, 16]],
+        [[19, 16], [20, 12], [23, 7]],
+        [[17, 0], [20, 2], [23, 7]],
+        [[6, 16], [11, 13], [15, 12]],
+      ],
+      reinf: [
+        { side: 'B', date: '1941-10-12', at: 'Mozhaisk', then: ['Moscow'], units: [['inf', '5th Army', 1], ['grf', '1st Gds Rifle', 1]] },
+        { side: 'B', date: '1941-10-12', at: 'Tula', then: ['Serpukhov', 'Moscow'], units: [['arm', '4th Tank Bde', 2]] },
+        { side: 'B', date: '1941-10-19', at: 'Moscow', units: [['inf', '49th Army', 0], ['inf', 'Militia Div', 0, 1]] },
+        { side: 'B', date: '1941-10-26', at: 'Kalinin', then: ['Klin', 'Moscow'], units: [['inf', 'Kalinin Front', 0]] },
+        { side: 'B', date: '1941-11-02', at: 'Moscow', units: [['inf', '2nd Militia', 0, 1], ['art', 'Moscow PVO', 1]] },
+        { side: 'B', date: '1941-11-09', at: 'Serpukhov', then: ['Moscow'], units: [['hcv', '2nd Cav Corps', 2]] },
+        { side: 'B', date: '1941-11-16', at: 'Moscow', units: [['grf', '78th Siberian', 2], ['grf', '32nd Siberian', 2]] },
+        { side: 'B', date: '1941-11-23', at: 'Klin', then: ['Moscow'], units: [['inf', '1st Shock Army', 1]] },
+        { side: 'B', date: '1941-11-30', at: 'Moscow', units: [['inf', '20th Army II', 1], ['ski', 'Siberian Ski', 2]] },
+        { side: 'B', date: '1941-11-30', at: 'Tula', then: ['Serpukhov', 'Moscow'], units: [['inf', '10th Army', 1], ['arm', '112th Tank Div', 1]] },
+        { side: 'B', date: '1941-12-07', at: 'Moscow', units: [['grf', 'Siberian Gds', 2]] },
+      ],
+    },
+    rows: [
+      'hhhh.s.s..................',
+      'hhh...sss.................',
+      '.....ss......fff..........',
+      '.h.........fffff..........',
+      '....f.......ffff.f.f......',
+      '...f.f............ff......',
+      '....ff............ff......',
+      '..........fffhh...........',
+      '.......fff.f..............',
+      '.......fff..........fff...',
+      '......fff.f.........fff...',
+      '.....ff.ffff........fff...',
+      '.....sfffff...............',
+      '.....sfffff.ff............',
+      '.....sffff.fff............',
+      '......ffff.f.f............',
+      '.....f.ff.................',
+      '.......f..................',
+    ],
+    rivers: [
+      [[4, 0], [3, 4], [1, 9], [0, 11]],
+      [[6, 9], [5, 12], [6, 16], [7, 17]],
+      [[8, 9], [11, 10], [14, 11], [15, 12]],
+      [[10, 17], [13, 15], [15, 12], [18, 12], [20, 12], [25, 13]],
+      [[7, 0], [10, 2], [14, 1], [17, 0]],
+      [[14, 6], [16, 7], [20, 8], [23, 7], [25, 8]],
+    ],
+    roads: [
+      [[0, 7], [1, 7], [9, 7], [16, 7], [23, 7], [25, 7]],
+      [[3, 13], [12, 10], [17, 10], [23, 7]],
+      [[3, 13], [6, 16], [10, 17], [19, 16], [20, 12], [23, 7]],
+      [[9, 7], [10, 2], [16, 4], [23, 7]],
+      [[17, 0], [20, 2], [23, 7]],
+      [[9, 7], [12, 10], [15, 12], [19, 16]],
+      [[1, 7], [5, 10], [12, 10]],
+      [[6, 16], [11, 13], [15, 12], [17, 10]],
+      [[0, 13], [3, 13]], [[0, 16], [6, 16]],
+    ],
+    cities: [
+      { name: 'Smolensk', c: 1, r: 7, vp: 3, owner: 'A', rail: true },
+      { name: 'Roslavl', c: 3, r: 13, vp: 1, owner: 'A', rail: true },
+      { name: 'Yelnya', c: 5, r: 10, vp: 1, owner: 'B' },
+      { name: 'Bryansk', c: 6, r: 16, vp: 2, owner: 'B', rail: true },
+      { name: 'Orel', c: 10, r: 17, vp: 2, owner: 'B', rail: true },
+      { name: 'Vyazma', c: 9, r: 7, vp: 2, owner: 'B', rail: true },
+      { name: 'Rzhev', c: 10, r: 2, vp: 1, owner: 'B', rail: true },
+      { name: 'Sukhinichi', c: 11, r: 13, vp: 1, owner: 'B', rail: true },
+      { name: 'Kaluga', c: 15, r: 12, vp: 1, owner: 'B', rail: true },
+      { name: 'Mozhaisk', c: 16, r: 7, vp: 1, owner: 'B', rail: true },
+      { name: 'Volokolamsk', c: 16, r: 4, vp: 1, owner: 'B' },
+      { name: 'Kalinin', c: 17, r: 0, vp: 2, owner: 'B', rail: true },
+      { name: 'Klin', c: 20, r: 2, vp: 1, owner: 'B', rail: true },
+      { name: 'Maloyaroslavets', c: 17, r: 10, vp: 1, owner: 'B' },
+      { name: 'Serpukhov', c: 20, r: 12, vp: 1, owner: 'B', rail: true },
+      { name: 'Tula', c: 19, r: 16, vp: 2, owner: 'B', rail: true },
+      { name: 'Moscow', c: 23, r: 7, vp: 10, owner: 'B', cap: true, supply: true, rail: true },
+    ],
+    units: [
+      // Panzer Group 3 (north)
+      ['A', 'arm', 3, 2, '1st Pz'], ['A', 'arm', 3, 3, '6th Pz'], ['A', 'arm', 2, 4, '7th Pz'], ['A', 'mech', 2, 2, '14th Mot'], ['A', 'hq', 1, 3, 'PzGr 3'],
+      // 9th Army
+      ['A', 'inf', 4, 1, 'V Corps'], ['A', 'inf', 4, 4, 'VI Corps'], ['A', 'inf', 4, 5, 'XXIII Corps'],
+      // 4th Army (center)
+      ['A', 'inf', 4, 6, 'VIII Corps'], ['A', 'inf', 4, 7, 'XX Corps'], ['A', 'inf', 4, 8, 'VII Corps'], ['A', 'inf', 4, 9, 'IX Corps'], ['A', 'art', 2, 7, 'Arko 4'], ['A', 'hq', 2, 8, '4th Army'],
+      // Panzer Group 4 (Roslavl)
+      ['A', 'arm', 4, 11, '2nd Pz'], ['A', 'arm', 4, 12, '5th Pz'], ['A', 'arm', 3, 11, '10th Pz'], ['A', 'arm', 3, 12, '11th Pz'], ['A', 'epz', 2, 12, 'Das Reich'], ['A', 'hq', 2, 11, 'PzGr 4'], ['A', 'inf', 4, 10, 'XII Corps'],
+      // Panzer Group 2 (south)
+      ['A', 'arm', 3, 15, '3rd Pz'], ['A', 'arm', 4, 16, '4th Pz'], ['A', 'arm', 3, 17, '17th Pz'], ['A', 'mech', 2, 16, '29th Mot'], ['A', 'hq', 1, 16, 'PzGr 2'], ['A', 'inf', 4, 14, 'XIII Corps'],
+      // support
+      ['A', 'eng', 2, 6, 'Pi Btl 1'], ['A', 'eng', 2, 13, 'Pi Btl 2'], ['A', 'rcn', 3, 9, 'Aufkl Abt'], ['A', 'art', 1, 12, 'Arko 30'],
+      // Western Front
+      ['B', 'inf', 6, 1, '22nd Army', 'dug'], ['B', 'inf', 6, 2, '29th Army', 'dug'], ['B', 'inf', 6, 4, '30th Army', 'dug'], ['B', 'inf', 7, 5, '19th Army', 'dug'],
+      ['B', 'inf', 6, 6, '16th Army', 'dug'], ['B', 'inf', 7, 8, '20th Army', 'dug'], ['B', 'arm', 9, 4, 'Boldin Group'], ['B', 'hq', 10, 5, 'Western Front'],
+      // Reserve Front
+      ['B', 'inf', 6, 9, '24th Army', 'dug'], ['B', 'inf', 7, 11, '43rd Army', 'dug'], ['B', 'inf', 8, 13, '33rd Army'], ['B', 'inf', 11, 6, '32nd Army'], ['B', 'inf', 12, 4, '31st Army'], ['B', 'hq', 12, 8, 'Reserve Front'],
+      // Bryansk Front
+      ['B', 'inf', 6, 14, '50th Army', 'dug'], ['B', 'inf', 7, 16, '3rd Army', 'dug'], ['B', 'inf', 8, 17, '13th Army'], ['B', 'arm', 9, 15, '108th Tank Div'], ['B', 'hq', 11, 15, 'Bryansk Front'],
+      // support
+      ['B', 'art', 13, 7, 'Moscow Art'], ['B', 'art', 10, 10, 'RVGK Art'], ['B', 'eng', 15, 7, 'Sapper Army'], ['B', 'hcv', 11, 3, 'Dovator Cav'],
+    ],
+    names: {
+      '1st Pz': '1st Panzer Division', '6th Pz': '6th Panzer Division', '7th Pz': '7th Panzer Division', '14th Mot': '14th Motorized Division',
+      'PzGr 3': 'Panzer Group 3', 'PzGr 4': 'Panzer Group 4', 'PzGr 2': 'Panzer Group 2', '4th Army': '4th Army HQ',
+      'V Corps': 'V Army Corps', 'VI Corps': 'VI Army Corps', 'XXIII Corps': 'XXIII Army Corps', 'VIII Corps': 'VIII Army Corps', 'XX Corps': 'XX Army Corps',
+      'VII Corps': 'VII Army Corps', 'IX Corps': 'IX Army Corps', 'XII Corps': 'XII Army Corps', 'XIII Corps': 'XIII Army Corps',
+      'Arko 4': '4th Army Artillery', 'Arko 30': 'Panzer Group 4 Artillery', '5th Pz': '5th Panzer Division', '11th Pz': '11th Panzer Division',
+      'Das Reich': 'SS Division Das Reich', '3rd Pz': '3rd Panzer Division', '4th Pz': '4th Panzer Division', '17th Pz': '17th Panzer Division', '29th Mot': '29th Motorized Division',
+      'Pi Btl 1': 'Pioneer Battalion (9th Army)', 'Pi Btl 2': 'Pioneer Battalion (4th Army)', 'Aufkl Abt': 'Reconnaissance Battalion',
+      '22nd Army': '22nd Army', '29th Army': '29th Army', '30th Army': '30th Army', '19th Army': '19th Army', '16th Army': '16th Army', '20th Army': '20th Army',
+      'Boldin Group': 'Boldin Operational Group', 'Western Front': 'Western Front HQ', '24th Army': '24th Army', '43rd Army': '43rd Army', '33rd Army': '33rd Army',
+      '32nd Army': '32nd Army', '31st Army': '31st Army', 'Reserve Front': 'Reserve Front HQ', '50th Army': '50th Army', '3rd Army': '3rd Army', '13th Army': '13th Army',
+      '108th Tank Div': '108th Tank Division', 'Bryansk Front': 'Bryansk Front HQ', 'Moscow Art': 'Moscow Artillery Group', 'RVGK Art': 'High Command Reserve Artillery',
+      'Sapper Army': '1st Sapper Army', 'Dovator Cav': 'Dovator Cavalry Group', '5th Army': '5th Army', '1st Gds Rifle': '1st Guards Rifle Corps',
+      '4th Tank Bde': '4th Tank Brigade (Katukov)', '49th Army': '49th Army', 'Militia Div': 'Moscow People’s Militia', 'Kalinin Front': 'Kalinin Front',
+      '2nd Militia': '2nd Moscow Militia', 'Moscow PVO': 'Moscow Air Defense Artillery', '2nd Cav Corps': '2nd Cavalry Corps (Belov)',
+      '78th Siberian': '78th Siberian Rifle Division', '32nd Siberian': '32nd Siberian Rifle Division', '1st Shock Army': '1st Shock Army',
+      'Siberian Ski': 'Siberian Ski Battalions', '10th Army': '10th Army', '20th Army II': '20th Army (re-formed)', '112th Tank Div': '112th Tank Division', 'Siberian Gds': 'Siberian Guards Rifle Corps',
+    },
+  },
+};
+const CAMP_ORDER = ['moscow', 'typhoon'];
+
+
 // ===================== HEXFRONT ENGINE =====================
 // Pure rules: no DOM. State is plain JSON so it can be saved, emailed,
 // sent over a network, or searched by a future AI opponent.
@@ -869,6 +1061,11 @@ const Engine = (() => {
     gtk: { name: 'Guards Tank', a: 7, d: 4, m: 6, sym: 'arm', elite: true, note: 'Guards tank formation.' },
     epz: { name: 'Elite Panzer', a: 7, d: 4, m: 6, sym: 'arm', elite: true, note: 'Elite panzer division: veteran crews, first pick of equipment.' },
     cav: { name: 'Armored Cavalry', a: 5, d: 4, m: 7, sym: 'cav', elite: true, note: 'Heavy armored cavalry: a fast, hard-hitting screening force.' },
+    hcv: { name: 'Cavalry', a: 3, d: 3, m: 6, sym: 'cav', note: 'Horse cavalry: fast across country, and it ignores snow.', ski: true },
+    ski: { name: 'Ski Troops', a: 3, d: 3, m: 5, sym: 'inf', ski: true, note: 'Moves through snow as if it were clear ground.' },
+    hq: { name: 'Headquarters', a: 0, d: 2, m: 6, sym: 'hq', steps: 1, note: 'Cannot attack. Units within 3 hexes attack 15% harder, rally, rest faster and can take replacements.' },
+    eng: { name: 'Engineers', a: 2, d: 3, m: 4, sym: 'eng', note: 'Builds bridges, fortifications, minefields and corduroy roads; demolishes bridges; attacks with engineers ignore entrenchment.' },
+    unk: { name: 'Unknown unit', a: 3, d: 4, m: 3, sym: 'unk', note: 'Spotted from the air, but cover hides what it is.' },
     hel: { name: 'Attack Helicopter', a: 5, d: 1, m: 10, sym: 'hel', range: 2, ignoresZoc: true, note: 'Flies over zones of control and strikes from 2 hexes away, like artillery. Fragile if caught.' },
   };
   // Combat results table. Columns by odds; die 1-6 (low is good for the attacker).
@@ -898,7 +1095,15 @@ const Engine = (() => {
   const SIGHT = 3, SIGHT_RECON = 5;
   // Defense bonuses (added together, then applied to the defender's strength) and supply attrition.
   const DEF = { city: 0.5, capital: 1, river: 0.5, dug: 0.5 };
-  const OOS = { defHalf: 2, attrition: 3 }; // turns out of supply before defense halves / a step is lost each turn
+  const OOS = { defHalf: 2, attrition: 3 };
+  // Campaign-only systems (see the campaign design doc). Index = fatigue 0-3 / morale 0 steady,1 shaken,2 broken / experience level 0-3.
+  const CAMP = {
+    fatAtt: [1, 1, 0.75, 0.5], fatName: ['Fresh', 'Fresh', 'Tired', 'Exhausted'],
+    morAtt: [1, 0.75, 0], morDef: [1, 1, 0.75], morName: ['Steady', 'Shaken', 'Broken'],
+    xpAtt: [0.8, 1, 1.15, 1.3], xpName: ['Green', 'Regular', 'Veteran', 'Elite'], xpStep: 3,
+    hqAtt: 1.15, hqRange: 3, fort: 0.5, coldAtt: 0.75, reconR: 2, intelBlock: 4,
+    wxName: { summer: 'Summer', mud: 'Autumn mud', frost: 'Frost', winter: 'Winter' },
+  }; // turns out of supply before defense halves / a step is lost each turn
   const RESULT_TEXT = {
     B1: 'Bombardment hits: defender loses a step',
     '-': 'Bombardment misses: no effect',
@@ -1152,6 +1357,11 @@ const Engine = (() => {
   const EXTRA = typeof EXTRA_SCEN !== 'undefined' ? { EXTRA_SCEN, EXTRA_ORDER } : (typeof require !== 'undefined' ? require('./scen2.js') : { EXTRA_SCEN: {}, EXTRA_ORDER: [] });
   Object.assign(SCEN, EXTRA.EXTRA_SCEN);
   const SCEN_ORDER = ['generic', 'europe', 'desert', ...EXTRA.EXTRA_ORDER];
+  // Campaigns live in camp1.js; they share SCEN for lookups but have their own menu order.
+  const CAMPS = typeof CAMP_SCEN !== 'undefined' ? { CAMP_SCEN, CAMP_ORDER } : (typeof require !== 'undefined' ? require('./camp1.js') : { CAMP_SCEN: {}, CAMP_ORDER: [] });
+  Object.assign(SCEN, CAMPS.CAMP_SCEN);
+  for (const c of Object.values(CAMPS.CAMP_SCEN)) Object.assign(FULL, c.names || {});
+  const CAMP_LIST = CAMPS.CAMP_ORDER;
 
   // ---------- map build (derived, cached; never saved) ----------
   const MAPS = {};
@@ -1176,7 +1386,16 @@ const Engine = (() => {
       }
     }
     for (const ct of sc.cities) cities[K(ct.c, ct.r)] = ct;
-    return (MAPS[id] = { W, H, terr, river, riverSegs, roadEdges, roadSegs, cities, riverPaths, roadPaths });
+    const railEdges = new Set(), railHex = new Set(), railPaths = [];
+    for (const wp of (sc.campaign && sc.campaign.rails) || []) {
+      const p = path(wp);
+      railPaths.push(p);
+      for (let i = 0; i < p.length; i++) {
+        railHex.add(K(...p[i]));
+        if (i) { const a = K(...p[i - 1]), b = K(...p[i]); if (a !== b) { railEdges.add(a + '|' + b); railEdges.add(b + '|' + a); } }
+      }
+    }
+    return (MAPS[id] = { W, H, terr, river, riverSegs, roadEdges, roadSegs, cities, riverPaths, roadPaths, railEdges, railHex, railPaths });
   }
   function terrainName(scId, ch) { const sc = SCEN[scId]; return (sc.terrainNames && sc.terrainNames[ch]) || TERRAIN[ch].name; }
   function hexInfo(m, k) {
@@ -1198,6 +1417,44 @@ const Engine = (() => {
   }
   // Does moving a->b end the unit's move? (difficult terrain or a river, unless following a road)
   function stopsAt(m, a, b) { return !m.roadEdges.has(a + '|' + b) && hexInfo(m, b).stop; }
+  // One step a->b for unit u in state s: {cost, stop}. Adds the campaign's weather and engineer works.
+  function step(s, m, a, b, u) {
+    const hi = hexInfo(m, b), t = TYPES[u.type];
+    if (hi.impass) return { cost: Infinity, stop: true };
+    const cp = s.camp, w = cp ? weather(s) : null;
+    if (t.sym === 'hel') return { cost: m.roadEdges.has(a + '|' + b) ? 0.5 : 1, stop: false };
+    const blown = cp && cp.blown[b] && hi.river;
+    const road = m.roadEdges.has(a + '|' + b) && !blown;
+    const mined = cp && cp.mines[b] && cp.mines[b] !== u.side;
+    if (road) {
+      const cost = w === 'mud' && !(cp.cord[b]) ? 1 : 0.5;
+      return { cost, stop: !!mined };
+    }
+    let cost = w === 'winter' && !t.ski && !u.ski ? 2 : 1;
+    let stop;
+    if (hi.city) stop = false;
+    else if (w === 'mud') stop = true;
+    else {
+      const frozen = w === 'frost' || w === 'winter';
+      const terrStop = !!hi.t.stop && !(frozen && hi.ch === 's');
+      const riverStop = hi.river && !(cp && cp.bridges[b]) && !frozen;
+      stop = terrStop || riverStop;
+    }
+    return { cost, stop: stop || !!mined };
+  }
+  // A tiny binary heap of [cost, key] for the movement search.
+  function heap() {
+    const h = [];
+    return {
+      get size() { return h.length; },
+      push(x) { h.push(x); let i = h.length - 1; while (i) { const p = (i - 1) >> 1; if (h[p][0] <= h[i][0]) break; [h[p], h[i]] = [h[i], h[p]]; i = p; } },
+      pop() {
+        const top = h[0], last = h.pop();
+        if (h.length) { h[0] = last; let i = 0; for (;;) { const l = 2 * i + 1, r = l + 1; let m = i; if (l < h.length && h[l][0] < h[m][0]) m = l; if (r < h.length && h[r][0] < h[m][0]) m = r; if (m === i) break; [h[m], h[i]] = [h[i], h[m]]; i = m; } }
+        return top;
+      },
+    };
+  }
 
   // ---------- state helpers ----------
   function byId(s, id) { return s.units.find(u => u.id === id); }
@@ -1210,9 +1467,14 @@ const Engine = (() => {
   function factors(s, u) {
     const t = TYPES[u.type];
     let a = t.a, d = t.d, m = t.m;
-    if (u.steps < 2) { a = Math.ceil(a / 2); d = Math.ceil(d / 2); }
+    if (u.steps < 2 && !t.steps) { a = Math.ceil(a / 2); d = Math.ceil(d / 2); }
     if (u.oos && u.side === s.active) { a = Math.max(1, Math.floor(a / 2)); m = Math.ceil(m / 2); }
     if ((u.oosT || 0) >= OOS.defHalf) d = Math.max(1, Math.ceil(d / 2));
+    if (s.camp) {
+      if (a) { const mul = attackMods(s, u).reduce((x, p) => x * p.mul, 1); if (mul !== 1) a = Math.max(1, Math.round(a * mul * 10) / 10); }
+      if ((u.mor || 0) >= 2) { a = 0; d = Math.round(d * CAMP.morDef[2] * 10) / 10; }
+      if ((u.fat || 0) >= 3) m = Math.ceil(m * 2 / 3);
+    }
     return { a, d, m };
   }
   function log(s, kind, text) {
@@ -1227,6 +1489,62 @@ const Engine = (() => {
   }
   function unitLabel(s, u) { const n = u.full || fullName(u.name); return n ? `${SCEN[s.scen].sides[u.side].short} ${n}` : `${SCEN[s.scen].sides[u.side].short} ${TYPES[u.type].name}`; }
 
+  // ---------- campaign: calendar, weather, command ----------
+  const DAY = 864e5;
+  const isoDay = d => Math.floor(Date.parse(d + 'T00:00:00Z') / DAY);
+  function turnOfDate(sc, d) { return Math.floor((isoDay(d) - isoDay(sc.campaign.start)) / 7) + 1; }
+  // Date at the start of a turn, e.g. "5 Oct 1941"
+  function dateOf(s, turn = s.turn) {
+    const sc = SCEN[s.scen]; if (!sc.campaign) return '';
+    const d = new Date((isoDay(sc.campaign.start) + 7 * (turn - 1)) * DAY);
+    return `${d.getUTCDate()} ${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+  }
+  // Weather in force on a turn: the last period whose first turn has come.
+  function weather(s, turn = s.turn) {
+    if (!s.camp) return null;
+    let w = s.camp.wx[0].w;
+    for (const p of s.camp.wx) if (turn >= p.from) w = p.w;
+    return w;
+  }
+  function inHQRange(s, u) {
+    if (!s.camp) return false;
+    return s.units.some(h => h.side === u.side && h.type === 'hq' && h !== u && dist([h.c, h.r], [u.c, u.r]) <= CAMP.hqRange);
+  }
+  // Campaign attack modifiers for a unit, for display and for factors(): [{what, mul}]
+  function attackMods(s, u) {
+    const out = [], sc = SCEN[s.scen];
+    if (!s.camp || !TYPES[u.type].a) return out;
+    if (u.lvl != null && CAMP.xpAtt[u.lvl] !== 1) out.push({ what: CAMP.xpName[u.lvl], mul: CAMP.xpAtt[u.lvl] });
+    if ((u.fat || 0) >= 2) out.push({ what: CAMP.fatName[u.fat], mul: CAMP.fatAtt[u.fat] });
+    if ((u.mor || 0) === 1) out.push({ what: 'Shaken', mul: CAMP.morAtt[1] });
+    if (inHQRange(s, u)) out.push({ what: 'HQ support', mul: CAMP.hqAtt });
+    if (weather(s) === 'winter' && sc.campaign.cold === u.side) out.push({ what: 'Winter cold', mul: CAMP.coldAtt });
+    return out;
+  }
+  // Starting values for a campaign game (weather shifts are rolled once, with the game's own dice).
+  function campInit(s, sc) {
+    const cp = sc.campaign, wx = [];
+    for (const p of cp.weather) {
+      let from = p.from ? turnOfDate(sc, p.from) : 1;
+      if (p.shift) { const d = roll(s); from += d <= 2 ? -1 : d >= 5 ? 1 : 0; }
+      wx.push({ w: p.w, from: Math.max(1, from) });
+    }
+    s.camp = {
+      wx, rp: { A: 0, B: 0 }, lost: { A: 0, B: 0 }, bridges: {}, blown: {}, forts: {}, mines: {}, cord: {},
+      heads: {}, flights: { A: 0, B: 0 }, bonus: { A: 0, B: 0 }, away: null, kievDone: false, rec: { A: [], B: [] }, hqBack: [], iseed: roll(s) * 7919 + roll(s),
+      reinf: (cp.reinf || []).map((r, i) => ({ ...r, i, turn: r.date ? turnOfDate(sc, r.date) : r.turn, done: false })),
+    };
+    for (const k of cp.forts || []) s.camp.forts[K(...k)] = 1;
+    for (const ct of sc.cities) if (ct.rail && ct.owner === cp.railSide) s.camp.heads[K(ct.c, ct.r)] = 0; // railheads ready from the start
+    for (const u of s.units) campUnit(s, u, sc);
+  }
+  function campUnit(s, u, sc, lvl) {
+    const cp = sc.campaign, t = TYPES[u.type];
+    u.fat = 0; u.mor = 0; u.xp = 0; u.cmb = -9;
+    u.lvl = lvl ?? (t.elite ? 3 : (cp.xp && cp.xp[u.side] && (cp.xp[u.side][u.type] ?? cp.xp[u.side]._)) ?? 1);
+    if (t.steps) u.steps = t.steps;
+  }
+
   // ---------- new game ----------
   function newGame(scenId, seed, opts = {}) {
     const sc = SCEN[scenId];
@@ -1234,7 +1552,8 @@ const Engine = (() => {
     const units = sc.units.map(([side, type, c, r, name, start]) => ({ id: id++, side, type, c, r, name: name || '', full: fullName(name), nat: natOf(scenId, name), steps: 2, moved: false, attacked: false, dropped: false, oos: false, oosT: 0, self: (sc.selfSupplied || []).includes(name) || undefined, dig: start === 'dug' ? 'dug' : null }));
     const owner = {};
     sc.cities.forEach(ct => { if (ct.owner) owner[K(ct.c, ct.r)] = ct.owner; });
-    const s = { v: 3, scen: scenId, turn: 1, active: 'A', phase: 'move', rng: seed | 0, units, owner, log: [], trails: [], prevTrails: [], attacked: [], bombarded: [], pending: null, winner: null, dead: [], lastCombat: null, fog: !!opts.fog, seen: { A: {}, B: {} }, spot: { A: {}, B: {} } };
+    const s = { v: 4, scen: scenId, turn: 1, active: 'A', phase: 'move', rng: seed | 0, units, owner, log: [], trails: [], prevTrails: [], attacked: [], bombarded: [], pending: null, winner: null, dead: [], lastCombat: null, fog: !!opts.fog, seen: { A: {}, B: {} }, spot: { A: {}, B: {} } };
+    if (sc.campaign) { campInit(s, sc); campStart(s); }
     refreshSupply(s);
     updateSeen(s);
     log(s, 'turn', `Turn 1: ${sc.sides.A.name} to move`);
@@ -1249,13 +1568,12 @@ const Engine = (() => {
     const m = getMap(s.scen), def = TYPES[u.type], f = factors(s, u), occ = occMap(s);
     const enemyZoc = zocOf(s, other(u.side));
     const ez = def.ignoresZoc ? new Set() : enemyZoc;
-    const flies = def.sym === 'hel';
     const start = K(u.c, u.r), startInZoc = ez.has(start);
     // node = hex key, plus '!' when the unit arrived there by a move that ends its turn (ZOC, terrain)
-    const best = new Map([[start, 0]]), parent = new Map(), q = [[0, start]];
-    while (q.length) {
-      q.sort((a, b) => a[0] - b[0]);
-      const [cost, node] = q.shift();
+    const best = new Map([[start, 0]]), parent = new Map(), q = heap();
+    q.push([0, start]);
+    while (q.size) {
+      const [cost, node] = q.pop();
       if (cost > best.get(node)) continue;
       if (node.endsWith('!')) continue;
       const k = node;
@@ -1264,9 +1582,10 @@ const Engine = (() => {
         const nk = K(nc, nr), o = occ.get(nk);
         if (o && o.side !== u.side) continue;
         if (k === start && startInZoc && ez.has(nk)) continue; // no ZOC-to-ZOC
-        const c2 = cost + moveCost(m, k, nk);
+        const st = step(s, m, k, nk, u);
+        const c2 = cost + st.cost;
         if (c2 > f.m) continue;
-        const end = ez.has(nk) || (!flies && stopsAt(m, k, nk));
+        const end = ez.has(nk) || st.stop;
         const nn = end ? nk + '!' : nk;
         if (best.has(nn) && best.get(nn) <= c2) continue;
         best.set(nn, c2); parent.set(nn, node); q.push([c2, nn]);
@@ -1296,10 +1615,58 @@ const Engine = (() => {
     return res;
   }
 
+  // What a side knows: under fog, only the enemy units it can see.
+  function knownTo(s, side) {
+    if (!s.fog) return s;
+    const vis = visibleHexes(s, side);
+    return { ...s, units: s.units.filter(x => x.side === side || vis.has(K(x.c, x.r))) };
+  }
+  // Cost of a hand-picked route [[c,r]...] from the unit's hex, or null if it breaks the movement rules.
+  // partial: a route still being drawn (it may end on a friendly unit it will pass through)
+  function routeCost(s, u, p, partial) {
+    const m = getMap(s.scen), f = factors(s, u), occ = occMap(s), t = TYPES[u.type];
+    const ez = t.ignoresZoc ? new Set() : zocOf(s, other(u.side));
+    if (!p || p.length < 2 || K(...p[0]) !== K(u.c, u.r)) return null;
+    let cost = 0;
+    for (let i = 1; i < p.length; i++) {
+      const a = K(...p[i - 1]), b = K(...p[i]);
+      const o = occ.get(b);
+      if (dist(p[i - 1], p[i]) !== 1 || (o && (o.side !== u.side || (i === p.length - 1 && !partial)))) return null;
+      if (i === 1 && ez.has(a) && ez.has(b)) return null;
+      const st = step(s, m, a, b, u);
+      if (!isFinite(st.cost)) return null;
+      cost += st.cost;
+      if (i < p.length - 1 && (st.stop || ez.has(b))) return null;
+    }
+    if (cost > f.m && p.length > 2) return null;
+    return cost;
+  }
+
   // ---------- supply ----------
+  // Is a rail hub linked by unbroken rail (no enemy unit or enemy ZOC without a friend) to the side's map edge or capital?
+  function railConnected(s, side, key, occ, ez) {
+    const m = getMap(s.scen), sc = SCEN[s.scen];
+    occ = occ || occMap(s); ez = ez || zocOf(s, other(side));
+    const edgeCol = sc.sides[side].edge === 'W' ? 0 : m.W - 1;
+    const cap = sc.cities.find(ct => ct.cap && ct.owner === side);
+    const ok = k => { const o = occ.get(k); if (o && o.side !== side) return false; return !ez.has(k) || (o && o.side === side); };
+    if (!m.railHex.has(key)) return false;
+    const seen = new Set([key]), q = [key];
+    for (let i = 0; i < q.length; i++) {
+      const k = q[i], [c, r] = P(k);
+      if (c === edgeCol || (cap && k === K(cap.c, cap.r) && s.owner[k] === side)) return true;
+      for (const [nc, nr] of nbrs(m, c, r)) { const nk = K(nc, nr); if (!seen.has(nk) && m.railEdges.has(k + '|' + nk) && ok(nk)) { seen.add(nk); q.push(nk); } }
+    }
+    return false;
+  }
+  function campRange(s, sc, side) {
+    const sp = sc.campaign.supply && sc.campaign.supply[side];
+    if (!sp) return Infinity;
+    return weather(s) === 'mud' && sp.mud ? sp.mud : sp.range;
+  }
   function supplyNet(s, side) {
     const m = getMap(s.scen), sc = SCEN[s.scen], occ = occMap(s), ez = zocOf(s, other(side));
-    const range = supplyRange(sc, side);
+    const range = s.camp ? campRange(s, sc, side) : supplyRange(sc, side);
     const ok = k => {
       if (hexInfo(m, k).impass) return false;
       const o = occ.get(k);
@@ -1311,6 +1678,13 @@ const Engine = (() => {
     const edgeCol = sc.sides[side].edge === 'W' ? 0 : m.W - 1;
     for (let r = 0; r < m.H; r++) { const k = K(edgeCol, r); if (ok(k)) { d.set(k, 0); q.push(k); } }
     for (const ct of sc.cities) { const k = K(ct.c, ct.r); if (ct.supply && s.owner[k] === side && ok(k) && !d.has(k)) { d.set(k, 0); q.push(k); } }
+    if (s.camp) for (const ct of sc.cities) {
+      const k = K(ct.c, ct.r);
+      if (!ct.rail || s.owner[k] !== side || d.has(k) || !ok(k)) continue;
+      // the railway side needs a finished railhead linked back by rail; the other side's hubs always feed supply
+      const isHead = sc.campaign.railSide !== side || (s.camp.heads[k] != null && s.camp.heads[k] <= s.turn && railConnected(s, side, k, occ, ez));
+      if (isHead) { d.set(k, 0); q.push(k); }
+    }
     for (let i = 0; i < q.length; i++) {
       const k = q[i], dk = d.get(k);
       if (dk >= range) continue;
@@ -1334,17 +1708,38 @@ const Engine = (() => {
   }
 
   // ---------- fog of war ----------
-  function visibleHexes(s, side) {
+  function sightOf(u) { const t = TYPES[u.type]; return t.ignoresZoc || t.sym === 'cav' ? SIGHT_RECON : SIGHT; }
+  function around(m, c0, r0, rng, add) {
+    for (let r = Math.max(0, r0 - rng - 1); r <= Math.min(m.H - 1, r0 + rng + 1); r++)
+      for (let c = Math.max(0, c0 - rng); c <= Math.min(m.W - 1, c0 + rng); c++)
+        if (dist([c0, r0], [c, r]) <= rng) add(K(c, r));
+  }
+  // Hexes a side's units can see (ground sight only)
+  function groundSight(s, side) {
     const m = getMap(s.scen), vis = new Set();
-    for (const u of s.units) {
-      if (u.side !== side) continue;
-      const rng = (TYPES[u.type].ignoresZoc ? SIGHT_RECON : SIGHT) + sightBonus(m, u);
-      for (let r = Math.max(0, u.r - rng - 1); r <= Math.min(m.H - 1, u.r + rng + 1); r++)
-        for (let c = Math.max(0, u.c - rng); c <= Math.min(m.W - 1, u.c + rng); c++)
-          if (dist([u.c, u.r], [c, r]) <= rng) vis.add(K(c, r));
-    }
+    for (const u of s.units) if (u.side === side) around(m, u.c, u.r, sightOf(u) + sightBonus(m, u), k => vis.add(k));
     return vis;
   }
+  // Ground sight plus this turn's air reconnaissance
+  function visibleHexes(s, side) {
+    const vis = groundSight(s, side);
+    if (s.camp) { const m = getMap(s.scen); for (const h of s.camp.rec[side] || []) around(m, h[0], h[1], CAMP.reconR, k => vis.add(k)); }
+    return vis;
+  }
+  // Seen only from the air, and in cover (forest, or entrenched in a city): type and strength stay hidden
+  function partialSet(s, side) {
+    const out = new Set();
+    if (!s.camp || !(s.camp.rec[side] || []).length) return out;
+    const m = getMap(s.scen), ground = groundSight(s, side), vis = visibleHexes(s, side);
+    for (const u of s.units) {
+      if (u.side === side) continue;
+      const k = K(u.c, u.r);
+      if (!vis.has(k) || ground.has(k)) continue;
+      if (m.terr[k] === 'f' || (m.cities[k] && u.dig === 'dug')) out.add(u.id);
+    }
+    return out;
+  }
+  const masked = u => ({ id: u.id, side: u.side, type: 'unk', c: u.c, r: u.r, name: '', full: '', nat: '', steps: 2, moved: false, attacked: false, oos: false, oosT: 0, dig: null, fat: 0, mor: 0, lvl: 1, xp: 0, partial: true });
   function sightBonus(m, u) { return TYPES[u.type].sym === 'hel' ? 0 : ((TERRAIN[m.terr[K(u.c, u.r)]] || {}).sight || 0); }
   function canSee(s, side, u) { return !s.fog || u.side === side || visibleHexes(s, side).has(K(u.c, u.r)); }
   // seen[side]: enemies that were in sight and have since vanished (shown as faded "last seen" ghosts).
@@ -1357,9 +1752,10 @@ const Engine = (() => {
     for (const side of ['A', 'B']) {
       const vis = visibleHexes(s, side), seen = s.seen[side], spot = s.spot[side];
       for (const id of Object.keys(seen)) if (!alive.has(id) || vis.has(K(seen[id].c, seen[id].r))) delete seen[id];
+      const part = partialSet(s, side);
       for (const u of s.units) {
         if (u.side === side) continue;
-        if (vis.has(K(u.c, u.r))) { spot[u.id] = { c: u.c, r: u.r, type: u.type, name: u.name, steps: u.steps, turn: s.turn }; delete seen[u.id]; }
+        if (vis.has(K(u.c, u.r))) { spot[u.id] = part.has(u.id) ? { c: u.c, r: u.r, type: 'unk', name: '', steps: 2, turn: s.turn } : { c: u.c, r: u.r, type: u.type, name: u.name, steps: u.steps, turn: s.turn }; delete seen[u.id]; }
         else if (spot[u.id]) { seen[u.id] = spot[u.id]; delete spot[u.id]; }
       }
       for (const id of Object.keys(spot)) if (!alive.has(id)) delete spot[id];
@@ -1368,19 +1764,21 @@ const Engine = (() => {
   // What one side is allowed to know: a copy with hidden enemy units removed.
   function fogView(s, side) {
     if (!s.fog) return s;
-    const vis = visibleHexes(s, side);
+    const vis = visibleHexes(s, side), part = partialSet(s, side);
     const v = JSON.parse(JSON.stringify(s));
-    v.units = v.units.filter(u => u.side === side || vis.has(K(u.c, u.r)));
+    v.units = v.units.filter(u => u.side === side || vis.has(K(u.c, u.r))).map(u => part.has(u.id) ? masked(u) : u);
+    if (v.camp) v.camp.reinf = v.camp.reinf.filter(r => r.side === side); // the enemy's schedule is secret
     return v;
   }
   // Defense in place: strength x (1 + bonuses). parts lists each bonus for display.
-  function defense(s, u) {
+  function defense(s, u, assault) {
     const m = getMap(s.scen), hi = hexInfo(m, K(u.c, u.r)), base = factors(s, u).d, parts = [];
     const t = hi.t, city = hi.city;
     if (city && (city.cap ? DEF.capital : DEF.city) >= t.def) parts.push({ what: city.cap ? 'capital' : 'city', pct: Math.round(100 * (city.cap ? DEF.capital : DEF.city)) });
     else if (t.def) parts.push({ what: terrainName(s.scen, hi.ch), pct: Math.round(100 * t.def) });
     if (hi.river) parts.push({ what: 'river', pct: Math.round(100 * DEF.river) });
-    if (u.dig === 'dug') parts.push({ what: 'entrenched', pct: Math.round(100 * DEF.dug) });
+    if (u.dig === 'dug' && !assault) parts.push({ what: 'entrenched', pct: Math.round(100 * DEF.dug) });
+    if (s.camp && s.camp.forts[K(u.c, u.r)] && !assault) parts.push({ what: 'fortified', pct: Math.round(100 * CAMP.fort) });
     const mult = 1 + parts.reduce((t2, p) => t2 + p.pct, 0) / 100;
     return { base, mult, d: Math.round(base * mult * 10) / 10, parts };
   }
@@ -1392,7 +1790,7 @@ const Engine = (() => {
     if (s.fog && !visibleHexes(s, s.active).has(tk)) return [];
     if (s.attacked.includes(tk) && (s.bombarded || []).includes(tk)) return [];
     return s.units.filter(u => {
-      if (u.side !== s.active || u.attacked) return false;
+      if (u.side !== s.active || u.attacked || !factors(s, u).a) return false;
       const d = dist([u.c, u.r], [tgt.c, tgt.r]), t = TYPES[u.type];
       return d === 1 || (t.range && d <= t.range);
     }).map(u => u.id);
@@ -1404,7 +1802,8 @@ const Engine = (() => {
     const m = getMap(s.scen), tgt = occMap(s).get(tk);
     if (!tgt) return { valid: false, why: 'No unit there.' };
     const us = ids.map(id => byId(s, id)).filter(Boolean);
-    const att = us.reduce((a, u) => a + attackValue(s, u), 0), dv = defense(s, tgt), def = dv.d;
+    const assault = !!s.camp && us.some(u => u.type === 'eng' && dist([u.c, u.r], [tgt.c, tgt.r]) === 1);
+    const att = Math.round(us.reduce((a, u) => a + attackValue(s, u), 0) * 10) / 10, dv = defense(s, tgt, assault), def = dv.d;
     const ratio = def ? att / def : 99;
     let col = -1;
     THR.forEach((t, i) => { if (ratio >= t - 1e-9) col = i; });
@@ -1418,17 +1817,27 @@ const Engine = (() => {
     else if (col < 0) why = 'Odds below 1:3 are not allowed.';
     else if (bombard && (s.bombarded || []).includes(tk)) why = 'That hex was already bombarded this turn.';
     else if (!bombard && s.attacked.includes(tk)) why = 'That hex was already assaulted this turn.';
-    return { att, def, defBase: dv.base, mult: dv.mult, parts: dv.parts, ratio, col, fin, adj, hi, dug, bombard, valid: !why, why };
+    return { att, def, defBase: dv.base, mult: dv.mult, parts: dv.parts, assault, ratio, col, fin, adj, hi, dug, bombard, valid: !why, why };
+  }
+  function shake(s, u, why) {
+    if (!s.camp || !alive(s, u)) return;
+    const was = u.mor || 0;
+    if (why === 'retreat' && was === 0 && u.lvl >= 2) return; // veterans shrug off a retreat
+    u.mor = Math.min(2, was + 1);
+    if (u.mor > was) log(s, 'loss', `${unitLabel(s, u)} ${u.mor === 2 ? 'breaks' : 'is shaken'}`);
   }
   function loseStep(s, u) {
     u.steps -= 1;
+    if (s.camp) s.camp.lost[u.side]++;
     if (u.steps <= 0) {
+      if (s.camp && u.type === 'hq') s.camp.hqBack.push({ side: u.side, type: u.type, name: u.name, turn: s.turn + 2 });
       s.units = s.units.filter(x => x !== u);
       s.dead.push({ side: u.side, type: u.type, nat: u.nat || '', name: u.name || '', full: u.full || fullName(u.name), turn: s.turn });
       log(s, 'loss', `${unitLabel(s, u)} eliminated`);
       return true;
     }
     log(s, 'loss', `${unitLabel(s, u)} reduced`);
+    shake(s, u, 'loss');
     return false;
   }
   function alive(s, u) { return s.units.includes(u); }
@@ -1447,14 +1856,178 @@ const Engine = (() => {
     u.last = { turn: s.turn, path: [[u.c, u.r], best], retreat: true };
     u.c = best[0]; u.r = best[1]; u.dig = null;
     log(s, 'move', `${unitLabel(s, u)} retreats`);
+    shake(s, u, 'retreat');
     return true;
   }
   function enter(s, u) {
     const m = getMap(s.scen), k = K(u.c, u.r), ct = m.cities[k];
     if (ct && s.owner[k] !== u.side) {
       s.owner[k] = u.side;
+      if (s.camp && ct.rail) { const sc = SCEN[s.scen]; if (sc.campaign.railSide === u.side) s.camp.heads[k] = s.turn + (sc.campaign.railDelay ?? 2); else delete s.camp.heads[k]; }
       log(s, 'capture', `${SCEN[s.scen].sides[u.side].name} capture ${ct.name}`);
     }
+  }
+
+
+  // ---------- campaign: turn upkeep ----------
+  // Historical pace markers: has the side taken each checkpoint city by its turn?
+  function checkpoints(s) {
+    const v = SCEN[s.scen].victory;
+    return (v.checkpoints || []).map(cp => { const ct = SCEN[s.scen].cities.find(x => x.name === cp.city); return { ...cp, held: !!ct && s.owner[K(ct.c, ct.r)] === v.side }; });
+  }
+  function nextId(s) { s.nextId = Math.max(s.nextId || 0, ...s.units.map(u => u.id)) + 1; return s.nextId; }
+  // Nearest empty, passable hexes to a point that are not in enemy ZOC (falls back to any empty hex).
+  function placeNear(s, side, c0, r0, n) {
+    const m = getMap(s.scen), occ = occMap(s), ez = zocOf(s, other(side)), out = [];
+    const cands = [];
+    for (let r = 0; r < m.H; r++) for (let c = 0; c < m.W; c++) { const k = K(c, r); if (!occ.get(k) && !hexInfo(m, k).impass) cands.push([dist([c0, r0], [c, r]) + (ez.has(k) ? 50 : 0), c, r]); }
+    cands.sort((a, b) => a[0] - b[0]);
+    for (const [, c, r] of cands.slice(0, n)) out.push([c, r]);
+    return out;
+  }
+  function spawn(s, side, type, name, at, lvl, steps) {
+    const sc = SCEN[s.scen];
+    const u = { id: nextId(s), side, type, c: at[0], r: at[1], name: name || '', full: fullName(name), nat: natOf(s.scen, name), steps: 2, moved: false, attacked: false, dropped: false, oos: false, oosT: 0, dig: null };
+    campUnit(s, u, sc, lvl);
+    if (steps) u.steps = steps;
+    s.units.push(u);
+    return u;
+  }
+  // Where a side's reinforcements can come in: a city it holds that is linked by rail to its edge or capital, not next to an enemy.
+  function entryOK(s, side, name) {
+    const sc = SCEN[s.scen], ct = sc.cities.find(x => x.name === name);
+    if (!ct) return null;
+    const k = K(ct.c, ct.r);
+    if (s.owner[k] !== side) return null;
+    if (!ct.cap && !railConnected(s, side, k)) return null;
+    return ct;
+  }
+  function arrivals(s) {
+    const sc = SCEN[s.scen], side = s.active, m = getMap(s.scen);
+    for (const r of s.camp.reinf) {
+      if (r.done || r.side !== side || r.turn > s.turn) continue;
+      const chain = [r.at, ...(r.then || [])].filter(Boolean);
+      let ct = r.delayed ? chain.map(n => entryOK(s, side, n)).find(Boolean) : (chain.length ? entryOK(s, side, chain[0]) : null);
+      if (chain.length && !ct && !r.delayed) {
+        r.delayed = true; r.turn = s.turn + 1;
+        log(s, 'turn', `${sc.sides[side].name} reinforcements for ${r.at} delayed: the rail line is cut`);
+        continue;
+      }
+      let spot;
+      if (ct) spot = [ct.c, ct.r];
+      else { const col = sc.sides[side].edge === 'W' ? 0 : m.W - 1; spot = [col, r.row ?? Math.floor(m.H / 2)]; }
+      const hexes = placeNear(s, side, spot[0], spot[1], r.units.length);
+      r.units.forEach((x, i) => { if (hexes[i]) spawn(s, side, x[0], x[1], hexes[i], x[2], x[3]); });
+      r.done = true;
+      log(s, 'turn', `${sc.sides[side].name} reinforcements arrive${ct ? ` at ${ct.name}` : ''}: ${r.units.length} unit${r.units.length > 1 ? 's' : ''}`);
+    }
+    for (const h of s.camp.hqBack.filter(x => x.side === side && x.turn <= s.turn)) {
+      const home = sc.sides[side].edge, own = sc.cities.filter(ct => s.owner[K(ct.c, ct.r)] === side).sort((a, b) => (home === 'W' ? a.c - b.c : b.c - a.c));
+      const at = own[0] ? placeNear(s, side, own[0].c, own[0].r, 1)[0] : placeNear(s, side, home === 'W' ? 0 : m.W - 1, Math.floor(m.H / 2), 1)[0];
+      if (at) { const u = spawn(s, side, h.type, h.name, at); log(s, 'turn', `${unitLabel(s, u)} re-formed`); }
+      s.camp.hqBack = s.camp.hqBack.filter(x => x !== h);
+    }
+  }
+  // Start of a side's turn (before supply is traced)
+  function campStart(s) {
+    const sc = SCEN[s.scen], cp = sc.campaign, side = s.active, w = weather(s);
+    if (s.turn > 1 && side === 'A' && w !== weather(s, s.turn - 1)) log(s, 'turn', `Weather: ${CAMP.wxName[w]}`);
+    // engineer works finish
+    for (const u of s.units) {
+      if (u.side !== side || !u.work) continue;
+      const wk = u.work, k = K(...wk.hex);
+      if (wk.from !== K(u.c, u.r)) { u.work = null; continue; }
+      if (wk.task === 'fortify' && --wk.left > 0) continue;
+      if (wk.task === 'bridge') { s.camp.bridges[k] = 1; delete s.camp.blown[k]; log(s, 'move', `${unitLabel(s, u)} bridges the river at ${k}`); }
+      if (wk.task === 'fortify') { s.camp.forts[k] = 1; log(s, 'move', `${unitLabel(s, u)} completes fortifications`); }
+      if (wk.task === 'mines') { s.camp.mines[k] = side; log(s, 'move', `${unitLabel(s, u)} lays a minefield`); }
+      if (wk.task === 'clear') { delete s.camp.mines[k]; log(s, 'move', `${unitLabel(s, u)} clears a minefield`); }
+      if (wk.task === 'cord') { s.camp.cord[k] = 1; log(s, 'move', `${unitLabel(s, u)} lays a corduroy road`); }
+      u.work = null;
+    }
+    // railheads: an engineer at the hub speeds the gauge change by a turn
+    if (cp.railSide === side) for (const [k, t] of Object.entries(s.camp.heads)) {
+      if (t > s.turn && !s.camp.heads['sped' + k] && s.units.some(u => u.side === side && u.type === 'eng' && dist([u.c, u.r], P(k)) <= 1)) { s.camp.heads[k] = t - 1; s.camp.heads['sped' + k] = 1; }
+      if (s.camp.heads[k] === s.turn) log(s, 'turn', `Railhead open at ${getMap(s.scen).cities[k].name}`);
+    }
+    arrivals(s);
+    if (s.camp.away && s.camp.away.side === side && s.turn >= s.camp.away.back) {
+      const aw = s.camp.away, m = getMap(s.scen), spots = placeNear(s, side, aw.col, m.H - 1, aw.units.length);
+      aw.units.forEach((u, i) => { if (!spots[i]) return; Object.assign(u, { c: spots[i][0], r: spots[i][1], fat: 2, moved: false, attacked: false, dig: null, oos: false, oosT: 0, work: null }); s.units.push(u); });
+      s.camp.away = null;
+      log(s, 'turn', `Panzer Group 2 returns from Kiev at the south edge, tired`);
+    }
+    // replacement points: the rate of the latest schedule entry that has started, e.g. [[1, 2], [15, 3]]
+    let rate = 0; for (const [from, r] of (cp.rp && cp.rp[side]) || []) if (s.turn >= from) rate = r;
+    s.camp.rp[side] = Math.round((s.camp.rp[side] + rate) * 10) / 10;
+    s.camp.flights[side] = s.fog ? ((cp.recon && cp.recon[side] && cp.recon[side][w]) || 0) : 0;
+    s.camp.rec[side] = [];
+    if (w === 'frost' && cp.cold === side) for (const u of s.units) if (u.side === side) u.fat = Math.min(3, (u.fat || 0) + 1);
+  }
+  // After supply is traced: rally or break.
+  function campAfterSupply(s) {
+    for (const u of s.units) {
+      if (u.side !== s.active || !u.mor) continue;
+      if (u.oos && u.mor === 1) { u.mor = 2; log(s, 'loss', `${unitLabel(s, u)} is cut off and breaks`); continue; }
+      if ((!u.oos && (inHQRange(s, u) || u.lvl >= 3)) || s.turn - (u.cmb ?? -9) >= 2) { u.mor--; log(s, 'move', `${unitLabel(s, u)} rallies`); }
+    }
+  }
+  // End of a side's turn: a unit that attacked or made a long move gains a fatigue pip; any other unit recovers,
+  // faster if it stayed put in supply away from the enemy, and faster again near an HQ.
+  function campEnd(s) {
+    const occ = occMap(s), m = getMap(s.scen);
+    for (const u of s.units) {
+      if (u.side !== s.active) continue;
+      if (u.exert) u.fat = Math.min(3, (u.fat || 0) + 1);
+      else if (u.fat && !u.work) {
+        const safe = !u.mvd && !u.oos && !nbrs(m, u.c, u.r).some(([c, r]) => { const o = occ.get(K(c, r)); return o && o.side !== u.side; });
+        u.fat = Math.max(0, u.fat - (safe ? 2 : 1) - (inHQRange(s, u) ? 1 : 0));
+      }
+      u.mvd = false; u.exert = false;
+    }
+    s.camp.rec[s.active] = [];
+  }
+  // Intelligence estimate: enemy strength per block of map, banded 0 none .. 3 heavy. Exact near your own units
+  // (or everywhere for a side with partisans); farther back it can be off by one band.
+  function intel(s, side) {
+    if (!s.camp) return [];
+    const m = getMap(s.scen), B = CAMP.intelBlock, sc = SCEN[s.scen], out = [];
+    const mine = s.units.filter(u => u.side === side), pt = sc.campaign.partisans;
+    const exactAll = pt && pt.side === side && s.turn >= pt.from;
+    for (let r0 = 0; r0 < m.H; r0 += B) for (let c0 = 0; c0 < m.W; c0 += B) {
+      let str = 0;
+      for (const u of s.units) if (u.side !== side && u.c >= c0 && u.c < c0 + B && u.r >= r0 && u.r < r0 + B) str += (TYPES[u.type].a + TYPES[u.type].d) * u.steps / 2;
+      let band = str === 0 ? 0 : str < 10 ? 1 : str < 22 ? 2 : 3;
+      const cx = c0 + B / 2, cy = r0 + B / 2;
+      const near = mine.some(u => dist([u.c, u.r], [Math.floor(cx), Math.floor(cy)]) <= 6);
+      if (!near && !exactAll) {
+        let h = (s.camp.iseed ^ (s.turn * 2654435761) ^ (c0 * 97 + r0 * 131)) >>> 0;
+        h = Math.imul(h ^ (h >>> 13), 0x5bd1e995) >>> 0;
+        band = Math.max(0, Math.min(3, band + (h % 3) - 1));
+      }
+      out.push({ c: c0, r: r0, w: Math.min(B, m.W - c0), h: Math.min(B, m.H - r0), band });
+    }
+    return out;
+  }
+  // The Kiev decision: which units would go (the HQ plus every panzer/motorized unit in its command range), or why not.
+  function kievGroup(s) {
+    const kv = s.camp && SCEN[s.scen].campaign.kiev;
+    if (!kv) return { why: 'Not in this campaign.' };
+    if (s.camp.kievDone) return { why: 'The decision has already been taken.' };
+    if (s.active !== kv.side) return { why: 'Only Germany can order it.' };
+    if (s.turn < kv.from || s.turn > kv.to) return { why: `Only on turns ${kv.from} to ${kv.to}.` };
+    const hq = s.units.find(u => u.side === kv.side && u.type === 'hq' && u.name === kv.hq);
+    if (!hq) return { why: 'Its headquarters is not on the map.' };
+    const mob = s.units.filter(u => u.side === kv.side && u !== hq && ['arm', 'mech'].includes(TYPES[u.type].sym) && dist([u.c, u.r], [hq.c, hq.r]) <= CAMP.hqRange);
+    if (mob.length < kv.min) return { why: `Needs at least ${kv.min} panzer or motorized units within ${CAMP.hqRange} hexes of ${unitLabel(s, hq)} (now ${mob.length}).` };
+    if ([hq, ...mob].some(u => u.moved || u.attacked)) return { why: 'Every unit going must not have moved this turn.' };
+    return { hq, units: [hq, ...mob] };
+  }
+  // Graded result for campaigns: VP plus 1 for every `material` net enemy steps destroyed.
+  function campScore(s) {
+    const v = SCEN[s.scen].victory, side = v.side;
+    const net = s.camp.lost[other(side)] - s.camp.lost[side];
+    return vp(s, side) + Math.trunc(net / (v.material || Infinity)) + ((s.camp.bonus && s.camp.bonus[side]) || 0);
   }
 
   // ---------- victory ----------
@@ -1473,7 +2046,10 @@ const Engine = (() => {
   }
   function endOfGame(s) {
     const sc = SCEN[s.scen], va = vp(s, 'A'), vb = vp(s, 'B'), v = sc.victory;
-    if (v.type === 'more') {
+    if (v.type === 'grades') {
+      const score = campScore(s), g = v.grades.find(x => score >= x.min) || v.grades[v.grades.length - 1];
+      s.winner = { side: g.side, reason: `${g.name}: ${sc.sides[v.side].name} score ${score}`, grade: g.name };
+    } else if (v.type === 'more') {
       if (va === vb) s.winner = { side: null, reason: `Draw on ${va} victory points each` };
       else { const w = va > vb ? 'A' : 'B'; s.winner = { side: w, reason: `${sc.sides[w].name} hold more cities (${Math.max(va, vb)} to ${Math.min(va, vb)} VP)` }; }
     } else {
@@ -1503,14 +2079,39 @@ const Engine = (() => {
         const u = byId(s, a.unit);
         if (!u || u.side !== s.active) return { error: 'That is not your unit.' };
         if (u.moved) return { error: 'That unit has already moved.' };
-        const r = reachable(s, u).get(K(a.to[0], a.to[1]));
+        // Under fog the mover only knows the enemies it can see; the real map may hold surprises.
+        const kn = knownTo(s, u.side);
+        const r = reachable(kn, u).get(K(a.to[0], a.to[1]));
         if (!r) return { error: 'That unit cannot reach that hex.' };
-        s.trails.push({ side: u.side, unit: u.id, from: [u.c, u.r], to: a.to.slice(), path: r.path, drop: !!r.drop });
-        u.last = { turn: s.turn, path: r.path, drop: !!r.drop };
-        u.c = a.to[0]; u.r = a.to[1]; u.moved = true; u.dig = null;
+        let route = r.path;
+        if (a.path && !r.drop) { if (!routeCost(kn, u, a.path) || K(...a.path[a.path.length - 1]) !== K(a.to[0], a.to[1])) return { error: 'That route is not possible.' }; route = a.path.map(h => h.slice()); }
+        let bumped = null;
+        if (s.fog && !r.drop) {
+          const occ = occMap(s), ez = zocOf(s, other(u.side)), t = TYPES[u.type], wary = t.ignoresZoc || t.sym === 'cav';
+          for (let i = 1; i < route.length; i++) {
+            const h = K(...route[i]), o = occ.get(h);
+            if (o && o.side !== u.side) { bumped = { at: i - 1, by: o }; break; }
+            if (!t.ignoresZoc && ez.has(h) && i < route.length - 1) { bumped = { at: wary ? i - 1 : i }; break; }
+          }
+          if (bumped) route = route.slice(0, bumped.at + 1);
+        }
+        if (r.drop && occMap(s).get(K(a.to[0], a.to[1]))) return { error: 'The drop zone is occupied.' };
+        const to = route[route.length - 1];
+        if (s.camp) {
+          const m = getMap(s.scen); let cost = 0;
+          for (let i = 1; i < route.length; i++) cost += step(s, m, K(...route[i - 1]), K(...route[i]), u).cost;
+          if (!r.drop && cost > factors(s, u).m / 2) u.exert = true; // tires at the end of the turn
+          u.mvd = true; u.work = null;
+        }
+        if (route.length > 1) {
+          s.trails.push({ side: u.side, unit: u.id, from: [u.c, u.r], to: to.slice(), path: route, drop: !!r.drop });
+          u.last = { turn: s.turn, path: route, drop: !!r.drop };
+        }
+        u.c = to[0]; u.r = to[1]; u.moved = true; u.dig = null;
         if (r.drop) { u.dropped = true; log(s, 'move', `${unitLabel(s, u)} airdrops`); }
+        if (bumped) log(s, 'move', `${unitLabel(s, u)} runs into an unseen enemy and halts`);
         enter(s, u); checkWin(s);
-        return { ok: true };
+        return { ok: true, bumped: !!bumped, to };
       }
       case 'entrench': {
         if (s.phase !== 'move') return { error: 'Orders are given in the movement phase.' };
@@ -1522,6 +2123,107 @@ const Engine = (() => {
         if (u.oos) return { error: 'Units out of supply cannot dig in.' };
         u.moved = true; u.dig = 'digging';
         log(s, 'move', `${unitLabel(s, u)} starts digging in`);
+        return { ok: true };
+      }
+      case 'recon': {
+        if (!s.camp || !s.fog) return { error: 'Air reconnaissance is for campaigns with fog of war.' };
+        if (s.phase !== 'move') return { error: 'Recon flights go out in the movement phase.' };
+        if (!(s.camp.flights[s.active] > 0)) return { error: 'No recon flights left this turn.' };
+        const m = getMap(s.scen);
+        if (!a.hex || a.hex[0] < 0 || a.hex[1] < 0 || a.hex[0] >= m.W || a.hex[1] >= m.H) return { error: 'Pick a hex on the map.' };
+        s.camp.flights[s.active]--; s.camp.rec[s.active].push(a.hex.slice());
+        return { ok: true };
+      }
+      case 'work': {
+        if (!s.camp) return { error: 'Engineer work is for campaigns.' };
+        if (s.phase !== 'move' || s.pending) return { error: 'Orders are given in the movement phase.' };
+        const u = byId(s, a.unit), m = getMap(s.scen);
+        if (!u || u.side !== s.active) return { error: 'That is not your unit.' };
+        if (u.moved) return { error: 'That unit has already moved or been given orders this turn.' };
+        const hex = a.hex || [u.c, u.r], k = K(...hex), here = K(u.c, u.r), d = dist([u.c, u.r], hex), hi = hexInfo(m, k);
+        const enemyNext = nbrs(m, u.c, u.r).some(([c, r]) => { const o = occMap(s).get(K(c, r)); return o && o.side !== u.side; });
+        const isEng = u.type === 'eng', bridgeHere = hi.river && (s.camp.bridges[k] || [...m.roadEdges].some(e => e.endsWith('|' + k))) && !s.camp.blown[k];
+        const done = (task, msg, extra = {}) => { u.moved = true; u.mvd = true; u.work = { task, hex: hex.slice(), from: here, ...extra }; log(s, 'move', `${unitLabel(s, u)} ${msg}`); return { ok: true }; };
+        switch (a.task) {
+          case 'demolish':
+            if (!(k === here || (isEng && d === 1))) return { error: 'Stand on the bridge (engineers: next to it) to demolish it.' };
+            if (!bridgeHere) return { error: 'There is no bridge there.' };
+            s.camp.blown[k] = 1; delete s.camp.bridges[k]; u.moved = true; u.mvd = true;
+            log(s, 'move', `${unitLabel(s, u)} blows the bridge`);
+            return { ok: true };
+          case 'bridge':
+            if (!isEng) return { error: 'Only engineers can bridge a river.' };
+            if (d !== 1 || !hi.river) return { error: 'Pick a river hex next to the engineers.' };
+            if (bridgeHere) return { error: 'There is already a bridge there.' };
+            if (enemyNext) return { error: 'Engineers cannot bridge under enemy fire.' };
+            return done('bridge', 'starts bridging the river');
+          case 'fortify':
+            if (!isEng || k !== here) return { error: 'Engineers fortify the hex they stand in.' };
+            if (s.camp.forts[k]) return { error: 'That hex is already fortified.' };
+            return done('fortify', 'starts building fortifications (2 turns)', { left: 2 });
+          case 'mines':
+            if (!isEng || k !== here) return { error: 'Engineers mine the hex they stand in.' };
+            return done('mines', 'starts laying mines');
+          case 'clear':
+            if (!isEng || d !== 1 || !s.camp.mines[k] || s.camp.mines[k] === u.side) return { error: 'Pick an enemy minefield next to the engineers.' };
+            return done('clear', 'starts clearing mines');
+          case 'cord':
+            if (!isEng || k !== here) return { error: 'Engineers lay corduroy on the road hex they stand in.' };
+            if (weather(s) !== 'mud') return { error: 'Corduroy roads are only needed in the mud.' };
+            if (![...m.roadEdges].some(e => e.startsWith(k + '|'))) return { error: 'There is no road here.' };
+            return done('cord', 'starts laying a corduroy road');
+        }
+        return { error: 'Unknown task.' };
+      }
+      case 'replace': {
+        if (!s.camp) return { error: 'Replacements are for campaigns.' };
+        if (s.phase !== 'move' || s.pending) return { error: 'Replacements are given in the movement phase.' };
+        const u = byId(s, a.unit), m = getMap(s.scen);
+        if (!u || u.side !== s.active) return { error: 'That is not your unit.' };
+        if (u.steps >= 2 || TYPES[u.type].steps) return { error: 'That unit is at full strength.' };
+        if (u.moved) return { error: 'That unit has already moved this turn.' };
+        if (u.oos) return { error: 'Out of supply: no replacements can reach it.' };
+        if (nbrs(m, u.c, u.r).some(([c, r]) => { const o = occMap(s).get(K(c, r)); return o && o.side !== u.side; })) return { error: 'Not while in contact with the enemy.' };
+        if (!inHQRange(s, u)) return { error: 'Replacements only reach units within 3 hexes of a headquarters.' };
+        if (s.camp.rp[s.active] < 1) return { error: 'No replacement points left.' };
+        s.camp.rp[s.active] = Math.round((s.camp.rp[s.active] - 1) * 10) / 10;
+        u.steps = 2; u.moved = true; u.mvd = true;
+        log(s, 'move', `${unitLabel(s, u)} brought back to strength`);
+        return { ok: true };
+      }
+      case 'rebuild': {
+        const rb = s.camp && SCEN[s.scen].campaign.rebuild;
+        if (!rb || rb.side !== s.active) return { error: 'This side cannot rebuild units.' };
+        if (s.phase !== 'move' || s.pending) return { error: 'Rebuild in the movement phase.' };
+        const dd = s.dead[a.dead];
+        if (!dd || dd.side !== s.active || dd.rebuilt || !rb.types.includes(dd.type)) return { error: 'That unit cannot be rebuilt.' };
+        if (s.camp.rp[s.active] < rb.cost) return { error: `Rebuilding needs ${rb.cost} replacement points.` };
+        const ct = SCEN[s.scen].cities.find(x => x.name === rb.at);
+        if (!ct || s.owner[K(ct.c, ct.r)] !== s.active) return { error: `${rb.at} must be held to rebuild there.` };
+        const at = placeNear(s, s.active, ct.c, ct.r, 1)[0];
+        if (!at) return { error: 'No room to rebuild.' };
+        s.camp.rp[s.active] = Math.round((s.camp.rp[s.active] - rb.cost) * 10) / 10;
+        dd.rebuilt = true;
+        const u = spawn(s, s.active, dd.type, dd.name, at, 0, 1); u.moved = true;
+        log(s, 'move', `${unitLabel(s, u)} rebuilt at ${ct.name}`);
+        return { ok: true };
+      }
+      case 'kiev': {
+        if (s.phase !== 'move' || s.pending) return { error: 'Decide in the movement phase.' };
+        const g = kievGroup(s);
+        if (g.why) return { error: g.why };
+        const kv = sc.campaign.kiev;
+        s.camp.kievDone = true;
+        s.camp.away = { side: kv.side, back: s.turn + kv.away, col: g.hq.c, units: g.units.map(u => ({ ...u })) };
+        s.units = s.units.filter(u => !g.units.includes(u));
+        s.camp.bonus[kv.side] += kv.vp;
+        // the Kiev pocket swallows Soviet reserves that would have reached this front later
+        let cut = kv.cut;
+        for (const r of s.camp.reinf.filter(r => r.side !== kv.side && !r.done && r.turn >= kv.cutFrom && r.turn <= kv.cutTo).reverse()) {
+          while (cut > 0 && r.units.length) { r.units.pop(); cut--; }
+          if (!r.units.length) r.done = true;
+        }
+        log(s, 'turn', `${unitLabel(s, g.hq)} turns south to Kiev with ${g.units.length - 1} divisions: back on turn ${s.camp.away.back}. Germany +${kv.vp} VP; ${kv.cut} Soviet reinforcements will never arrive.`);
         return { ok: true };
       }
       case 'phase': {
@@ -1560,6 +2262,9 @@ const Engine = (() => {
           return { ok: true, die, res };
         }
         const die = roll(s), res = CRT[o.fin][die - 1];
+        const stepsBefore = new Map([...us, tgt].map(u => [u.id, u.steps]));
+        if (s.camp) [...us, tgt].forEach(u => { u.cmb = s.turn; });
+        if (s.camp) us.forEach(u => { u.exert = true; });
         us.forEach(u => { u.attacked = true; if (u.dig && !TYPES[u.type].range) u.dig = null; });
         s.attacked.push(tk);
         log(s, 'combat', `${us.length > 1 ? us.length + ' units' : unitLabel(s, us[0])} attack ${unitLabel(s, tgt)} at ${COLS[o.fin]} odds: rolled ${die}, ${RESULT_TEXT[res].toLowerCase()}`);
@@ -1575,10 +2280,18 @@ const Engine = (() => {
           case 'D1': if (!loseStep(s, tgt)) { if (inCap) log(s, 'loss', 'Capital holds: no retreat'); else if (!retreat(s, tgt)) { log(s, 'loss', 'No line of retreat'); loseStep(s, tgt); } } break;
           case 'DE': while (alive(s, tgt)) loseStep(s, tgt); break;
         }
+        if (s.camp) {
+          const lostT = !alive(s, tgt) || tgt.steps < stepsBefore.get(tgt.id);
+          const lostA = us.some(u => !alive(s, u) || u.steps < stepsBefore.get(u.id));
+          const gain = u => { if (!alive(s, u) || u.lvl >= 3) return; u.xp = (u.xp || 0) + 1; if (u.xp >= CAMP.xpStep) { u.xp = 0; u.lvl++; log(s, 'move', `${unitLabel(s, u)} is now ${CAMP.xpName[u.lvl]}`); } };
+          if (lostT) us.forEach(gain);
+          if (lostA) gain(tgt);
+          if (res === 'A1' || res === 'AE') us.filter(u => u.lvl === 0).forEach(u => shake(s, u, 'repulsed')); // green troops lose heart when an attack fails
+        }
         const vacated = !alive(s, tgt) || tgt.c !== from[0] || tgt.r !== from[1];
         s.lastCombat = { target: from, die, res, col: o.fin, base: o.col, mult: o.mult, parts: o.parts, defBase: o.defBase, att: o.att, def: o.def, vacated, side: s.active, city: cityName, units: report(), turn: s.turn, held: inCap && (res === 'DR' || res === 'D1') };
         if (vacated) {
-          const adv = adjAtt.filter(u => alive(s, u)).map(u => u.id);
+          const adv = adjAtt.filter(u => alive(s, u) && !(u.mor > 0)).map(u => u.id);
           if (adv.length && !occMap(s).get(tk)) s.pending = { hex: from, units: adv };
         }
         checkWin(s);
@@ -1603,6 +2316,13 @@ const Engine = (() => {
         if (s.pending) return { error: 'Advance or skip first.' };
         checkWin(s, true);
         if (s.winner) return { ok: true };
+        if (s.camp) campEnd(s);
+        const fail = sc.victory.fail;
+        if (fail && s.active === 'B' && s.turn === fail.turn && vp(s, sc.victory.side) < fail.vp) {
+          s.winner = { side: other(sc.victory.side), reason: `${sc.sides[sc.victory.side].name} stalled: under ${fail.vp} VP on turn ${fail.turn}` };
+          log(s, 'end', `Game over: ${s.winner.reason}`);
+          return { ok: true };
+        }
         s.units.forEach(u => { u.moved = false; u.attacked = false; });
         s.prevTrails = s.trails; s.trails = []; s.attacked = []; s.bombarded = []; s.lastCombat = null;
         if (s.active === 'B') {
@@ -1611,7 +2331,9 @@ const Engine = (() => {
         }
         s.active = other(s.active); s.phase = 'move';
         for (const u of s.units) if (u.side === s.active && u.dig === 'digging') { u.dig = 'dug'; log(s, 'move', `${unitLabel(s, u)} entrenched`); }
+        if (s.camp) campStart(s);
         refreshSupply(s);
+        if (s.camp) campAfterSupply(s);
         const oos = s.units.filter(u => u.side === s.active && u.oos).length;
         log(s, 'turn', `Turn ${s.turn}: ${sc.sides[s.active].name} to move${oos ? ` (${oos} out of supply)` : ''}`);
         return { ok: true };
@@ -1627,7 +2349,7 @@ const Engine = (() => {
     return out;
   }
 
-  return { K, P, other, dist, nbrs, toCube, fromCube, TERRAIN, TYPES, COLS, THR, CRT, BOMBARD, RESULT_TEXT, SIGHT, SIGHT_RECON, DEF, OOS, supplyRange, fullName, sightBonus, stopsAt, defense, attackValue, highGround, nation, natOf, SCEN, SCEN_ORDER, getMap, hexInfo, terrainName, newGame, apply, reachable, eligibleAttackers, oddsFor, factors, supplyNet, zocOf, occMap, byId, vp, legalMoves, visibleHexes, canSee, fogView };
+  return { K, P, other, dist, nbrs, toCube, fromCube, TERRAIN, TYPES, COLS, THR, CRT, BOMBARD, RESULT_TEXT, SIGHT, SIGHT_RECON, DEF, OOS, CAMP, supplyRange, weather, dateOf, attackMods, kievGroup, checkpoints, inHQRange, intel, campScore, railConnected, knownTo, routeCost, partialSet, groundSight, step, fullName, sightBonus, stopsAt, defense, attackValue, highGround, nation, natOf, SCEN, SCEN_ORDER, CAMP_ORDER: CAMP_LIST, getMap, hexInfo, terrainName, newGame, apply, reachable, eligibleAttackers, oddsFor, factors, supplyNet, zocOf, occMap, byId, vp, legalMoves, visibleHexes, canSee, fogView };
 })();
 if (typeof module !== 'undefined') module.exports = Engine;
 
@@ -1640,9 +2362,9 @@ if (typeof module !== 'undefined') module.exports = Engine;
 const AI = (() => {
   // Test switches (Node only): NF=flag1,-flag2 turns features on/off, NK='{"knob":1}' overrides numbers.
   const ENV = (typeof process !== 'undefined' && process.env) ? process.env : {};
-  const AI_FLAGS = { noGuard: true, ghosts: true };
+  const AI_FLAGS = { noGuard: true, ghosts: true, camp: true };
   if (ENV.NF) for (const f of ENV.NF.split(',').filter(Boolean)) { if (f[0] === '-') delete AI_FLAGS[f.slice(1)]; else AI_FLAGS[f] = true; }
-  const KN = { expW: 0.5, coverW: 1.0, armorSafe: 1.6, cutW: 0.3, minCol: 3, terrW: 1.2, passes: 1, vmIn: 1.8, vmOut: 0.6, vmHold: 0.5, samples: 2, vpW: 4, capW: 6 };
+  const KN = { expW: 0.5, coverW: 1.0, armorSafe: 1.6, cutW: 0.3, minCol: 3, terrW: 1.2, passes: 1, campDecay: 0.85, tiredCost: 0.6, failK: 0.8, advW: 0.12, fatW: 0.8, restW: 0.8, vmIn: 1.8, vmOut: 0.6, vmHold: 0.5, samples: 2, vpW: 4, capW: 6 };
   if (ENV.NK) Object.assign(KN, JSON.parse(ENV.NK));
   const DANGER_K = KN.DK ?? 0.7, GUARD_K = KN.GK ?? 0.6;
   const E = (typeof Engine !== 'undefined') ? Engine : require('./engine.js');
@@ -1658,6 +2380,8 @@ const AI = (() => {
   let seed = 1;
   const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
 
+  // Campaign grades read as a target: the attacker aims for a minor victory.
+  const goal = sc => sc.victory.type === 'grades' ? { type: 'target', side: sc.victory.side, vp: sc.victory.grades[1].min } : sc.victory;
   let PR = PROFILES.hard; // profile in force (lookahead swaps in variants while planning)
 
   const typeVal = t => t.a + t.d + t.m * 0.5;
@@ -1691,7 +2415,7 @@ const AI = (() => {
       cityDist[ck] = d;
     }
     // role: who must take ground?
-    const v = sc.victory;
+    const v = goal(sc);
     let role = 'balanced';
     if (v.type === 'target') role = v.side === side ? 'attacker' : 'defender';
     const turnsLeft = sc.maxTurns - s.turn;
@@ -1751,7 +2475,9 @@ const AI = (() => {
       }
       if (side === atk && need <= 0) { objW *= KN.vmHold; defW = Math.max(defW, 0.9); }
     }
-    // objective potential per hex
+    // objective potential per hex (campaign maps are bigger: objectives pull from farther away)
+    const camp = !!s.camp && AI_FLAGS.camp;
+    const dec = camp ? KN.campDecay : 0.8;
     const pot = new Map(), guard = new Map(), ownPot = new Map();
     const cityThreat = {};
     for (const ct of sc.cities) {
@@ -1765,8 +2491,8 @@ const AI = (() => {
         const ck = K(ct.c, ct.r), own = s.owner[ck], d = cityDist[ck].get(k);
         if (d == null) continue;
         const w = ct.vp * (ct.cap ? 1.6 : 1) * (cityMul[ck] ?? 1);
-        if (own !== side) p += w * Math.pow(0.8, d);
-        else { op += w * Math.pow(0.8, d); if (cityThreat[ck] > 0) g += w * cityThreat[ck] * Math.pow(0.72, d); }
+        if (own !== side) p += w * Math.pow(dec, d);
+        else { op += w * Math.pow(dec, d); if (cityThreat[ck] > 0) g += w * cityThreat[ck] * Math.pow(dec * 0.9, d); }
       }
       pot.set(k, p); guard.set(k, g); ownPot.set(k, op);
     }
@@ -1779,12 +2505,19 @@ const AI = (() => {
       const behind = v.type === 'target' ? (v.side === side && E.vp(s, side) < v.vp) : E.vp(s, side) <= E.vp(s, enemy);
       if (behind) objW *= 2;
     }
+    // A deadline (campaign "stalled" rule): short of the VP needed by that turn, push for cities.
+    const fl = sc.victory.fail;
+    if (AI_FLAGS.failPush && fl && sc.victory.side === side && s.turn <= fl.turn && E.vp(s, side) < fl.vp) {
+      const short = fl.vp - E.vp(s, side), left = fl.turn - s.turn + 1;
+      objW *= 1 + Math.min(1.5, short / Math.max(1, left) * KN.failK);
+    }
     const myCap = sc.cities.find(ct => ct.cap && ct.owner === side);
     const supply = E.supplyNet(s, side);
     const supplyPen = E.supplyRange(sc, side) !== Infinity ? 9 : 5;
     const enemyPos = s.units.filter(u => u.side === enemy).map(u => [u.c, u.r]);
     const enemyAt = new Map(s.units.filter(u => u.side === enemy).map(u => [K(u.c, u.r), u]));
-    return { m, sc, side, enemy, role, ownPot, enemyAt, enemyEnter, threatList, myCap, matRatio, objW, defW, threat, threatN, pot, guard, cityThreat, supply, supplyPen, enemyPos, cityDist };
+    const adv = camp && role === 'attacker' ? KN.advW : 0, toward = sc.sides[side].edge === 'W' ? 1 : -1;
+    return { m, sc, side, enemy, role, ownPot, adv, toward, camp, enemyAt, enemyEnter, threatList, myCap, matRatio, objW, defW, threat, threatN, pot, guard, cityThreat, supply, supplyPen, enemyPos, cityDist };
   }
 
   function minEnemyDist(ctx, h) { let d = 99; for (const p of ctx.enemyPos) d = Math.min(d, E.dist(p, h)); return d; }
@@ -1861,6 +2594,12 @@ const AI = (() => {
     if (PR.noise) sc += (rnd() - 0.5) * 2 * PR.noise;
     if (AI_FLAGS.cut && ctx.cutBase != null) { const f2 = new Set(friendSet); f2.add(k); sc += KN.cutW * (enemyOOS(ctx, s, f2) - ctx.cutBase); }
     if (!ctx.supply.has(k)) sc -= ctx.supplyPen;
+    if (ctx.adv && !t.range && t.a) sc += ctx.adv * ctx.objW * (ctx.toward > 0 ? c : ctx.m.W - 1 - c);
+    if (ctx.camp) {
+      // a long move tires the unit; a tired unit would rather rest where it is
+      const f = u.fat || 0, rr = ctx.reachNow && ctx.reachNow.get(k);
+      if (rr && rr.cost > E.factors(s, u).m / 2 && f >= 1) sc -= KN.fatW * f;
+    }
     sc += 0.45 * Math.min(friends, 3);
     const city = ctx.m.cities[k];
     if (city) {
@@ -2080,7 +2819,8 @@ const AI = (() => {
         const r = attackEV(s, side, tgt, group, canRetreat(s, tgt, blocked, myPos), threatBonus(s, side, tgt));
         let expo = 0;
         if (AI_FLAGS.exposeG) for (const g of group) if (!g.stay) expo += danger(ctx, g.u, g.k, 1);
-        const score = r.ev - group.length * P_.unitCost - expo * KN.expW;
+        const tired = AI_FLAGS.restTired && s.camp ? group.reduce((t, g) => t + ((g.u.fat || 0) >= 2 ? KN.tiredCost * (g.u.fat - 1) : 0), 0) : 0;
+        const score = r.ev - group.length * P_.unitCost - expo * KN.expW - tired;
         if (!best || score > best.score) best = { score, ev: r.ev, members: group.slice() };
       }
       return best;
@@ -2110,6 +2850,7 @@ const AI = (() => {
       const cur = K(u.c, u.r), fs = friendSet();
       fs.delete(cur);
       ctx.cutBase = AI_FLAGS.cut ? enemyOOS(ctx, s, fs) : null;
+      ctx.reachNow = reach.get(u.id);
       let bestK = cur, bestS = hexScore(s, ctx, u, cur, fs);
       for (const k of reach.get(u.id).keys()) {
         if (taken.has(k)) continue;
@@ -2138,7 +2879,8 @@ const AI = (() => {
         const r = attackEV(s, side, t, mem, cr, tb);
         if (r.ev === -Infinity) continue;
         if (!E.oddsFor(s, tk, mem.map(x => x.u.id)).valid) continue;
-        const score = r.ev - mem.length * P_.unitCost;
+        const tired = AI_FLAGS.restTired && s.camp ? mem.reduce((t, x) => t + ((x.u.fat || 0) >= 2 ? KN.tiredCost * (x.u.fat - 1) : 0), 0) : 0;
+        const score = r.ev - mem.length * P_.unitCost - tired;
         if (!best || score > best.score) best = { score, ev: r.ev, target: [t.c, t.r], attackers: mem.map(x => x.u.id) };
       }
     }
@@ -2211,7 +2953,7 @@ const AI = (() => {
     let v = mat(side) - mat(en);
     const late = s.turn / sc.maxTurns;
     const vpW = KN.vpW * (0.6 + late);
-    const v_ = sc.victory;
+    const v_ = goal(sc);
     if (v_.type === 'target') {
       const got = E.vp(s, v_.side), need = v_.vp;
       // attacker's progress toward the target counts double when it is close to the line
@@ -2256,6 +2998,24 @@ const AI = (() => {
     return best.plan;
   }
 
+  // Air recon: fly over the unseen areas, closest to our front first, where the intel estimate shows the most enemy weight.
+  function reconFlights(s, side, doA) {
+    const m = E.getMap(s.scen), B = E.CAMP.intelBlock;
+    let guard = 0;
+    while ((s.camp.flights[side] || 0) > 0 && guard++ < 6) {
+      const vis = E.visibleHexes(s, side), mine = s.units.filter(u => u.side === side);
+      let best = null;
+      for (const b of E.intel(s, side)) {
+        const cx = Math.min(m.W - 1, b.c + Math.floor(b.w / 2)), cy = Math.min(m.H - 1, b.r + Math.floor(b.h / 2));
+        if (vis.has(K(cx, cy))) continue;
+        const d = Math.min(...mine.map(u => E.dist([u.c, u.r], [cx, cy])));
+        const sc = b.band * 2 - d * 0.35 + 1;
+        if (!best || sc > best.sc) best = { sc, hex: [cx, cy] };
+      }
+      if (!best || doA({ t: 'recon', hex: best.hex }).error) break;
+    }
+  }
+
   function takeTurn(real) {
     if (depth === 0) {
       PR = PROFILES[(real.level && real.level[real.active]) || ENV.LEVEL || 'hard'] || PROFILES.hard;
@@ -2267,6 +3027,15 @@ const AI = (() => {
     const doA = a => { const r = E.apply(s, a); if (!r.error) actions.push(a); return r; };
     if (s.winner) return actions;
     if (s.pending) doA({ t: 'advance', unit: chooseAdvance(view(), side) });
+    if (s.phase === 'move' && s.camp && s.fog) reconFlights(s, side, doA);
+    // The Kiev decision: take it once the drive has reached Smolensk (as in 1941); Easy never does.
+    if (s.phase === 'move' && s.camp && PR !== PROFILES.easy && depth === 0) {
+      const kv = E.SCEN[s.scen].campaign.kiev;
+      if (kv && kv.side === side && !E.kievGroup(s).why) {
+        const smolensk = E.checkpoints(s).find(c => c.city === 'Smolensk');
+        if (smolensk && smolensk.held) doA({ t: 'kiev' });
+      }
+    }
     if (s.phase === 'move') {
       const v = view();
       let plan;
@@ -2290,7 +3059,7 @@ if (typeof module !== 'undefined') module.exports = AI;
 // ===================== HEXFRONT UI =====================
 (() => {
   const E = Engine, K = E.K, P = E.P;
-  const VERSION = '0.17.0', BUILD = '2026-11-27';
+  const VERSION = '0.20.0', BUILD = '2026-11-27';
   const S = 30, SQ3 = Math.sqrt(3), SAVE_KEY = 'hexfront.v1';
   try { console.info(`Hexfront v${VERSION} (${BUILD})`); } catch (e) { /* ignore */ }
   const THEMES = {
@@ -2323,7 +3092,7 @@ if (typeof module !== 'undefined') module.exports = AI;
   let aiBusy = false, aiToken = 0, pickScen = null, pickWho = { A: 'human', B: 'ai' }, pickFog = false, pickLevel = 'hard';
   try { pickLevel = localStorage.getItem('hexfront.level') || 'hard'; } catch (e) { /* default hard */ }
   const LEVELS = [['easy', 'Easy'], ['normal', 'Normal'], ['hard', 'Hard']];
-  let showZoc = false, showSup = false, showLast = false, vb = null, mapW = 0, mapH = 0, staticFor = null, hoverEl = null;
+  let showZoc = false, showSup = false, showLast = false, showIntel = false, route = null, vb = null, mapW = 0, mapH = 0, staticFor = null, hoverEl = null;
   let mode = null, pop = null, tray = null, nextIdx = 0, mapOnly = false;
   const isAI = side => !!(state && state.players && state.players[side] === 'ai');
   const hasAI = () => isAI('A') || isAI('B');
@@ -2349,6 +3118,7 @@ if (typeof module !== 'undefined') module.exports = AI;
     undo: ic('<path d="M9 6L4 11l5 5"/><path d="M4 11h10.5a5 5 0 0 1 0 10H11"/>'),
     next: ic('<circle cx="11" cy="12" r="6.5"/><path d="M11 3v3M11 18v3M2 12h3M17 12h2.5"/><path d="M17.5 8.5L21 12l-3.5 3.5"/>'),
     last: ic('<path d="M4 19l4-4 4 2 4-6 4-3"/><circle cx="4" cy="19" r="1.4" fill="currentColor"/><circle cx="8" cy="15" r="1.4" fill="currentColor"/><circle cx="12" cy="17" r="1.4" fill="currentColor"/><circle cx="16" cy="11" r="1.4" fill="currentColor"/><path d="M17 5.5l3 2.5-3.6 1"/>'),
+    intel: ic('<path d="M2.5 13.5l8-2.2L14 4.5l1.6.4-1.7 6 6.1-1.6 1.5-2.3 1 .3-.8 3.6.8 3.6-1 .3-1.5-2.3-6.1-1.6 1.7 6-1.6.4-3.5-6.8-8-2.2z"/>'),
     maponly: ic('<path d="M3 6.5l6-2.5 6 2.5 6-2.5v13.5l-6 2.5-6-2.5-6 2.5z"/><path d="M9 4v13.5M15 6.5V20"/>'),
     battle: ic('<path d="M4 4l10 10M14 14l-2.5 2.5M15.5 15.5l4 4M20 4L10 14M10 14l2.5 2.5M8.5 15.5l-4 4"/>'),
     obj: ic('<path d="M5 21V4"/><path d="M5 4.5h12l-2.5 4 2.5 4H5"/>'),
@@ -2357,7 +3127,7 @@ if (typeof module !== 'undefined') module.exports = AI;
     unit: ic('<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 8.5h8v5H8z"/><path d="M8 8.5l8 5M16 8.5l-8 5"/><path d="M8.5 17h7"/>'),
     charts: ic('<rect x="3.5" y="4" width="17" height="16" rx="1.5"/><path d="M3.5 9h17M3.5 14.5h17M9.5 4v16M15 4v16"/>'),
   };
-  const TOOLS = [['fit', 'Fit'], ['tex', 'Terrain'], ['zoc', 'ZOC'], ['sup', 'Supply'], ['info', 'Info'], ['orders', 'Orders'], ['undo', 'Undo'], ['last', 'Moves'], ['maponly', 'Map only']];
+  const TOOLS = [['fit', 'Fit'], ['tex', 'Terrain'], ['intel', 'Intel'], ['zoc', 'ZOC'], ['sup', 'Supply'], ['info', 'Info'], ['orders', 'Orders'], ['undo', 'Undo'], ['last', 'Moves'], ['maponly', 'Map only']];
   const TRAYS = [['unit', 'Unit'], ['battle', 'Battle'], ['obj', 'Objectives'], ['forces', 'Forces'], ['log', 'Log'], ['charts', 'Charts']];
   $('toolbar').innerHTML = TOOLS.map(([k, l]) => `<button type="button" data-tool="${k}" aria-label="${l}">${ICONS[k]}<span>${l}</span></button>`).join('');
   $('bnav').innerHTML = TRAYS.map(([k, l]) => `<button type="button" data-tray="${k}" aria-label="${l}"${k === 'unit' ? ' class="desk"' : ''}>${ICONS[k]}<span>${l}</span></button>`).join('');
@@ -2438,6 +3208,9 @@ if (typeof module !== 'undefined') module.exports = AI;
       case 'hvy': return box + O + `<ellipse rx="${(bw / 2 - bw * 0.3).toFixed(1)}" ry="${Math.max(1.2, bh / 2 - bh * 0.36).toFixed(1)}" ${st} stroke-width="1"/>`;
       case 'rcn': return box + `<path d="M${x0} ${-y0}L${-x0} ${y0}" ${st} stroke-width="1.2"/>`;
       case 'cav': return box + O + `<path d="M${x0} ${-y0}L${-x0} ${y0}" ${st} stroke-width="1.1"/>`;
+      case 'hq': return box + `<text y="${(bh * 0.22).toFixed(1)}" text-anchor="middle" font-family="${FONT}" font-weight="700" font-size="${(bh * 0.62).toFixed(1)}" fill="${ink}">HQ</text>` + `<path d="M${x0} ${-y0}v${(bh * 0.45).toFixed(1)}" ${st} stroke-width="1.4"/>`;
+      case 'eng': return box + `<path d="M${(x0 + bw * 0.2).toFixed(1)} ${(bh * 0.22).toFixed(1)}V${(-bh * 0.18).toFixed(1)}H${(-x0 - bw * 0.2).toFixed(1)}V${(bh * 0.22).toFixed(1)}M0 ${(-bh * 0.18).toFixed(1)}V${(bh * 0.22).toFixed(1)}" ${st} stroke-width="1.3"/>`;
+      case 'unk': return `<rect x="${x0.toFixed(1)}" y="${y0.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" ${st} stroke-width="1.3" stroke-dasharray="2 2"/><text y="${(bh * 0.3).toFixed(1)}" text-anchor="middle" font-family="${FONT}" font-weight="700" font-size="${(bh * 0.85).toFixed(1)}" fill="${ink}">?</text>`;
       case 'hel': { const w = bw * 0.3, hh = bh * 0.28; return box + `<path d="M${-w} ${-hh}L${w} ${hh}L${w} ${-hh}L${-w} ${hh}Z" fill="${ink}" stroke="${ink}" stroke-width=".8" stroke-linejoin="round"/>`; }
     }
     return box;
@@ -2448,12 +3221,12 @@ if (typeof module !== 'undefined') module.exports = AI;
     const side = E.SCEN[scenId].sides[u.side], h = z / 2, ink = side.ink, t = E.TYPES[u.type];
     const nat = E.nation(scenId, u), fill = (nat && nat.color) || side.color;
     const f = opts.f || (u.steps < 2 ? { a: Math.ceil(t.a / 2), d: Math.ceil(t.d / 2), m: t.m } : t);
-    const fac = `${f.a}-${f.d}-${f.m}`;
+    const fac = `${Math.round(f.a)}-${Math.round(f.d)}-${f.m}`; // exact values (with campaign modifiers) are in Info
     let g = `<g${opts.uid != null ? ` data-uid="${opts.uid}"` : ''} transform="translate(${x.toFixed(1)},${y.toFixed(1)})" opacity="${opts.ghost ? 0.45 : opts.dim ? 0.55 : 1}">`;
     g += `<rect x="${-h + 1.6}" y="${-h + 2.6}" width="${z}" height="${z}" rx="3" fill="rgba(0,0,0,.38)"/>`;
     g += `<rect x="${-h}" y="${-h}" width="${z}" height="${z}" rx="3" fill="${fill}" stroke="rgba(10,8,4,.85)" stroke-width="1.4"${opts.ghost ? ' stroke-dasharray="3 2"' : ''}/>`;
     g += `<rect x="${-h + 1.5}" y="${-h + 1.5}" width="${z - 3}" height="${z - 3}" rx="2" fill="none" stroke="rgba(255,255,255,.18)"/>`;
-    if (u.steps < 2) g += `<path d="M${h - z * 0.28} ${-h}H${h - 3}Q${h} ${-h} ${h} ${-h + 3}V${-h + z * 0.28}Z" fill="${ink}" opacity=".8"/>`;
+    if (u.steps < 2 && !t.steps) g += `<path d="M${h - z * 0.28} ${-h}H${h - 3}Q${h} ${-h} ${h} ${-h + 3}V${-h + z * 0.28}Z" fill="${ink}" opacity=".8"/>`;
     const name = opts.ghost ? 'Last seen' : (u.name || t.name);
     const fitName = name.length > 8 ? ` textLength="${(z - 7).toFixed(1)}" lengthAdjust="spacingAndGlyphs"` : '';
     const near = `<text y="${(-h + z * 0.24).toFixed(1)}" text-anchor="middle" font-family="${FONT}" font-weight="600" font-size="${(z * 0.2).toFixed(1)}" fill="${ink}"${fitName}>${esc(name)}</text>` +
@@ -2466,13 +3239,24 @@ if (typeof module !== 'undefined') module.exports = AI;
     const nearStar = el ? `<g transform="translate(${((z * 0.25 + h - 1.5) / 2).toFixed(2)},${(-z * 0.02).toFixed(1)})">${star(0, 0.4, z * 0.08, ink)}</g>` : '';
     const far = `<g transform="translate(${farX.toFixed(1)},${(-z * 0.12).toFixed(1)})">${symbol(u.type, farW, farH, ink)}</g>` + farStar +
       `<text y="${(h - z * 0.08).toFixed(1)}" text-anchor="middle" font-family="${FONT}" font-weight="700" font-size="${(z * 0.3).toFixed(1)}" fill="${ink}" letter-spacing=".4">${opts.ghost ? '?' : fac}</text>`;
-    g += opts.lod === 'near' ? near + nearStar : `<g class="lod-near">${near}${nearStar}</g><g class="lod-far">${far}</g>`;
+    g += opts.lod === 'near' ? near + nearStar : `<g class="lod-near">${near}${nearStar}</g><g class="lod-far">${far}</g><g class="lod-op">${symbol(u.type, z * 0.74, z * 0.52, ink).replace(/stroke-width="1\.[0-9]"/g, 'stroke-width="3"')}</g>`;
     if (opts.oos) { const n = opts.oosT >= 2 ? String(opts.oosT) : ''; g += `<g transform="translate(${-h + 1},${-h + 1})"><circle r="${n ? 7.5 : 6.5}" fill="#c4412d" stroke="#1a1e18" stroke-width="1.2"/><text y="3.4" text-anchor="middle" font-family="${FONT}" font-weight="700" font-size="${n ? 8.5 : 10}" fill="#fff">S${n}</text></g>`; }
+    if (u.lvl != null && !opts.ghost && u.type !== 'unk') g += `<g class="cmark">${campMarks(u, h, ink)}</g>`;
     if (u.dig) { // amber while digging in, green once entrenched
       const dug = u.dig === 'dug';
       g += `<g transform="translate(${-h + 1},${h - 1})"><circle r="7.2" fill="${dug ? '#4f7f33' : '#d99a2b'}" stroke="#1a1e18" stroke-width="1.3"/><path d="M-4.2 1.8h8.4M-3.4 -.6h3M.6 -.6h3M-1.6 -3h3.2" stroke="${dug ? '#eaf3d8' : '#2a1c05'}" stroke-width="1.6" stroke-linecap="round"/></g>`;
     }
     return g + '</g>';
+  }
+  // Campaign marks: experience chevrons on the left edge, fatigue pips on the right, morale in the bottom-right corner.
+  function campMarks(u, h, ink) {
+    let o = '';
+    const lv = u.lvl || 0;
+    if (lv === 3 && !E.TYPES[u.type].elite) o += `<g transform="translate(${-h + 5},${-h + 18})">${star(0, 0, 3.6, ink)}</g>`;
+    else for (let i = 0; i < Math.min(2, lv); i++) o += `<path d="M${-h + 2.2} ${-h + 19 + i * 4}l2.6 -2.4l2.6 2.4" fill="none" stroke="${ink}" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>`;
+    for (let i = 0; i < (u.fat || 0); i++) o += `<circle cx="${h - 3.6}" cy="${-h + 15 + i * 5}" r="1.9" fill="${u.fat >= 3 ? '#e0563c' : '#e8a83a'}" stroke="#1a1e18" stroke-width=".6"/>`;
+    if (u.mor) o += `<path d="M${h} ${h - 11}V${h - 3}Q${h} ${h} ${h - 3} ${h}H${h - 11}Z" fill="${u.mor >= 2 ? '#d23c2a' : '#e9c22e'}" stroke="#1a1e18" stroke-width=".9"/>`;
+    return o;
   }
   const miniCounter = (u, z = 44, f) => `<svg viewBox="${-z / 2 - 2} ${-z / 2 - 2} ${z + 6} ${z + 6}" width="${z}" height="${z}" aria-hidden="true">${counterSVG(state.scen, u, 0, 0, z, { lod: 'near', f })}</svg>`;
 
@@ -2506,13 +3290,15 @@ if (typeof module !== 'undefined') module.exports = AI;
     return d;
   }
 
+  // Campaign maps change look with the weather: frost and winter turn the map white.
+  const themeKey = () => { const w = state.camp ? E.weather(state) : null; return w === 'frost' || w === 'winter' ? 'winter' : sc().theme; };
   // ---------- static map layer ----------
   function renderStatic() {
-    const m = E.getMap(state.scen), th = THEMES[sc().theme];
+    const m = E.getMap(state.scen), th = THEMES[themeKey()];
     mapW = S * 2 + 1.5 * S * (m.W - 1); mapH = S * SQ3 * (m.H + 0.5);
     let o = `<rect x="-22" y="-22" width="${mapW + 44}" height="${mapH + 44}" rx="6" fill="${th.frame}" stroke="#0d0f0b" stroke-width="3"/>`;
     let hexes = '', glyph = '', ids = '', tex = '', grid = '';
-    const set = TEX_SET[sc().theme];
+    const set = TEX_SET[themeKey()];
     for (let r = 0; r < m.H; r++) for (let c = 0; c < m.W; c++) {
       const k = K(c, r), ch = m.terr[k], [x, y] = center(c, r);
       hexes += `<polygon points="${hexPts(x, y)}" fill="${th[ch]}"/>`;
@@ -2524,7 +3310,7 @@ if (typeof module !== 'undefined') module.exports = AI;
         const px = TEX_MARGIN + S + hash(c, r, 22) * (TEX_SIZE - 2 * TEX_MARGIN - 2 * S);
         const py = TEX_MARGIN + S + hash(c, r, 23) * (TEX_SIZE - 2 * TEX_MARGIN - 2 * S);
         tex += `<g transform="translate(${x.toFixed(1)},${y.toFixed(1)})" clip-path="url(#hexclip)"><image href="images/${set}_${tname}_${v}.jpg" x="${(-px).toFixed(1)}" y="${(-py).toFixed(1)}" width="${TEX_SIZE}" height="${TEX_SIZE}" preserveAspectRatio="none"/></g>`;
-        if (!TEX_GLYPHS[sc().theme]) continue;
+        if (!TEX_GLYPHS[themeKey()]) continue;
       }
       if (ch === 'f') for (let i = 0; i < 4; i++) { const a = hash(c, r, i) * 6.28, d = 6 + hash(c, r, i + 9) * 9; glyph += `<circle cx="${(x + Math.cos(a) * d).toFixed(1)}" cy="${(y + Math.sin(a) * d * 0.8).toFixed(1)}" r="${(4.5 + hash(c, r, i + 3) * 2.5).toFixed(1)}" fill="${th.tree}" opacity=".75"/>`; }
       if (ch === 'h') for (let i = 0; i < 2; i++) { const ox = x - 12 + i * 12 + hash(c, r, i) * 6, oy = y - 6 + i * 9 + hash(c, r, i + 4) * 4; glyph += `<path d="M${(ox - 8).toFixed(1)} ${oy.toFixed(1)}q8 -11 16 0" fill="none" stroke="${th.hill}" stroke-width="1.8" stroke-linecap="round" opacity=".8"/>`; }
@@ -2537,15 +3323,19 @@ if (typeof module !== 'undefined') module.exports = AI;
     for (const p of m.riverPaths) rivers += `<path d="${curvePath(p, true)}"/>`;
     for (const p of m.roadPaths) roads += `<path d="${curvePath(p, false)}"/>`;
     o += `<defs><clipPath id="hexclip"><polygon points="${hexPts(0, 0, S + 0.6)}"/></clipPath></defs>`;
-    o += hexes + `<g opacity="${TEX_OPACITY[sc().theme] ?? 0.5}">${tex}</g>` + glyph + `<g fill="none" stroke="${useTex && !TEX_GLYPHS[sc().theme] ? 'rgba(30,26,16,.38)' : th.grid}" stroke-width="1">${grid}</g>`;
+    o += hexes + `<g opacity="${TEX_OPACITY[themeKey()] ?? 0.5}">${tex}</g>` + glyph + `<g fill="none" stroke="${useTex && !TEX_GLYPHS[themeKey()] ? 'rgba(30,26,16,.38)' : th.grid}" stroke-width="1">${grid}</g>`;
     o += `<g fill="none" stroke-linecap="round" stroke-linejoin="round"><g stroke="rgba(30,50,70,.25)" stroke-width="8.5">${rivers}</g><g stroke="${th.river}" stroke-width="6" opacity=".95">${rivers}</g><g stroke="rgba(255,255,255,.22)" stroke-width="1.6" transform="translate(-1,-1)">${rivers}</g></g>`;
     o += `<g fill="none" stroke-linecap="round" stroke-linejoin="round"><g stroke="rgba(255,250,230,.55)" stroke-width="5.5">${roads}</g><g stroke="${th.road}" stroke-width="2.6" stroke-dasharray="7 3">${roads}</g></g>`;
+    if (m.railPaths.length) { // railways: dark line with cross ties
+      let rails = ''; for (const p of m.railPaths) rails += `<path d="${curvePath(p, false)}"/>`;
+      o += `<g fill="none" stroke-linecap="butt" transform="translate(0,5)"><g stroke="#2d2923" stroke-width="6.5" stroke-dasharray="1.6 4.4" opacity=".75">${rails}</g><g stroke="#2d2923" stroke-width="1.8">${rails}</g></g>`;
+    }
     o += ids;
     const A = sc().sides.A, B = sc().sides.B;
     const edgeLbl = (side, x) => `<text transform="translate(${x},${mapH / 2}) rotate(-90)" text-anchor="middle" font-family="${FONT}" font-weight="700" font-size="11" letter-spacing="2" fill="${th.label}" opacity=".7">${esc(side.name.toUpperCase())} SUPPLY EDGE</text>`;
     o += edgeLbl(A.edge === 'W' ? A : B, -9) + edgeLbl(A.edge === 'W' ? B : A, mapW + 15);
     gStatic.innerHTML = o;
-    staticFor = state.scen;
+    staticFor = state.scen + '|' + themeKey() + '|' + useTex;
   }
 
   // City markers scale with value: 1 = small block, 2 = a town, 3 = a city filling the hex.
@@ -2599,6 +3389,52 @@ if (typeof module !== 'undefined') module.exports = AI;
     if (!PHONE.matches && tray === 'unit' && info) { const u = E.occMap(V()).get(info); return u ? u.id : null; }
     return null;
   }
+  // Who holds the ground: each hex goes to the side whose nearest known unit is closer (shown when zoomed out).
+  function territory(v, who) {
+    const m = E.getMap(state.scen), pts = { A: [], B: [] };
+    for (const u of v.units) pts[u.side].push([u.c, u.r]);
+    if (who && state.seen) for (const g of Object.values(state.seen[who] || {})) pts[E.other(who)].push([g.c, g.r]);
+    let o = { A: '', B: '' };
+    for (let r = 0; r < m.H; r++) for (let c = 0; c < m.W; c++) {
+      if (E.hexInfo(m, K(c, r)).impass) continue;
+      const da = Math.min(99, ...pts.A.map(p => E.dist(p, [c, r]))), db = Math.min(99, ...pts.B.map(p => E.dist(p, [c, r])));
+      if (da === db || Math.min(da, db) > 6) continue;
+      const [x, y] = center(c, r); o[da < db ? 'A' : 'B'] += `<polygon points="${hexPts(x, y, S + 0.5)}"/>`;
+    }
+    return `<g class="terr"><g fill="${hexA(sideOf('A').color, 0.22)}">${o.A}</g><g fill="${hexA(sideOf('B').color, 0.22)}">${o.B}</g></g>`;
+  }
+  // Campaign map overlays: mud, engineer works, recon flights, Intel shading, HQ range.
+  function campOverlay(v, who, vis) {
+    const cp = state.camp, m = E.getMap(state.scen); let o = '';
+    o += territory(v, who);
+    if (E.weather(state) === 'mud') o += `<rect x="-22" y="-22" width="${mapW + 44}" height="${mapH + 44}" fill="rgba(96,66,30,.16)"/>`;
+    const at = k => center(...P(k));
+    for (const k of Object.keys(cp.forts)) { const [x, y] = at(k); o += `<polygon points="${hexPts(x, y, S - 4)}" fill="none" stroke="#4a3b2b" stroke-width="3.2" stroke-dasharray="5 3"/>`; }
+    for (const k of Object.keys(cp.bridges)) { const [x, y] = at(k); o += `<g transform="translate(${x},${y + 13})"><rect x="-9" y="-3" width="18" height="6" rx="1" fill="#7a5a36" stroke="#2a1e12" stroke-width="1"/><path d="M-6 -3v6M0 -3v6M6 -3v6" stroke="#2a1e12" stroke-width=".8"/></g>`; }
+    for (const k of Object.keys(cp.blown)) { const [x, y] = at(k); o += `<g transform="translate(${x},${y + 13})"><path d="M-7 -5l14 10M7 -5l-14 10" stroke="#c0392b" stroke-width="3" stroke-linecap="round"/></g>`; }
+    for (const [k, sd] of Object.entries(cp.mines)) { const [x, y] = at(k); o += `<g transform="translate(${x - 14},${y + 10})"><path d="M0 -6l6 10h-12z" fill="#e9c22e" stroke="#1a1e18" stroke-width="1"/><text y="3" text-anchor="middle" font-family="${FONT}" font-weight="700" font-size="7" fill="#1a1e18">M</text></g>`; }
+    for (const k of Object.keys(cp.cord)) { const [x, y] = at(k); o += `<path d="M${x - 8} ${y + 16}h16M${x - 8} ${y + 19}h16" stroke="#6b4a24" stroke-width="2"/>`; }
+    // this turn's recon flights by the side whose eyes we use
+    const rs = who ? cp.rec[who] || [] : [];
+    for (const h of rs) { const [x, y] = center(...h); o += `<circle cx="${x}" cy="${y}" r="${S * 1.75 * (E.CAMP.reconR + 0.5)}" fill="rgba(80,150,200,.08)" stroke="rgba(60,130,190,.8)" stroke-width="2" stroke-dasharray="7 5"/>`; }
+    if (showIntel && who && state.fog) {
+      const name = ['', 'Light', 'Moderate', 'Heavy'];
+      for (const b of E.intel(state, who)) {
+        if (!b.band) continue;
+        const [x0, y0] = center(b.c, b.r), [x1, y1] = center(b.c + b.w - 1, b.r + b.h - 1);
+        const X = x0 - S, Y = y0 - S * SQ3 / 2, W = x1 - x0 + 2 * S, H = y1 - y0 + S * SQ3 * 1.5;
+        o += `<rect x="${X.toFixed(1)}" y="${Y.toFixed(1)}" width="${W.toFixed(1)}" height="${H.toFixed(1)}" fill="rgba(200,55,40,${(0.08 + b.band * 0.1).toFixed(2)})" stroke="rgba(160,40,30,.55)" stroke-width="1.5" stroke-dasharray="6 4"/>`;
+        o += `<text x="${(X + 6).toFixed(1)}" y="${(Y + 14).toFixed(1)}" font-family="${FONT}" font-weight="700" font-size="11" letter-spacing=".08em" fill="#7a1f14">${name[b.band].toUpperCase()}</text>`;
+      }
+    }
+    // command range of an HQ that is selected or open in Info
+    const look = sel != null ? E.byId(v, sel) : (infoUnitId() != null ? E.byId(v, infoUnitId()) : null);
+    if (look && look.type === 'hq') {
+      let hx = ''; for (let r = 0; r < m.H; r++) for (let c = 0; c < m.W; c++) if (E.dist([c, r], [look.c, look.r]) <= E.CAMP.hqRange) { const [x, y] = center(c, r); hx += `<polygon points="${hexPts(x, y, S - 1)}"/>`; }
+      o += `<g fill="rgba(232,168,58,.10)" stroke="rgba(232,168,58,.7)" stroke-width="1.4" stroke-dasharray="3 3">${hx}</g>`;
+    }
+    return o;
+  }
   const ring = (x, y, color, w, extra = '') => `<rect ${extra} x="${x - 24}" y="${y - 24}" width="48" height="48" rx="5" fill="none" stroke="${color}" stroke-width="${w}"/>`;
   function renderDyn() {
     const m = E.getMap(state.scen), th = THEMES[sc().theme], v = V(), who = viewer();
@@ -2613,7 +3449,9 @@ if (typeof module !== 'undefined') module.exports = AI;
       for (const k of net.keys()) { const [x, y] = center(...P(k)); o += `<circle cx="${x}" cy="${(y + S * 0.52).toFixed(1)}" r="4.6" fill="#3d7a35" stroke="#e9f2d8" stroke-width="1.2" opacity=".9"/>`; }
     }
     const su = sel != null ? E.byId(v, sel) : null;
-    if (su) for (const [k, r] of E.reachable(v, su)) {
+    if (route && (!su || route.unit !== sel)) route = null;
+    if (su && route) o += pathLine(route.path.length > 1 ? route.path : [route.path[0], route.path[0]], '#4ea0d8', { w: 3.4 });
+    if (su && !route) for (const [k, r] of E.reachable(v, su)) {
       const [x, y] = center(...P(k));
       o += r.drop
         ? `<polygon points="${hexPts(x, y, S - 2)}" fill="rgba(90,170,200,.22)" stroke="rgba(40,110,150,.75)" stroke-width="1.5" stroke-dasharray="4 3"/>`
@@ -2626,6 +3464,7 @@ if (typeof module !== 'undefined') module.exports = AI;
       const bo = ct.vp >= 3 ? 21 : ct.vp === 2 ? 18 : 12;
       o += `<g transform="translate(${x + bo},${y - bo})"><circle r="7" fill="${col}" stroke="#1a1e18" stroke-width="1.2"/><text y="3.5" text-anchor="middle" font-family="${FONT}" font-weight="700" font-size="10" fill="#fff">${ct.vp}</text></g>`;
     }
+    if (state.camp) o += campOverlay(v, who, vis);
     const seenOK = t => !vis || t.side === who || vis.has(K(...t.to)) || vis.has(K(...t.from));
     // Moves are hidden unless asked for: all of the last turn's with the Moves tool, or one unit's last move in its details.
     if (showLast) {
@@ -2697,8 +3536,17 @@ if (typeof module !== 'undefined') module.exports = AI;
     const nat = E.nation(state.scen, u);
     if (nat) rows.push(['Nationality', { html: `<span class="natrow">${natFlagSVG(nat.flag)}${esc(nat.name)}${nat.allied ? ' <em>allied contingent</em>' : ''}</span>` }]);
     else rows.push(['Nationality', { html: `<span class="natrow">${flagSVG(u.side)}${esc(sideOf(u.side).name)}</span>` }]);
-    if (t.elite) rows.push(['Elite', '★ Veteran formation']);
-    rows.push(['Strength', u.steps < 2 ? 'Reduced (1 step left)' : 'Full (2 steps)']);
+    if (t.elite && real.lvl == null) rows.push(['Elite', '★ Veteran formation']);
+    rows.push(['Strength', t.steps === 1 ? 'Single step' : u.steps < 2 ? 'Reduced (1 step left)' : 'Full (2 steps)']);
+    if (state.camp && real.lvl != null && u.type !== 'unk') {
+      const C = E.CAMP, pct = x => `${x > 1 ? '+' : '−'}${Math.round(Math.abs(x - 1) * 100)}%`;
+      rows.push(['Experience', `${C.xpName[real.lvl]}${C.xpAtt[real.lvl] !== 1 ? ` (attack ${pct(C.xpAtt[real.lvl])})` : ''}${real.lvl < 3 ? ` · ${real.xp || 0}/${C.xpStep} to ${C.xpName[real.lvl + 1]}` : ''}`]);
+      rows.push(['Morale', real.mor === 2 ? 'Broken: cannot attack, defense −25%' : real.mor === 1 ? 'Shaken: attack −25%, cannot advance' : 'Steady']);
+      rows.push(['Fatigue', `${['Fresh', 'Fresh (1 of 3)', 'Tired (2 of 3): attack −25%', 'Exhausted: attack −50%, slower'][real.fat || 0]}`]);
+      const mods = E.attackMods(state, real);
+      if (mods.length && t.a) rows.push(['Attack', `${u.steps < 2 ? Math.ceil(t.a / 2) : t.a} ${mods.map(x => `${x.what} ${pct(x.mul)}`).join(', ')} = ${fmtN(f.a)}`]);
+      if (real.work) rows.push(['Working', { bridge: 'Bridging the river (done next turn)', fortify: `Fortifying (${real.work.left} turn${real.work.left > 1 ? 's' : ''} left)`, mines: 'Laying mines (done next turn)', clear: 'Clearing mines (done next turn)', cord: 'Corduroy road (done next turn)' }[real.work.task]]);
+    }
     if (E.highGround(state, real)) rows.push(['High ground', '+1 attack when firing from here']);
     rows.push(['Terrain', `${E.terrainName(state.scen, hi.ch)}${hi.river ? ' + river' : ''}${hi.city ? ` · ${hi.city.name}` : ''}`]);
     const dv = E.defense(state, real);
@@ -2714,6 +3562,7 @@ if (typeof module !== 'undefined') module.exports = AI;
     if (mine && real.moved) rows.push(['This turn', u.dig === 'digging' ? 'Given orders' : 'Moved']);
     if (mine && real.attacked) rows.push(['This turn', 'Has attacked']);
     if (E.zocOf(state, E.other(u.side)).has(k)) rows.push(['Position', 'In enemy zone of control']);
+    if (state.camp) { const cp = state.camp; if (cp.forts[k]) rows.push(['Fortified', '+50% defense for whoever holds it']); if (cp.bridges[k]) rows.push(['Bridge', 'Built by engineers']); if (cp.blown[k]) rows.push(['Bridge', 'Blown']); if (cp.mines[k]) rows.push(['Minefield', `Laid by ${sideOf(cp.mines[k]).name}`]); }
     if (t.airdrop) rows.push(['Airdrop', real.dropped ? 'Used' : 'Ready']);
     return { f, t, rows, dv, base: u.steps < 2 ? { a: Math.ceil(t.a / 2), d: Math.ceil(t.d / 2), m: t.m } : t };
   }
@@ -2738,7 +3587,35 @@ if (typeof module !== 'undefined') module.exports = AI;
     else if (E.byId(state, u.id).moved) why = 'This unit has already moved this turn.';
     else if (E.byId(state, u.id).oos) why = 'Out of supply: it cannot dig in.';
     return `<div class="order"><b style="font:700 16px/1 var(--ui);letter-spacing:.04em;text-transform:uppercase">Entrench</b><p>Stay put and dig in. If not attacked before your next turn, it defends at +${Math.round(E.DEF.dug * 100)}% until it moves.</p>
-        <button type="button" class="primary" data-pop="entrench" data-unit="${u.id}" ${why ? 'disabled' : ''}>Entrench</button>${why ? `<p style="color:var(--signal)">${esc(why)}</p>` : ''}</div>`;
+        <button type="button" class="primary" data-pop="entrench" data-unit="${u.id}" ${why ? 'disabled' : ''}>Entrench</button>${why ? `<p style="color:var(--signal)">${esc(why)}</p>` : ''}</div>` + campOrders(u, mine);
+  }
+  // Would this order be accepted? Tried on a copy of the game; returns the refusal, or ''.
+  function tryAct(a) { const c = JSON.parse(JSON.stringify(state)); const r = E.apply(c, a); return r.error || ''; }
+  function campOrders(u, mine) {
+    if (!state.camp || !mine || state.phase !== 'move' || u.type === 'unk') return '';
+    const m = E.getMap(state.scen), real = E.byId(state, u.id), opts = [];
+    const add = (title, text, a, label) => { const why = tryAct(a); opts.push(`<div class="order"><b style="font:700 16px/1 var(--ui);letter-spacing:.04em;text-transform:uppercase">${title}</b><p>${text}</p><button type="button" class="primary" data-camp='${JSON.stringify(a)}' ${why ? 'disabled' : ''}>${label}</button>${why ? `<p style="color:var(--signal)">${esc(why)}</p>` : ''}</div>`); };
+    const kv = sc().campaign.kiev;
+    if (kv && u.type === 'hq' && u.name === kv.hq && u.side === kv.side && !state.camp.kievDone && state.turn >= kv.from && state.turn <= kv.to) {
+      const kg = E.kievGroup(state);
+      add('Send south to Kiev', `Hitler's order of August 1941. ${kg.units ? `${kg.units.length - 1} panzer and motorized divisions within 3 hexes go with this HQ` : 'This HQ and every panzer or motorized division within 3 hexes go'}, leave the map for ${kv.away} turns and come back tired at the south edge. Germany gains ${kv.vp} VP for the Kiev pocket and ${kv.cut} Soviet reinforcements due later never arrive. Decide by turn ${kv.to}.`, { t: 'kiev' }, 'Go to Kiev');
+    }
+    if (real.steps < 2 && !E.TYPES[real.type].steps) add('Replacements', `Bring it back to full strength for 1 replacement point (you have ${fmtN(state.camp.rp[state.active])}). Needs supply, an HQ within 3 hexes, and no enemy next to it.`, { t: 'replace', unit: u.id }, 'Replace');
+    const here = K(u.c, u.r), hi = E.hexInfo(m, here);
+    const hasBridge = k => m.river.has(k) && !state.camp.blown[k] && (state.camp.bridges[k] || [...m.roadEdges].some(e => e.endsWith('|' + k)));
+    if (hasBridge(here)) add('Demolish bridge', 'Blow the bridge this unit stands on. Nobody can then cross here without stopping until engineers rebuild it.', { t: 'work', unit: u.id, task: 'demolish' }, 'Blow bridge');
+    if (u.type === 'eng') {
+      const nb = E.nbrs(m, u.c, u.r).map(([c, r]) => [c, r]);
+      for (const h of nb.filter(h => m.river.has(K(...h)))) {
+        add(`Bridge hex ${hexId(...h)}`, 'Spend the turn bridging this river hex. From your next turn anyone crosses it without stopping, until it is blown.', { t: 'work', unit: u.id, task: 'bridge', hex: h }, 'Build bridge');
+        if (hasBridge(K(...h))) add(`Demolish hex ${hexId(...h)}`, 'Blow the bridge in this neighbouring river hex.', { t: 'work', unit: u.id, task: 'demolish', hex: h }, 'Blow bridge');
+      }
+      add('Fortify', 'Spend 2 turns here building fortifications: +50% defense for whoever holds the hex, for the rest of the campaign.', { t: 'work', unit: u.id, task: 'fortify' }, 'Fortify');
+      add('Lay mines', 'Spend the turn mining this hex. Enemy units entering it stop and become Tired. Move off it next turn.', { t: 'work', unit: u.id, task: 'mines' }, 'Lay mines');
+      for (const h of nb.filter(h => state.camp.mines[K(...h)] && state.camp.mines[K(...h)] !== u.side)) add(`Clear mines ${hexId(...h)}`, 'Spend the turn clearing this enemy minefield.', { t: 'work', unit: u.id, task: 'clear', hex: h }, 'Clear');
+      if (E.weather(state) === 'mud') add('Corduroy road', 'Lay logs on this road hex so it stays fast through the mud.', { t: 'work', unit: u.id, task: 'cord' }, 'Lay corduroy');
+    }
+    return opts.join('');
   }
   const fmtN = n => (Math.round(n * 10) / 10).toString();
   function statsHTML(f, base, dv) {
@@ -2782,13 +3659,16 @@ if (typeof module !== 'undefined') module.exports = AI;
     }
     el.style.left = left + 'px'; el.style.top = top + 'px';
   }
+  const campClick = e => { const b = e.target.closest('[data-camp]'); if (!b || b.disabled) return false; const a = JSON.parse(b.dataset.camp); closePop(); const r = act(a); if (!r.error) toast2(a.t === 'replace' ? 'Back to full strength.' : 'Orders given.'); return true; };
   $('detail').addEventListener('click', e => {
+    if (campClick(e)) return;
     const b = e.target.closest('[data-pop="entrench"]'); if (!b) return;
     const r = act({ t: 'entrench', unit: Number(b.dataset.unit) });
     if (!r.error) toast2('Digging in. Entrenched at the start of your next turn if not attacked.');
   });
   $('pop').addEventListener('click', e => {
     if (Date.now() - popAt < 400) return; // ignore the tap that opened it
+    if (campClick(e)) return;
     const b = e.target.closest('[data-pop]'); if (!b) return;
     if (b.dataset.pop === 'close') closePop();
     if (b.dataset.pop === 'entrench') {
@@ -2863,12 +3743,12 @@ if (typeof module !== 'undefined') module.exports = AI;
     const elig = E.eligibleAttackers(state, target), ids = [...atk].filter(id => elig.includes(id));
     const o = E.oddsFor(state, target, ids), tgt = E.occMap(state).get(target);
     if (!tgt) { target = null; atk.clear(); return renderCombat(); }
-    const list = elig.map(id => { const u = E.byId(state, id), av = E.attackValue(state, u), rng = E.dist([u.c, u.r], [tgt.c, tgt.r]) > 1; return `<li data-atk="${id}" class="${atk.has(id) ? '' : 'off'}"><span>${esc(fname(u))}${rng ? ' (firing from range)' : ''}${E.highGround(state, u) ? ' · high ground +1' : ''}${u.oos ? ' · out of supply, halved' : ''}</span><b>${av}</b></li>`; }).join('');
+    const list = elig.map(id => { const u = E.byId(state, id), av = E.attackValue(state, u), rng = E.dist([u.c, u.r], [tgt.c, tgt.r]) > 1; return `<li data-atk="${id}" class="${atk.has(id) ? '' : 'off'}"><span>${esc(fname(u))}${rng ? ' (firing from range)' : ''}${E.highGround(state, u) ? ' · high ground +1' : ''}${u.oos ? ' · out of supply, halved' : ''}${E.attackMods(state, u).map(x => ` · ${x.what} ${x.mul > 1 ? '+' : '−'}${Math.round(Math.abs(x.mul - 1) * 100)}%`).join('')}</span><b>${fmtN(av)}</b></li>`; }).join('');
     const fin = o.fin >= 0 ? E.COLS[o.fin] : '—';
     const defTxt = o.parts.length ? `defense ${o.defBase} ${o.parts.map(p => `+${p.pct}% ${p.what}`).join(', ')} = ${fmtN(o.def)}` : `defense ${o.def}`;
     const arts = elig.filter(id => E.TYPES[E.byId(state, id).type].range);
-    el.innerHTML = `<ul class="atklist">${list}<li class="total"><span>Against ${esc(fname(tgt))} (${esc(defTxt)})</span><b>${o.att} : ${fmtN(o.def)}</b></li></ul>
-      <div class="odds"><b>${fin}</b>${o.bombard ? '<span class="mode">Bombardment</span>' : ''}<span>odds${(tgt.oosT || 0) >= E.OOS.defHalf ? ' · defender cut off, defense halved' : ''}</span></div>
+    el.innerHTML = `<ul class="atklist">${list}<li class="total"><span>Against ${esc(fname(tgt))} (${esc(defTxt)})</span><b>${fmtN(o.att)} : ${fmtN(o.def)}</b></li></ul>
+      <div class="odds"><b>${fin}</b>${o.bombard ? '<span class="mode">Bombardment</span>' : ''}<span>odds${(tgt.oosT || 0) >= E.OOS.defHalf ? ' · defender cut off, defense halved' : ''}${o.assault ? ' · engineers: entrenchment and fortifications ignored' : ''}</span></div>
       ${o.fin >= 0 ? `<p class="empty" style="margin:0 0 6px">If you roll:</p>${crtCells(o.bombard ? E.BOMBARD : E.CRT, o.fin)}` : ''}
       ${o.dug && o.bombard ? '<p class="empty" style="color:var(--ok);margin-bottom:8px">Shelling will destroy its entrenchment, hit or miss.</p>' : ''}
       ${o.valid ? '' : `<p class="empty" style="color:var(--danger);margin-bottom:10px">${esc(o.why)}</p>`}
@@ -2876,6 +3756,7 @@ if (typeof module !== 'undefined') module.exports = AI;
   }
   function renderObjectives() {
     const s = sc(), who = viewer();
+    if (state.camp) return renderCampObjectives(s, who);
     $('score').innerHTML = ['A', 'B'].map(sd => {
       const sdd = sideOf(sd), n = state.units.filter(u => u.side === sd).length;
       const hide = state.fog && who && sd !== who;
@@ -2899,6 +3780,34 @@ if (typeof module !== 'undefined') module.exports = AI;
       <section><h3>Scenario rules</h3><ul class="rulelist">${rules.map(r => `<li>${esc(r)}</li>`).join('')}</ul></section>
       <section><h3>Cities</h3><ul class="citylist">${s.cities.map(ct => { const own = state.owner[K(ct.c, ct.r)]; return `<li><span>${ct.cap ? '★ ' : ''}${esc(ct.name)}</span><span class="own"><i style="background:${own ? sideOf(own).color : '#8a8572'}"></i>${own ? esc(sideOf(own).short) : 'Neutral'}</span><span class="vp">${ct.vp}</span></li>`; }).join('')}</ul></section>`;
   }
+  function renderCampObjectives(s, who) {
+    const v = s.victory, cp = state.camp, score = E.campScore(state), net = cp.lost[E.other(v.side)] - cp.lost[v.side];
+    $('score').innerHTML = ['A', 'B'].map(sd => { const sdd = sideOf(sd), n = state.units.filter(u => u.side === sd).length, hide = state.fog && who && sd !== who;
+      return `<div style="border-left-color:${sdd.color}"><small>${esc(sdd.name)}</small><b>${E.vp(state, sd)}</b> <em>points · ${hide ? '?' : n} units · ${cp.lost[sd]} steps lost</em></div>`; }).join('');
+    const g = v.grades.find(x => score >= x.min) || v.grades[v.grades.length - 1];
+    const bonus = (cp.bonus && cp.bonus[v.side]) || 0;
+    $('objective').textContent = `${s.sides[v.side].name} score ${score} (${E.vp(state, v.side)} VP ${net >= 0 ? '+' : '−'} ${Math.abs(Math.trunc(net / v.material))} for ${Math.abs(net)} net enemy steps destroyed${bonus ? ` + ${bonus} Kiev` : ''}). If the campaign ended now: ${g.name}. Taking Moscow (★) wins at once.`;
+    const grades = v.grades.map((x, i) => `<li${x === g ? ' class="now"' : ''}><span>${esc(x.name)}</span><span class="vp">${i === v.grades.length - 1 ? `under ${v.grades[i - 1].min}` : i === 0 ? `${x.min}+` : `${x.min}–${v.grades[i - 1].min - 1}`}</span></li>`).join('');
+    const wx = cp.wx.map((p, i) => { const to = cp.wx[i + 1] ? cp.wx[i + 1].from - 1 : s.maxTurns; return p.from > s.maxTurns || to < p.from ? '' : `<li${E.weather(state) === p.w ? ' class="now"' : ''}><span>${esc(E.CAMP.wxName[p.w])}</span><span class="vp">turns ${p.from}–${to} · ${esc(E.dateOf(state, p.from))}</span></li>`; }).join('');
+    const C = E.CAMP, rules = [
+      `Weather: summer is normal. In autumn mud every off-road hex ends a move and roads cost 1 MP; German supply reaches only ${s.campaign.supply.A.mud} hexes. Frost freezes rivers and marsh but tires the Germans; winter snow costs 2 MP off-road and cuts German attacks by 25%.`,
+      `Fatigue: a unit that attacks or moves more than half its MP gains a pip at the end of the turn (up to 3). Any other turn it loses one, two if it stayed put in supply away from the enemy, and one more within 3 hexes of an HQ. Tired units attack at −25%, exhausted at −50% and move slower.`,
+      `Morale: losing a step or retreating shakes a unit (attack −25%, no advance). Shaken and hit again, or cut off, it breaks (no attack, defense −25%). Units rally in supply near an HQ, or after 2 quiet turns.`,
+      `Experience: Green −20%, Regular, Veteran +15%, Elite +30% attack. Units gain a level after ${C.xpStep} winning battles.`,
+      `Headquarters: units within ${C.hqRange} hexes attack 15% harder, rally, rest faster and can take replacements.`,
+      `Railheads: German supply reaches ${s.campaign.supply.A.range} hexes from the west edge or a railhead. A captured rail city becomes a railhead 2 turns later (1 with engineers there), if the rail back west is unbroken.`,
+      `Reinforcements arrive at rail cities linked by rail to the east edge or Moscow. Cut the line and they are delayed a turn, then come in further back.`,
+      state.fog ? `Air recon: tap Intel, then a hex, to reveal everything within ${C.reconR} hexes this turn. Units in forest or entrenched in cities show only as unknown.` : 'Fog of war is off: all units are visible.',
+      `Score: VP held, plus 1 for every ${v.material} enemy steps destroyed beyond your own losses. Germany also loses at once if it holds under ${v.fail.vp} VP after turn ${v.fail.turn}.`,
+    ];
+    $('objExtra').innerHTML = `<section><h3>Results</h3><ul class="citylist grades">${grades}</ul></section>
+      ${(v.checkpoints || []).length ? `<section><h3>Historical pace</h3><ul class="citylist grades">${E.checkpoints(state).map(c => `<li${!c.held && state.turn > c.turn ? '' : c.held ? ' class="now"' : ''}><span>${esc(c.city)} by turn ${c.turn}</span><span class="vp">${c.held ? 'Taken' : state.turn > c.turn ? 'Behind' : 'Not yet'}</span></li>`).join('')}</ul></section>` : ''}
+      ${s.campaign.kiev ? `<section><h3>The Kiev decision</h3><p class="brief">${cp.kievDone ? (cp.away ? `Panzer Group 2 is away in the south and returns on turn ${cp.away.back}.` : 'Panzer Group 2 went south to Kiev.') : state.turn > s.campaign.kiev.to ? 'Germany kept Panzer Group 2 on the road to Moscow.' : `On turns ${s.campaign.kiev.from}–${s.campaign.kiev.to} Germany may send Panzer Group 2 south (Orders on its HQ): +${s.campaign.kiev.vp} VP and ${s.campaign.kiev.cut} fewer Soviet reinforcements, but its panzers are gone for ${s.campaign.kiev.away} turns.`}</p></section>` : ''}
+      <section><h3>Weather</h3><ul class="citylist grades">${wx}</ul></section>
+      <section><h3>Briefing</h3><p class="brief">${esc(s.blurb)}</p></section>
+      <section><h3>Campaign rules</h3><ul class="rulelist">${rules.map(r => `<li>${esc(r)}</li>`).join('')}</ul></section>
+      <section><h3>Cities</h3><ul class="citylist">${s.cities.map(ct => { const own = state.owner[K(ct.c, ct.r)]; return `<li><span>${ct.cap ? '★ ' : ''}${esc(ct.name)}${ct.rail ? ' <small style="color:var(--muted)">rail</small>' : ''}</span><span class="own"><i style="background:${own ? sideOf(own).color : '#8a8572'}"></i>${own ? esc(sideOf(own).short) : 'Neutral'}</span><span class="vp">${ct.vp}</span></li>`; }).join('')}</ul></section>`;
+  }
   let forcesSide = 'mine';
   function renderForces() {
     const me = viewer() || state.active;
@@ -2918,7 +3827,19 @@ if (typeof module !== 'undefined') module.exports = AI;
     const lost = (state.dead || []).filter(d => d.side === who);
     const seg = `<div class="seg forceseg" role="group" aria-label="Whose forces"><button type="button" data-fs="mine" aria-pressed="${forcesSide === 'mine'}">${esc(sideOf(me).name)}</button><button type="button" data-fs="enemy" aria-pressed="${forcesSide === 'enemy'}">${esc(sideOf(E.other(me)).name)}</button></div>`;
     const status2 = u => (who === me ? status(u) : [u.steps < 2 ? 'Reduced' : 'Full strength', u.dig === 'dug' ? 'Entrenched' : ''].filter(Boolean).join(' · '));
-    $('forces').innerHTML = `${seg}<h3 style="margin:12px 0 8px;font:600 13px/1 var(--ui);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)">${esc(sd.name)} · ${state.fog && who !== me ? `${mine.length} in sight` : `${mine.length} units`}</h3>
+    const H3 = t => `<h3 style="margin:14px 0 8px;font:600 13px/1 var(--ui);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)">${t}</h3>`;
+    let campHTML = '';
+    if (state.camp && who === me) {
+      const cp = state.camp, rb = sc().campaign.rebuild;
+      const due = cp.reinf.filter(r => r.side === who && !r.done).sort((a, b) => a.turn - b.turn);
+      campHTML = H3(`Replacement points · ${fmtN(cp.rp[who])}`) + `<p class="empty" style="margin:0 0 6px">1 point brings a reduced unit back to full strength (Orders). It must be in supply, within 3 hexes of an HQ, and not next to the enemy.</p>`;
+      if (rb && rb.side === who) {
+        const can = (state.dead || []).map((d, i) => [d, i]).filter(([d]) => d.side === who && !d.rebuilt && rb.types.includes(d.type));
+        if (can.length) campHTML += `<ul class="forces">${can.map(([d, i]) => { const why = tryAct({ t: 'rebuild', dead: i }); return `<li class="lost">${miniCounter({ side: d.side, type: d.type, steps: 1, name: d.name }, 36)}<div><b>${esc(d.full || E.fullName(d.name) || E.TYPES[d.type].name)}</b><small>Rebuild at ${esc(rb.at)} for ${rb.cost} points</small></div><button type="button" class="mini" data-rebuild="${i}" ${why || who !== state.active || isAI(who) ? 'disabled' : ''} title="${esc(why)}">Rebuild</button></li>`; }).join('')}</ul>`;
+      }
+      campHTML += H3(`Reinforcements · ${due.length} to come`) + (due.length ? `<ul class="forces">${due.map(r => `<li><div><b>${esc(r.units.map(x => E.fullName(x[1]) || x[1]).join(', '))}</b><small>${r.turn <= state.turn ? 'Next turn' : `Turn ${r.turn} · ${esc(E.dateOf(state, r.turn))}`} · ${r.at ? `at ${esc(r.at)}` : 'at the map edge'}${r.delayed ? ' · delayed: rail cut' : ''}</small></div><span class="st">${r.units.length} unit${r.units.length > 1 ? 's' : ''}</span></li>`).join('')}</ul>` : '<p class="empty">No more reinforcements are expected.</p>');
+    }
+    $('forces').innerHTML = `${seg}${campHTML}<h3 style="margin:12px 0 8px;font:600 13px/1 var(--ui);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)">${esc(sd.name)} · ${state.fog && who !== me ? `${mine.length} in sight` : `${mine.length} units`}</h3>
       <ul class="forces">${mine.map(u => `<li data-unit="${u.id}">${miniCounter(u, 36, E.factors(state, E.byId(state, u.id)))}<div><b>${esc(fname(u))}</b><small>${esc(E.TYPES[u.type].name)} · hex ${hexId(u.c, u.r)}</small></div><span class="st">${esc(status2(u))}</span></li>`).join('')}
       ${ghosts.map(([id, g]) => `<li class="lost" data-ghost="${id}">${miniCounter({ side: who, type: g.type, steps: g.steps, name: g.name }, 36)}<div><b>${esc(E.fullName(g.name) || E.TYPES[g.type].name)}</b><small>Last seen at hex ${hexId(g.c, g.r)}, turn ${g.turn}</small></div><span class="st">Not in sight</span></li>`).join('')}
       ${!mine.length && !ghosts.length ? '<li class="lost" style="grid-template-columns:1fr"><small>No enemy units in sight.</small></li>' : ''}</ul>
@@ -2928,7 +3849,7 @@ if (typeof module !== 'undefined') module.exports = AI;
     const pc = x => x ? `+${Math.round(x * 100)}%` : '—';
     const tr = Object.entries(E.TERRAIN).map(([ch, t]) => `<tr><td style="text-align:left">${esc(E.terrainName(state.scen, ch))}</td><td>${t.impass ? 'Impassable' : t.stop ? 'Stop (road: ½)' : '1 (road: ½)'}</td><td>${t.impass ? '—' : pc(t.def)}</td><td>${t.sight ? '+' + t.sight : '—'}</td></tr>`).join('');
     const tbl = (T, f = r => r) => `<tr><th>Die</th>${E.COLS.map(c => `<th>${c}</th>`).join('')}</tr>` + [0, 1, 2, 3, 4, 5].map(d => `<tr><th>${d + 1}</th>${T.map(col => `<td>${f(col[d])}</td>`).join('')}</tr>`).join('');
-    const units = Object.entries(E.TYPES).map(([k, t]) => `<tr><td style="text-align:left">${t.name}</td><td>${t.a}-${t.d}-${t.m}</td><td style="text-align:left">${t.note || ''}</td></tr>`).join('');
+    const units = Object.entries(E.TYPES).filter(([k]) => k !== 'unk').map(([k, t]) => `<tr><td style="text-align:left">${t.name}</td><td>${t.a}-${t.d}-${t.m}</td><td style="text-align:left">${t.note || ''}</td></tr>`).join('');
     return `<div class="tblwrap"><h3>Terrain</h3><table class="crt"><tr><th style="text-align:left">Terrain</th><th>Movement</th><th>Defense</th><th>Sight</th></tr>${tr}<tr><td style="text-align:left">City / capital</td><td>1 (never a stop)</td><td>${pc(E.DEF.city)} / ${pc(E.DEF.capital)}</td><td>—</td></tr><tr><td style="text-align:left">River hex</td><td>Stop (bridge: ½)</td><td>${pc(E.DEF.river)} more</td><td>—</td></tr><tr><td style="text-align:left">Entrenched unit</td><td>—</td><td>${pc(E.DEF.dug)} more</td><td>—</td></tr></table><p class="empty" style="margin-top:6px">Defense bonuses add up: infantry (4) entrenched in forest defends at 4 × 2 = 8. A city uses its own bonus or the terrain’s, whichever is better.</p></div>
     <div class="tblwrap"><h3>Combat results</h3><table class="crt">${tbl(E.CRT)}</table><p class="empty" style="margin-top:6px">AE all adjacent attackers lose a step · A1 strongest attacker loses a step · EX both lose a step · DR defender retreats · D1 defender loses a step and retreats · DE defender eliminated.</p></div>
     <div class="tblwrap"><h3>Bombardment (artillery only)</h3><table class="crt">${tbl(E.BOMBARD, r => (r === '-' ? '—' : 'Hit'))}</table><p class="empty" style="margin-top:6px">A hit costs the defender one step. Artillery is never hurt; the defender never retreats.</p></div>
@@ -2939,14 +3860,16 @@ if (typeof module !== 'undefined') module.exports = AI;
     <div><h3>Movement and orders</h3><ul><li>Each hex costs 1 movement point (MP); along a road it costs ½.</li><li><b>Difficult ground stops you:</b> entering forest, hills, mountains, marsh or a river hex ends the unit’s move, unless it is following a road (a bridge, for rivers). Cities never stop a move. Helicopters fly over it all.</li><li>The six hexes around an enemy unit are its zone of control (ZOC). A unit entering one must stop, and cannot move directly from one enemy ZOC hex to another. A unit can always move at least one hex.</li><li><b>Entrench</b> (order): instead of moving, a unit digs in. If it is not attacked or bombarded before its side's next turn, it becomes entrenched: +${Math.round(E.DEF.dug * 100)}% defense until it moves or retreats. Units out of supply cannot dig in.</li></ul></div>
     <div><h3>Combat</h3><ul><li>Add up the attack factors of the units you choose and compare them with the defender's defense. Terrain, cities, rivers and entrenchment raise the defense (see the Terrain table). The odds are rounded down to the nearest column, then you roll one die.</li><li><b>Bombardment:</b> artillery may attack alone from up to two hexes away, using the bombardment table. It is never hurt and the defender never retreats, but a hit costs a step, which can destroy an already reduced unit. A hex can be bombarded once and assaulted once per turn.</li><li>Shelling an entrenched unit always destroys its entrenchment, hit or miss. Infantry, armor and mechanized units that attack give up their entrenchment; artillery keeps it.</li><li><b>High ground:</b> artillery firing from hills or mountains adds +1 to its attack.</li><li><b>Capitals hold:</b> a unit defending a capital (★) never retreats; it loses a step instead.</li><li>If the defender's hex empties, one adjacent attacker may advance into it.</li></ul></div>
     <div><h3>Supply</h3><ul><li>At the start of your turn, each unit traces a path to your home map edge or a friendly supply city. Enemy units and enemy ZOC block it, unless a friendly unit stands in that hex. Some fronts limit how long the path can be.</li><li><b>1st turn cut off:</b> half attack, half movement, cannot dig in (red S on the counter).</li><li><b>${E.OOS.defHalf}nd turn:</b> defense is halved too.</li><li><b>${E.OOS.attrition}rd turn on:</b> the unit loses a step at the start of each of its turns until supply is restored. Surrounding an enemy and holding the ring wears it down.</li></ul></div>
-    <div><h3>Fog of war (optional)</h3><ul><li>Each side sees ${E.SIGHT} hexes from its units (${E.SIGHT_RECON} for recon), and ${E.TERRAIN.h.sight} more from hills or mountains. Unseen enemy units are hidden; their last known position is shown faded.</li></ul></div>` + chartsHTML();
+    <div><h3>Fog of war (optional)</h3><ul><li>Each side sees ${E.SIGHT} hexes from its units (${E.SIGHT_RECON} for recon and cavalry), and ${E.TERRAIN.h.sight} more from hills or mountains. Unseen enemy units are hidden; their last known position is shown faded.</li><li>A move that runs into an unseen enemy's zone of control stops there (recon and cavalry stop one hex short). Use Route to choose the path.</li></ul></div>
+    <div><h3>Campaigns</h3><ul><li><b>Weather</b> follows the calendar. Mud: every off-road hex ends a move and roads cost 1. Frost: rivers and marsh freeze; Germans tire. Winter: off-road hexes cost 2; German attacks −25%.</li><li><b>Fatigue</b> 0–3: +1 at the end of a turn in which the unit attacked or made a long move; otherwise −1 (−2 if it stayed put in supply away from the enemy, −1 more near an HQ). Tired −25% attack, Exhausted −50% and slower.</li><li><b>Morale</b>: a step lost or a retreat shakes a unit (−25% attack, no advance); shaken again or cut off, it breaks (no attack, −25% defense). Rally near an HQ in supply, or after 2 quiet turns.</li><li><b>Experience</b>: Green −20%, Regular, Veteran +15%, Elite +30% attack; a level per ${E.CAMP.xpStep} winning battles.</li><li><b>Headquarters</b>: within ${E.CAMP.hqRange} hexes, +15% attack, rallying, faster rest, replacements.</li><li><b>Engineers</b>: bridge a river, blow bridges, fortify (+50%, 2 turns), lay or clear mines, corduroy roads in mud; attacks with engineers ignore entrenchment and fortifications. Any unit on a bridge can blow it.</li><li><b>Supply</b>: German supply reaches a set distance from the west edge or a railhead; captured rail cities become railheads after 2 turns. Soviet reinforcements need an unbroken railway.</li><li><b>Air recon</b> (fog only): each flight reveals ${E.CAMP.reconR} hexes around a point for your turn; cover hides unit details.</li></ul></div>` + chartsHTML();
   }
+  const WXS = { summer: 'Summer', mud: 'Mud', frost: 'Frost', winter: 'Winter' };
   function renderStatus() {
     const s = sc(), side = sideOf(state.active);
     $('scenName').innerHTML = `${esc(s.setting)}<b>${esc(s.name)}</b>`;
     const phaseTxt = state.winner ? 'Game over' : state.phase === 'move' ? 'Movement' : 'Combat';
     const pill = state.winner ? '' : `<span class="phasepill ${state.phase}">${state.phase === 'move' ? 'Movement' : 'Combat'}</span>`;
-    $('status').innerHTML = `${flagSVG(state.winner ? state.winner.side : state.active)}<div><b>${esc(state.winner ? (state.winner.side ? sideOf(state.winner.side).name + ' win' : 'Draw') : side.name)}${isAI(state.active) && !state.winner ? '<span class="cpu">CPU</span>' : ''}</b><small><span class="tlong">Turn ${state.turn} of ${s.maxTurns}</span><span class="tshort">Turn ${state.turn}/${s.maxTurns}</span> ${pill || '· Game over'}</small></div>`;
+    $('status').innerHTML = `${flagSVG(state.winner ? state.winner.side : state.active)}<div><b>${esc(state.winner ? (state.winner.side ? sideOf(state.winner.side).name + ' win' : 'Draw') : side.name)}${isAI(state.active) && !state.winner ? '<span class="cpu">CPU</span>' : ''}</b><small><span class="tlong">Turn ${state.turn} of ${s.maxTurns}</span><span class="tshort">Turn ${state.turn}/${s.maxTurns}</span> ${pill || '· Game over'}</small>${state.camp ? `<small class="wxline">${esc(E.dateOf(state).replace(/ \d{4}$/, ''))} · ${esc(WXS[E.weather(state)])}${E.weather(state, state.turn + 1) !== E.weather(state) && state.turn < s.maxTurns ? ` <em>→ ${esc(WXS[E.weather(state, state.turn + 1)])}</em>` : ''}</small>` : ''}</div>`;
     document.querySelectorAll('#phases span').forEach(sp => sp.classList.toggle('on', sp.dataset.p === state.phase && !state.winner));
     const mb = $('mainBtn');
     mb.disabled = false;
@@ -2955,9 +3878,12 @@ if (typeof module !== 'undefined') module.exports = AI;
     else if (state.pending) { mb.textContent = 'Advance or stay'; mb.disabled = true; }
     else mb.textContent = state.phase === 'move' ? 'Go to combat' : 'End turn';
     const tb = q => document.querySelector(`[data-tool="${q}"]`);
+    tb('tex').hidden = !!state.camp; tb('intel').hidden = !state.camp; tb('intel').setAttribute('aria-pressed', showIntel);
+    if (state.camp && state.fog && state.camp.flights[state.active] > 0 && !isAI(state.active)) tb('intel').dataset.badge = state.camp.flights[state.active]; else delete tb('intel').dataset.badge;
     tb('tex').setAttribute('aria-pressed', useTex); tb('zoc').setAttribute('aria-pressed', showZoc); tb('sup').setAttribute('aria-pressed', showSup); tb('last').setAttribute('aria-pressed', showLast);
     tb('info').setAttribute('aria-pressed', mode === 'info'); tb('orders').setAttribute('aria-pressed', mode === 'orders');
     tb('undo').disabled = !undo.length || aiBusy;
+    const rb = $('routeBtn'); rb.hidden = !(sel != null && state.phase === 'move' && !aiBusy && !isAI(state.active)); rb.setAttribute('aria-pressed', !!route);
     const busy = aiBusy || isAI(state.active) || !!state.winner;
     tb('maponly').setAttribute('aria-pressed', mapOnly); tb('orders').disabled = busy || state.phase !== 'move' || !!state.pending;
     if (mode === 'orders' && tb('orders').disabled) mode = null;
@@ -2971,6 +3897,9 @@ if (typeof module !== 'undefined') module.exports = AI;
     if (mapOnly) hint = 'Map only: units are hidden; tinted hexes show where they stand. Tap Map only again to bring them back.';
     else if (state.winner) hint = `Game over. ${state.winner.reason}.`;
     else if (aiBusy || isAI(state.active)) hint = `${side.name} (computer) is ${state.phase === 'move' ? 'moving' : 'attacking'}…`;
+    else if (mode === 'intel' && state.camp && state.fog && state.camp.flights[state.active] > 0 && state.phase === 'move' && !isAI(state.active)) hint = `Air recon: click a hex to fly over it (${state.camp.flights[state.active]} left). Red areas are estimated enemy strength.`;
+    else if (mode === 'intel') hint = 'Intel: red areas show estimated enemy strength where you cannot see. Tap Intel again to hide it.';
+    else if (route) hint = 'Route: click hexes one at a time from the unit. Click the last hex again to move along the route.';
     else if (mode === 'info') hint = 'Info: click any unit to see its details. Tap Info again to stop.';
     else if (mode === 'orders') hint = 'Orders: click one of your units to give it orders.';
     else if (state.pending) hint = 'Advance after combat: click a glowing unit to move it into the empty hex, or choose Stay put.';
@@ -2984,7 +3913,8 @@ if (typeof module !== 'undefined') module.exports = AI;
     }
   }
   function render() {
-    if (staticFor !== state.scen) { renderStatic(); smartFit(); $('charts').innerHTML = chartsHTML(); }
+    if (!staticFor || staticFor.split('|')[0] !== state.scen) { renderStatic(); smartFit(); $('charts').innerHTML = chartsHTML(); }
+    else if (staticFor !== state.scen + '|' + themeKey() + '|' + useTex) renderStatic();
     renderDyn(); renderStatus(); renderObjectives(); renderDetail(); renderCombat(); renderForces();
     if (pop) renderPop();
   }
@@ -3026,21 +3956,28 @@ if (typeof module !== 'undefined') module.exports = AI;
       if (state.fog && a.t === 'move') { sel = null; render(); }
       return r;
     }
-    if (a.t === 'move' || a.t === 'entrench') undo.push(before); else undo = [];
+    if (['move', 'entrench', 'work', 'replace', 'rebuild'].includes(a.t)) undo.push(before); else if (a.t !== 'recon') undo = [];
     if (a.t === 'attack' || a.t === 'phase' || a.t === 'endTurn') { target = null; atk.clear(); sel = null; }
-    if (a.t === 'move') { info = K(a.to[0], a.to[1]); sel = null; }
+    if (a.t === 'move') { info = K(...(r.to || a.to)); sel = null; route = null; }
     if (a.t === 'endTurn') { closePop(); mode = null; if (tray === 'battle') closeTray(); }
     persist(); render();
+    if (r.bumped) toast('Contact! The unit ran into an unseen enemy and halted.');
     if (a.t === 'attack' && tray !== 'battle') { openTray('battle'); render(); }
     if (a.t === 'advance' && PHONE.matches && tray === 'battle') closeTray();
     if (state.winner) showWinner();
-    else if (a.t === 'endTurn') { if (isAI(state.active)) runAI(); else if (hasAI()) { smartFit(); toast2(`Your turn: ${sideOf(state.active).name}`); } else showHandoff(); }
+    else if (a.t === 'endTurn') { if (isAI(state.active)) runAI(); else if (hasAI()) { smartFit(); const kv = state.camp && sc().campaign.kiev; toast2(kv && kv.side === state.active && !state.camp.kievDone && state.turn >= kv.from && state.turn <= kv.to ? `Your turn. The Kiev decision is open until turn ${kv.to}: see Orders on Panzer Group 2's HQ.` : `Your turn: ${sideOf(state.active).name}`); } else showHandoff(); }
     return r;
   }
   function onHex(c, r) {
     if (fxBusy) return;
     if (mapOnly) { info = K(c, r); closePop(); if (!PHONE.matches) openTray('unit'); render(); return; }
     const k = K(c, r), v = V(), u = E.occMap(v).get(k);
+    if (mode === 'intel' && state.camp && state.fog && state.camp.flights[state.active] > 0 && state.phase === 'move' && !isAI(state.active) && !aiBusy && !state.winner) {
+      const rr = act({ t: 'recon', hex: [c, r] });
+      if (!rr.error) { const left = state.camp.flights[state.active]; toast2(left ? `Recon flight sent. ${left} left.` : 'Last recon flight sent.'); }
+      return;
+    }
+    if (route && state.phase === 'move' && sel === route.unit) { routeTap(c, r); return; }
     if (mode === 'info') { if (u) openPop('info', u.id); else { closePop(); info = k; if (!PHONE.matches) openTray('unit'); render(); } return; }
     if (mode === 'orders') {
       if (u && u.side === state.active && !isAI(u.side)) openPop('orders', u.id);
@@ -3075,6 +4012,22 @@ if (typeof module !== 'undefined') module.exports = AI;
       atk.has(u.id) ? atk.delete(u.id) : atk.add(u.id);
     }
     info = k; render();
+  }
+  // Route mode: tap hexes one by one from the selected unit; tap the last hex again to move along that route.
+  function routeTap(c, r) {
+    const v = V(), u = E.byId(v, route.unit), k = K(c, r), last = route.path[route.path.length - 1];
+    if (k === K(...last) && route.path.length > 1) {
+      if (E.occMap(state).get(k)) { toast('A route has to end on an empty hex.'); return; }
+      const p = route.path; route = null;
+      act({ t: 'move', unit: u.id, to: [c, r], path: p });
+      return;
+    }
+    if (k === K(u.c, u.r)) { route.path = [[u.c, u.r]]; render(); return; }
+    const i = route.path.findIndex(h => K(...h) === k);
+    if (i >= 0) { route.path = route.path.slice(0, i + 1); render(); return; }
+    const next = [...route.path, [c, r]];
+    if (E.dist(last, [c, r]) !== 1 || E.routeCost(E.knownTo(state, u.side), E.byId(state, u.id), next, true) == null) { toast('The route cannot go there.'); return; }
+    route.path = next; render();
   }
   function mainButton() {
     if (fxBusy) return;
@@ -3324,7 +4277,7 @@ if (typeof module !== 'undefined') module.exports = AI;
     for (const a of actions) {
       if (my !== aiToken) return;
       // under fog, the human only sees what their units can see
-      const seen = !state.fog || !who || (a.t === 'attack' ? E.visibleHexes(state, who).has(K(...a.target)) : a.t === 'move' ? E.visibleHexes(state, who).has(K(...a.to)) : true);
+      const seen = a.t !== 'recon' && (!state.fog || !who || (a.t === 'attack' ? E.visibleHexes(state, who).has(K(...a.target)) : a.t === 'move' ? E.visibleHexes(state, who).has(K(...a.to)) : true));
       if (a.t === 'attack') {
         const show = seen && !skipReports;
         if (show) { prepView(a.target); target = K(...a.target); atk = new Set(a.attackers); render(); await wait(550); target = null; atk.clear(); }
@@ -3430,14 +4383,11 @@ if (typeof module !== 'undefined') module.exports = AI;
   // Compact list: one row per front; details open only when one is chosen.
   function renderNewList() {
     $('newTabs').querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-pressed', b.dataset.tab === newTab));
-    if (newTab === 'camp') {
-      $('scenCards').innerHTML = `<div class="soon"><p><b style="color:var(--ink)">Campaigns are coming.</b> One large battle on a bigger map with many more units, reinforcements arriving on a schedule (and ways to cut them off), morale, fatigue, experience and headquarters that support nearby units.</p></div>`;
-      return;
-    }
-    $('scenCards').innerHTML = E.SCEN_ORDER.map(id => {
+    const list = newTab === 'camp' ? E.CAMP_ORDER : E.SCEN_ORDER;
+    $('scenCards').innerHTML = (newTab === 'camp' ? `<p class="empty" style="margin:0 0 4px">Long battles with weather, reinforcements, fatigue, morale, experience, headquarters and engineers. The Road to Moscow is coming next.</p>` : '') + list.map(id => {
       const s2 = E.SCEN[id];
       return `<button type="button" class="srow" data-scen="${id}"><span class="sw"><i style="background:${s2.sides.A.color}"></i><i style="background:${s2.sides.B.color}"></i></span>
-        <span class="t"><b>${esc(s2.name)}</b><small>${esc(s2.setting)} · ${s2.maxTurns} turns</small></span><span class="chev">›</span></button>`;
+        <span class="t"><b>${esc(s2.name)}</b><small>${esc(s2.setting)} · ${s2.maxTurns} turns${s2.campaign ? ' · weekly' : ''}</small></span><span class="chev">›</span></button>`;
     }).join('');
   }
   function victoryText(s2) {
@@ -3450,13 +4400,13 @@ if (typeof module !== 'undefined') module.exports = AI;
     $('newPick').hidden = !!pickScen;
     if (!pickScen) { box.hidden = true; row.innerHTML = '<button type="button" data-nr="cancel">Cancel</button>'; return; }
     const sc2 = E.SCEN[pickScen];
-    const special = [...new Set(sc2.units.map(u => u[1]))].filter(t => !['inf', 'mech', 'arm', 'art'].includes(t)).map(t => E.TYPES[t].name);
+    const special = sc2.campaign ? [] : [...new Set(sc2.units.map(u => u[1]))].filter(t => !['inf', 'mech', 'arm', 'art'].includes(t)).map(t => E.TYPES[t].name);
     const mini = side => `<svg viewBox="-20 -20 40 40">${counterSVG(pickScen, { side, type: side === 'A' ? 'arm' : 'inf', steps: 2, name: '' }, 0, 0, 34, { lod: 'near' })}</svg>`;
     box.hidden = false;
     box.innerHTML = `<div class="sdetail"><span class="set">${esc(sc2.setting)}</span><h3 class="nm">${esc(sc2.name)}</h3>
       <div class="vs">${mini('A')}${esc(sc2.sides.A.name)} <span style="color:var(--muted)">vs</span> ${mini('B')}${esc(sc2.sides.B.name)}</div>
       <p>${esc(sc2.blurb)}</p>
-      <p class="facts">${sc2.maxTurns} turns${special.length ? ` · Special units: ${esc(special.join(', '))}` : ''}${sc2.supplyRange !== Infinity ? ` · Supply range ${sc2.supplyRange}${sc2.supplySide ? ` (${esc(sc2.sides[sc2.supplySide].name)} only)` : ''}` : ''}</p></div>
+      <p class="facts">${sc2.maxTurns} turns${sc2.campaign ? ` (one a week, ${esc(E.dateOf({ scen: pickScen }, 1))} to ${esc(E.dateOf({ scen: pickScen }, sc2.maxTurns))}) · about ${Math.round(sc2.maxTurns * 7 / 60 * 2) / 2}–${Math.round(sc2.maxTurns * 10 / 60 * 2) / 2} hours · fog of war recommended` : ''}${special.length ? ` · Special units: ${esc(special.join(', '))}` : ''}${typeof sc2.supplyRange === 'number' && sc2.supplyRange !== Infinity ? ` · Supply range ${sc2.supplyRange}${sc2.supplySide ? ` (${esc(sc2.sides[sc2.supplySide].name)} only)` : ''}` : ''}</p></div>
       <div class="setup"><h3>Who commands each side?</h3>${['A', 'B'].map(sd => `<div class="who"><span class="nm"><i style="background:${sc2.sides[sd].color}"></i>${esc(sc2.sides[sd].name)}${sd === 'A' ? ' <small style="color:var(--muted);font-weight:500">moves first</small>' : ''}</span>
       <div class="seg" role="group" aria-label="${esc(sc2.sides[sd].name)}"><button type="button" data-who="${sd}:human" aria-pressed="${pickWho[sd] === 'human'}">Human</button><button type="button" data-who="${sd}:ai" aria-pressed="${pickWho[sd] === 'ai'}">Computer</button></div></div>`).join('')}
       <div class="who"><span class="nm">Fog of war</span><div class="seg" role="group" aria-label="Fog of war"><button type="button" data-fog="0" aria-pressed="${!pickFog}">Off</button><button type="button" data-fog="1" aria-pressed="${pickFog}">On</button></div></div>
@@ -3464,6 +4414,29 @@ if (typeof module !== 'undefined') module.exports = AI;
       <p style="margin:0;font-size:13.5px">${pickWho.A === 'ai' || pickWho.B === 'ai' ? 'Easy makes mistakes and leaves openings; Hard plays its best. The computer only sees what fog of war lets it see.' : 'Two humans can share this screen or play by email.'}</p></div>`;
     row.innerHTML = `<button type="button" class="primary" data-nr="start">Start</button><button type="button" data-nr="back">‹ Back</button>`;
   }
+  // Named save slots (campaigns span several sittings; scenarios can use them too).
+  const SLOTS = 3, slotKey = i => `hexfront.slot${i}`;
+  function openSlots() {
+    const rows = [];
+    for (let i = 1; i <= SLOTS; i++) {
+      let d = null; try { d = JSON.parse(localStorage.getItem(slotKey(i)) || 'null'); } catch (e) { /* empty */ }
+      const desc = d && E.SCEN[d.state.scen] ? `${esc(E.SCEN[d.state.scen].name)} · turn ${d.state.turn}${d.state.camp ? ` · ${esc(E.dateOf(d.state))}` : ''} · saved ${esc(d.at)}` : 'Empty';
+      rows.push(`<li><div><b>Slot ${i}</b><small>${desc}</small></div><button type="button" data-slot-save="${i}">Save here</button><button type="button" data-slot-load="${i}" ${d ? '' : 'disabled'}>Load</button></li>`);
+    }
+    $('slotList').innerHTML = rows.join('');
+    $('slotDlg').showModal();
+  }
+  $('slotList').addEventListener('click', e => {
+    const sv = e.target.closest('[data-slot-save]'), ld = e.target.closest('[data-slot-load]');
+    if (sv) {
+      const at = new Date().toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+      try { localStorage.setItem(slotKey(sv.dataset.slotSave), JSON.stringify({ at, state })); toast2(`Saved in slot ${sv.dataset.slotSave}.`); } catch (er) { toast('Could not save: storage is full or unavailable.'); }
+      openSlots();
+    }
+    if (ld && !ld.disabled) {
+      try { const d = JSON.parse(localStorage.getItem(slotKey(ld.dataset.slotLoad))); $('slotDlg').close(); setState(d.state); persist(); toast2('Game loaded.'); if (isAI(state.active) && !state.winner) runAI(); } catch (er) { toast('That save could not be read.'); }
+    }
+  });
   function seed() { try { return crypto.getRandomValues(new Int32Array(1))[0]; } catch (e) { return (Math.random() * 2 ** 31) | 0; } }
   function setState(s) {
     aiToken++; aiBusy = false;
@@ -3478,17 +4451,18 @@ if (typeof module !== 'undefined') module.exports = AI;
     const r = svg.getBoundingClientRect();
     if (!r.width || !r.height || !mapW) return;
     const x0 = -22, y0 = -22, bw = mapW + 44, bh = mapH + 44, aspect = r.width / r.height;
-    const maxW = Math.min(bw, bh * aspect), minW = Math.min(maxW, 220);
+    // campaign maps may zoom out to the whole map (with bands at the sides); scenarios always fill the view
+    const maxW = state && state.camp ? Math.max(bw, bh * aspect) : Math.min(bw, bh * aspect), minW = Math.min(maxW, 220);
     const cx = vb.x + vb.w / 2, cy = vb.y + vb.h / 2;
     vb.w = Math.min(maxW, Math.max(minW, vb.w)); vb.h = vb.w / aspect;
-    vb.x = Math.min(Math.max(cx - vb.w / 2, x0), x0 + bw - vb.w);
-    vb.y = Math.min(Math.max(cy - vb.h / 2, y0), y0 + bh - vb.h);
+    vb.x = vb.w >= bw ? x0 + (bw - vb.w) / 2 : Math.min(Math.max(cx - vb.w / 2, x0), x0 + bw - vb.w);
+    vb.y = vb.h >= bh ? y0 + (bh - vb.h) / 2 : Math.min(Math.max(cy - vb.h / 2, y0), y0 + bh - vb.h);
   }
   function setVB() {
     clampVB();
     svg.setAttribute('viewBox', `${vb.x} ${vb.y} ${vb.w} ${vb.h}`);
     const r = svg.getBoundingClientRect();
-    if (r.width) { const scale = Math.min(r.width / vb.w, r.height / vb.h); svg.classList.toggle('far', 40 * scale < 44); }
+    if (r.width) { const scale = Math.min(r.width / vb.w, r.height / vb.h); svg.classList.toggle('far', 40 * scale < 44 && 40 * scale >= 22); svg.classList.toggle('op', 40 * scale < 22); }
     if (pop) placePop();
   }
   function fit() { vb = { x: -22, y: -22, w: 1e6, h: 1e6 }; setVB(); } // as far out as the map allows
@@ -3571,6 +4545,13 @@ if (typeof module !== 'undefined') module.exports = AI;
   // ---------- wiring ----------
   $('mainBtn').addEventListener('click', mainButton);
   $('zIn').addEventListener('click', () => zoomAt(vb.x + vb.w / 2, vb.y + vb.h / 2, 0.8));
+  $('routeBtn').addEventListener('click', () => {
+    if (sel == null) return;
+    const u = E.byId(V(), sel);
+    route = route ? null : { unit: sel, path: [[u.c, u.r]] };
+    if (route) toast2(tapWord('Click hexes one at a time to plan the route. Click the last one again to move.'));
+    render();
+  });
   $('zOut').addEventListener('click', () => zoomAt(vb.x + vb.w / 2, vb.y + vb.h / 2, 1.25));
   $('toolbar').addEventListener('click', e => {
     const b = e.target.closest('[data-tool]'); if (!b || b.disabled) return;
@@ -3580,6 +4561,11 @@ if (typeof module !== 'undefined') module.exports = AI;
     else if (t === 'zoc') showZoc = !showZoc;
     else if (t === 'sup') showSup = !showSup;
     else if (t === 'last') showLast = !showLast;
+    else if (t === 'intel') {
+      showIntel = !showIntel; mode = showIntel ? 'intel' : (mode === 'intel' ? null : mode);
+      const fl = state.camp && state.camp.flights[state.active];
+      if (showIntel && fl > 0 && !isAI(state.active) && state.phase === 'move') toast2(`${fl} recon flight${fl > 1 ? 's' : ''}: ${tapWord('tap')} where to fly. Each reveals ${E.CAMP.reconR} hexes around it.`);
+    }
     else if (t === 'info' || t === 'orders') {
       mode = mode === t ? null : t;
       if (!mode) closePop();
@@ -3599,6 +4585,7 @@ if (typeof module !== 'undefined') module.exports = AI;
   $('trayClose').addEventListener('click', closeTray);
   $('forces').addEventListener('click', e => {
     const fs = e.target.closest('[data-fs]'); if (fs) { forcesSide = fs.dataset.fs; renderForces(); return; }
+    const rbB = e.target.closest('[data-rebuild]'); if (rbB) { if (!rbB.disabled) { const r = act({ t: 'rebuild', dead: Number(rbB.dataset.rebuild) }); if (!r.error) toast2('Unit rebuilt.'); } return; }
     const li = e.target.closest('[data-unit]'); if (!li) return;
     const u = E.byId(state, Number(li.dataset.unit)); if (!u) return;
     closeTray(); mode = null;
@@ -3608,7 +4595,7 @@ if (typeof module !== 'undefined') module.exports = AI;
   $('verTag').textContent = `Hexfront v${VERSION} · ${BUILD}`;
   $('menuBtn').addEventListener('click', () => { $('verTag').textContent = `Hexfront v${VERSION} · ${BUILD} · ${diag()}`; });
   $('brandVer').textContent = `v${VERSION}`;
-  $('menuBtn').addEventListener('click', () => $('menuDlg').showModal());
+  $('menuBtn').addEventListener('click', () => { $('texState').textContent = useTex ? 'On: painted terrain' : 'Off: plain colours'; $('menuDlg').showModal(); });
   $('menuDlg').addEventListener('click', e => {
     const b = e.target.closest('[data-menu]'); if (!b) return;
     $('menuDlg').close();
@@ -3618,6 +4605,8 @@ if (typeof module !== 'undefined') module.exports = AI;
     else if (what === 'send') openSend();
     else if (what === 'load') { $('loadErr').textContent = ''; $('loadDlg').showModal(); }
     else if (what === 'rules') { $('rulesBody').innerHTML = rulesHTML(); $('rulesDlg').showModal(); }
+    else if (what === 'tex') { useTex = !useTex; try { localStorage.setItem('hexfront.tex', useTex ? '1' : '0'); } catch (er) { /* ignore */ } renderStatic(); render(); }
+    else if (what === 'slots') openSlots();
   });
   $('loadGo').addEventListener('click', doLoad);
   $('loadFile').addEventListener('change', async e => { const f = e.target.files[0]; if (f) { $('loadText').value = await f.text(); doLoad(); } });
@@ -3626,7 +4615,7 @@ if (typeof module !== 'undefined') module.exports = AI;
   document.querySelectorAll('dialog [data-close]').forEach(b => b.addEventListener('click', () => b.closest('dialog').close()));
   $('scenCards').addEventListener('click', e => {
     const card = e.target.closest('[data-scen]'); if (!card) return;
-    pickScen = card.dataset.scen; renderSetup();
+    pickScen = card.dataset.scen; if (E.SCEN[pickScen].campaign) pickFog = true; renderSetup();
     $('newDlg').querySelector('.dlg').scrollTop = 0;
   });
   $('newTabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (!b) return; newTab = b.dataset.tab; renderNewList(); });
