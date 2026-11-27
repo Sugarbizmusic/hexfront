@@ -119,6 +119,7 @@ main { grid-area: map; min-height: 0; position: relative; }
 .stats small { display: block; font: 600 10.5px/1 var(--ui); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
 .stats b { font: 22px/1.1 var(--display); font-variant-numeric: tabular-nums; }
 .stats b.down { color: var(--danger); }
+.stats b.up { color: var(--ok); }
 .unitcard ul, .pop ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font: 500 14px/1.25 var(--ui); }
 .unitcard ul li, .pop ul li { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); }
 .unitcard ul li span:last-child, .pop ul li span:last-child { color: var(--ink); text-align: right; }
@@ -274,6 +275,23 @@ dialog::backdrop { background: rgba(8,10,7,.72); }
 .card p { font-size: 13.5px; margin: 0; color: var(--muted); }
 .card .vs { display: flex; align-items: center; gap: 8px; font: 600 14px/1 var(--ui); flex-wrap: wrap; }
 .card .vs svg { width: 34px; height: 34px; }
+.ntabs { margin-top: 12px; width: 100%; }
+.ntabs button { flex: 1; }
+.slist { display: grid; gap: 6px; margin-top: 12px; }
+.srow { display: grid; grid-template-columns: 30px 1fr auto; align-items: center; gap: 10px; text-align: left; text-transform: none; letter-spacing: 0; padding: 9px 12px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; font: inherit; color: var(--ink); cursor: pointer; }
+.srow:hover { border-color: var(--signal); }
+.srow .sw { display: grid; grid-template-columns: 1fr 1fr; width: 26px; height: 18px; border-radius: 3px; overflow: hidden; border: 1px solid rgba(0,0,0,.4); }
+.srow .t b { display: block; font: 700 16px/1.15 var(--ui); }
+.srow .t small { color: var(--muted); font-size: 12.5px; }
+.srow .chev { color: var(--muted); font-size: 22px; line-height: 1; }
+.sdetail { display: grid; gap: 10px; }
+.sdetail .set { font: 600 13px/1 var(--ui); text-transform: uppercase; letter-spacing: .12em; color: var(--signal); }
+.sdetail h3.nm { margin: 0; font: 26px/1.05 var(--display); letter-spacing: .02em; }
+.sdetail .vs { display: flex; align-items: center; gap: 8px; font: 600 14px/1 var(--ui); flex-wrap: wrap; }
+.sdetail .vs svg { width: 30px; height: 30px; }
+.sdetail .facts { font-size: 13.5px; color: var(--muted); margin: 0; }
+.soon { padding: 14px; background: var(--panel-2); border: 1px dashed var(--line); border-radius: 6px; }
+.soon p { font-size: 14px; }
 .setup { display: grid; gap: 10px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; padding: 14px; }
 .setup h3 { margin: 0; font: 600 14px/1 var(--ui); text-transform: uppercase; letter-spacing: .12em; color: var(--signal); }
 .who { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
@@ -329,7 +347,7 @@ table.crt th { color: var(--muted); font-weight: 600; }
   .phasepill { font-size: 10px; padding: 3px 5px; letter-spacing: .1em; }
   .status { min-width: 0; overflow: hidden; }
   .status small { font-size: 12px; }
-  .toolbar { flex: none; grid-template-columns: repeat(8, 1fr); grid-auto-rows: auto; border-top: 1px solid var(--line); border-right: 0; border-bottom: 1px solid var(--line); padding: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left); overflow: visible; }
+  .toolbar { flex: none; grid-template-columns: repeat(9, 1fr); grid-auto-rows: auto; border-top: 1px solid var(--line); border-right: 0; border-bottom: 1px solid var(--line); padding: 0 env(safe-area-inset-right) 0 env(safe-area-inset-left); overflow: visible; }
   .toolbar button, .bnav button { border-bottom: 0; border-right: 1px solid var(--line); }
   .toolbar button[aria-pressed="true"]::before, .bnav button[aria-pressed="true"]::before { left: 18%; right: 18%; top: 0; bottom: auto; width: auto; height: 2px; border-radius: 0 0 2px 2px; }
   .cells button { font-size: 10px; padding: 7px 0 6px; }
@@ -427,22 +445,23 @@ table.crt th { color: var(--muted); font-weight: 600; }
     <div><h3>Reading a counter</h3><ol>
       <li>The name is the formation (zoom in to see it). The three numbers are <b>attack – defense – movement</b>.</li>
       <li>The symbol shows the type: ✕ infantry, oval armor, oval with ✕ mechanized, dot artillery.</li>
-      <li>A light corner tab means <b>reduced</b> (one more loss destroys it). A red <b>S</b> means <b>out of supply</b>. A sandbag badge means <b>entrenched</b>.</li>
+      <li>A light corner tab means <b>reduced</b> (one more loss destroys it). A red <b>S</b> means <b>out of supply</b> (with a number: cut off that many turns). A sandbag badge means <b>entrenched</b>.</li>
       <li>Tap <span class="kbd">Info</span> in the toolbar, then any unit, to see its full stats for the ground it stands on.</li>
     </ol></div>
     <div><h3>Your turn, step by step</h3><ol>
-      <li><b>Move.</b> Tap one of your units, then a lit hex. Roads are fast; forest, hills and marsh are slow. A unit that moves next to an enemy must stop. <span class="kbd">Next</span> jumps to a unit that has not moved; <span class="kbd">Undo</span> takes a move back.</li>
-      <li><b>Orders.</b> Tap <span class="kbd">Orders</span>, then a unit, to <b>Entrench</b> instead of moving. If it is not attacked before your next turn it digs in and becomes one column harder to attack until it moves.</li>
+      <li><b>Move.</b> Tap one of your units, then a lit hex. Roads are fast. Entering forest, hills, mountains, marsh or a river ends a move unless you follow a road. A unit that moves next to an enemy must stop. <span class="kbd">Next</span> jumps to a unit that has not moved; <span class="kbd">Undo</span> takes a move back.</li>
+      <li><b>Orders.</b> Tap <span class="kbd">Orders</span>, then a unit, to <b>Entrench</b> instead of moving. If it is not attacked before your next turn it digs in and defends 50% stronger until it moves.</li>
       <li>Tap <span class="kbd">Go to combat</span> when you have finished moving.</li>
       <li><b>Attack.</b> Enemy units you can reach are outlined in red. Tap one; the Battle panel opens with the odds. Your units join automatically; tap them in the list to leave them out. Then <span class="kbd">Roll the die</span>.</li>
       <li><b>Bombard.</b> Artillery can fire on its own from two hexes away. Leave only artillery in the attack: it cannot be hurt, the target cannot be forced back, but a hit costs the defender a step. You can still assault the same unit afterwards.</li>
       <li>If the defender is destroyed or retreats, you may move one attacker into the empty hex. Then tap <span class="kbd">End turn</span>.</li>
     </ol></div>
-    <div><h3>Fog of war</h3><p>If fog is switched on for a game, you only see 3 hexes from your units (5 for recon). Grey hexes are unseen; faded counters show where an enemy was last spotted. The computer plays under the same fog.</p></div>
+    <div><h3>Fog of war</h3><p>If fog is switched on for a game, you only see 3 hexes from your units (5 for recon, and 2 more from hills or mountains). Grey hexes are unseen; faded counters show where an enemy was last spotted. The computer plays under the same fog.</p></div>
+    <div><h3>Seeing moves</h3><p>Tap <span class="kbd">Moves</span> in the toolbar to show every move from the last turn, hex by hex. Opening a unit’s Info shows its own last move.</p></div>
     <div><h3>Panels</h3><p>The bottom bar opens Battle (odds and results), Objectives (score, cities, scenario rules), Forces (all your units: tap one to find it), Log (what just happened) and Charts (terrain and combat tables). Tap outside a panel or its button again to close it.</p></div>
     <div><h3>Tips</h3><ol>
       <li>Two or three units on one defender give far better odds than attacking alone. Soften tough targets with artillery first.</li>
-      <li>Keep a path back to your home edge or a supply city. Cut-off units fight at half strength.</li>
+      <li>Keep a path back to your home edge or a supply city. Cut-off units attack at half strength, then lose defense, then start losing steps. Surround an enemy and hold the ring.</li>
       <li>Defend in forests, hills and cities, and entrench units that will hold a line. Attack in the open.</li>
     </ol></div>
   </div>
@@ -450,9 +469,11 @@ table.crt th { color: var(--muted); font-weight: 600; }
 </div></dialog>
 
 <dialog id="newDlg"><div class="dlg">
-  <h2>Choose a front</h2>
-  <p>Every scenario uses the same rules. Units change colour per front, and some fronts add special units.</p>
-  <div class="cards" id="scenCards"></div>
+  <div id="newPick">
+    <h2>New game</h2>
+    <div class="seg ntabs" id="newTabs" role="tablist"><button type="button" data-tab="scen" aria-pressed="true">Scenarios</button><button type="button" data-tab="camp" aria-pressed="false">Campaigns</button></div>
+    <div class="slist" id="scenCards"></div>
+  </div>
   <div id="setup" hidden></div>
   <div class="row" id="newRow"></div>
 </div></dialog>
@@ -594,7 +615,7 @@ const EXTRA_SCEN = {
     ],
     units: [
       ['A', 'inf', 10, 2, '71st Inf'], ['A', 'inf', 9, 4, '76th Inf'], ['A', 'inf', 10, 6, '94th Inf'], ['A', 'inf', 9, 9, '295th Inf'],
-      ['A', 'inf', 10, 11, '305th Inf'], ['A', 'inf', 8, 13, '389th Inf'],
+      ['A', 'inf', 10, 11, '305th Inf'], ['A', 'inf', 8, 13, '389th Inf'], ['A', 'inf', 8, 10, '100th Jg'],
       ['A', 'arm', 7, 5, '14th Pz'], ['A', 'arm', 7, 8, '16th Pz'], ['A', 'arm', 7, 11, '24th Pz'],
       ['A', 'mech', 6, 3, '3rd Mot'], ['A', 'mech', 6, 13, '60th Mot'], ['A', 'art', 8, 7, 'Arko 6'],
       ['A', 'inf', 4, 2, '1st Rom'], ['A', 'inf', 4, 14, '2nd Rom'],
@@ -608,8 +629,8 @@ const EXTRA_SCEN = {
 
   kursk: {
     id: 'kursk', name: 'Kursk', setting: 'Eastern Front 1943',
-    blurb: 'Operation Citadel: the panzer elite strikes the southern face of the Kursk salient against belts of entrenched Soviet defenders, with the Guards tank reserve waiting at Prokhorovka. Germany needs 10 victory points by turn 12, or wins at once by taking Kursk.',
-    maxTurns: 12, victory: { type: 'target', side: 'A', vp: 10 }, supplyRange: Infinity, theme: 'steppe',
+    blurb: 'Operation Citadel: the panzer elite strikes the southern face of the Kursk salient against belts of entrenched Soviet defenders, with the Guards tank reserve waiting at Prokhorovka. Germany needs 6 victory points by turn 12, or wins at once by taking Kursk.',
+    maxTurns: 12, victory: { type: 'target', side: 'A', vp: 6 }, supplyRange: Infinity, theme: 'steppe',
     sides: {
       A: { name: 'Germany', short: 'German', color: '#5c656d', ink: '#f2f2ee', edge: 'W', flag: 'axis' },
       B: { name: 'Soviet Union', short: 'Soviet', color: '#8e3b2f', ink: '#f6ece0', edge: 'E', flag: 'soviet' },
@@ -652,7 +673,7 @@ const EXTRA_SCEN = {
     units: [
       ['A', 'epz', 5, 6, 'LSSAH'], ['A', 'epz', 5, 9, 'Das Reich'], ['A', 'epz', 4, 11, 'Totenkopf'], ['A', 'epz', 5, 3, 'GD'],
       ['A', 'arm', 4, 1, '3rd Pz'], ['A', 'arm', 3, 5, '11th Pz'], ['A', 'arm', 3, 13, '6th Pz'], ['A', 'arm', 5, 14, '7th Pz'],
-      ['A', 'hvy', 3, 8, 's.Pz 503'], ['A', 'inf', 6, 12, '167th Inf'], ['A', 'inf', 7, 14, '168th Inf'], ['A', 'art', 4, 7, 'Arko 122'],
+      ['A', 'hvy', 3, 8, 's.Pz 503'], ['A', 'inf', 6, 12, '167th Inf'], ['A', 'inf', 7, 14, '168th Inf'], ['A', 'art', 4, 7, 'Arko 122'], ['A', 'arm', 4, 4, '19th Pz'], ['A', 'inf', 6, 10, '332nd Inf'], ['A', 'inf', 5, 12, '255th Inf'],
       ['B', 'grf', 8, 5, '67th Gds', 'dug'], ['B', 'grf', 8, 8, '52nd Gds', 'dug'], ['B', 'grf', 9, 11, '71st Gds', 'dug'],
       ['B', 'inf', 9, 13, '375th Rifle', 'dug'], ['B', 'inf', 8, 2, '90th Gds', 'dug'],
       ['B', 'mech', 11, 5, '3rd Mech', 'dug'], ['B', 'arm', 11, 8, '6th Tk Corps', 'dug'], ['B', 'arm', 12, 11, '31st Tk Corps'],
@@ -663,8 +684,8 @@ const EXTRA_SCEN = {
 
   bulge: {
     id: 'bulge', name: 'Battle of the Bulge', setting: 'Western Front 1944',
-    blurb: 'Winter in the Ardennes: German panzer armies burst through thin American lines toward the Meuse. Hold St. Vith and Bastogne as long as you can. Fuel is short: supply reaches only 7 hexes. Germany needs 11 victory points by turn 12, or wins at once by taking Liège.',
-    maxTurns: 12, victory: { type: 'target', side: 'A', vp: 11 }, supplyRange: 7, theme: 'winter',
+    blurb: 'Winter in the Ardennes: German panzer armies burst through thin American lines toward the Meuse. Hold St. Vith and Bastogne as long as you can. German fuel is short: their supply reaches only 7 hexes. Germany needs 8 victory points by turn 12, or wins at once by taking Liège.',
+    maxTurns: 12, victory: { type: 'target', side: 'A', vp: 8 }, supplyRange: 7, supplySide: 'A', theme: 'winter',
     sides: {
       A: { name: 'Germany', short: 'German', color: '#6b747a', ink: '#f2f2ee', edge: 'E', flag: 'axis' },
       B: { name: 'Allies', short: 'Allies', color: '#5f6d34', ink: '#f4efd9', edge: 'W', flag: 'allies' },
@@ -712,7 +733,7 @@ const EXTRA_SCEN = {
       ['A', 'epz', 20, 3, '1st SS Pz'], ['A', 'epz', 21, 5, '12th SS Pz'], ['A', 'arm', 20, 10, '2nd Pz'], ['A', 'arm', 21, 12, 'Pz Lehr'],
       ['A', 'arm', 20, 7, '116th Pz'], ['A', 'hvy', 22, 4, 's.Pz 506'],
       ['A', 'inf', 19, 2, '277th VG'], ['A', 'inf', 19, 5, '18th VG'], ['A', 'inf', 19, 8, '62nd VG'], ['A', 'inf', 19, 11, '26th VG'],
-      ['A', 'inf', 19, 14, '5th Fsj'], ['A', 'art', 21, 9, 'Arko 6 SS'], ['A', 'mech', 22, 14, '15th PzGr'],
+      ['A', 'inf', 19, 14, '5th Fsj'], ['A', 'art', 21, 9, 'Arko 6 SS'], ['A', 'mech', 22, 14, '15th PzGr'], ['A', 'epz', 22, 6, '9th SS Pz'], ['A', 'inf', 22, 11, '560th VG'],
       ['B', 'inf', 16, 3, '99th Inf', 'dug'], ['B', 'inf', 15, 1, '2nd Inf', 'dug'], ['B', 'inf', 6, 3, '30th Inf'], ['B', 'inf', 7, 1, '1st Inf'], ['B', 'arm', 5, 7, '3rd Armd'], ['B', 'inf', 17, 6, '106th Inf'], ['B', 'inf', 17, 10, '28th Inf'],
       ['B', 'inf', 17, 13, '4th Inf'], ['B', 'arm', 15, 8, '9th Armd'], ['B', 'art', 14, 5, 'VIII Corps Art'],
       ['B', 'arm', 9, 4, '7th Armd'], ['B', 'arm', 8, 13, '10th Armd'], ['B', 'abn', 2, 12, '101st Abn'], ['B', 'abn', 1, 4, '82nd Abn'],
@@ -826,13 +847,14 @@ const Engine = (() => {
 
   // ---------- rules data ----------
   const TERRAIN = {
-    '.': { name: 'Clear', mp: 1, shift: 0 },
-    f: { name: 'Forest', mp: 2, shift: 1 },
-    h: { name: 'Hills', mp: 2, shift: 1 },
-    m: { name: 'Mountains', mp: 3, shift: 2 },
-    s: { name: 'Marsh', mp: 3, shift: 0 },
-    w: { name: 'Sea', mp: Infinity, shift: 0, impass: true },
-    x: { name: 'Impassable', mp: Infinity, shift: 0, impass: true },
+    // def: defense bonus for a unit in this terrain (+0.5 = +50%). stop: entering ends the move unless along a road.
+    '.': { name: 'Clear', mp: 1, def: 0 },
+    f: { name: 'Forest', mp: 1, def: 0.5, stop: true },
+    h: { name: 'Hills', mp: 1, def: 0.5, stop: true, sight: 2 },
+    m: { name: 'Mountains', mp: 1, def: 1, stop: true, sight: 2 },
+    s: { name: 'Marsh', mp: 1, def: 0, stop: true },
+    w: { name: 'Sea', mp: Infinity, def: 0, impass: true },
+    x: { name: 'Impassable', mp: Infinity, def: 0, impass: true },
   };
   const TYPES = {
     inf: { name: 'Infantry', a: 3, d: 4, m: 3, sym: 'inf' },
@@ -874,6 +896,9 @@ const Engine = (() => {
     ['B1', 'B1', 'B1', 'B1', '-', '-'],
   ];
   const SIGHT = 3, SIGHT_RECON = 5;
+  // Defense bonuses (added together, then applied to the defender's strength) and supply attrition.
+  const DEF = { city: 0.5, capital: 1, river: 0.5, dug: 0.5 };
+  const OOS = { defHalf: 2, attrition: 3 }; // turns out of supply before defense halves / a step is lost each turn
   const RESULT_TEXT = {
     B1: 'Bombardment hits: defender loses a step',
     '-': 'Bombardment misses: no effect',
@@ -903,7 +928,7 @@ const Engine = (() => {
     '11th ACR': '11th Armored Cavalry Regiment', '2/11 ACR': '2nd Squadron, 11th Armored Cavalry', '1/3 Armd': '1st Brigade, 3rd Armored Division',
     '2/3 Armd': '2nd Brigade, 3rd Armored Division', '1/8 Inf': '1st Brigade, 8th Infantry Division (Mechanized)', '2/8 Inf': '2nd Brigade, 8th Infantry Division (Mechanized)',
     'V Corps Art': 'V Corps Artillery', '11th Avn': '11th Aviation Brigade', 'PzGrenBde 5': 'Panzergrenadier Brigade 5', 'PzBde 14': 'Panzer Brigade 14',
-    'HSchKdo': 'Home Defence Command 5',
+    'HSchKdo': 'Home Defense Command 5',
     // Stalingrad
     '3rd Mot': '3rd Motorized Division', '60th Mot': '60th Motorized Division', 'Arko 6': 'Sixth Army Artillery', '1st Rom': '1st Romanian Division',
     '2nd Rom': '2nd Romanian Division', '13th Gds': '13th Guards Rifle Division', '37th Gds': '37th Guards Rifle Division', '35th Gds': '35th Guards Rifle Division',
@@ -919,6 +944,7 @@ const Engine = (() => {
     '1st SS Pz': '1st SS Panzer Division', '12th SS Pz': '12th SS Panzer Division', '2nd Pz': '2nd Panzer Division', '116th Pz': '116th Panzer Division',
     's.Pz 506': 'Heavy Panzer Battalion 506', '277th VG': '277th Volksgrenadier Division', '18th VG': '18th Volksgrenadier Division', '62nd VG': '62nd Volksgrenadier Division',
     '26th VG': '26th Volksgrenadier Division', '5th Fsj': '5th Fallschirmjäger Division', 'Arko 6 SS': '6th SS Panzer Army Artillery', '15th PzGr': '15th Panzergrenadier Division',
+    '21st Pz': '21st Panzer Division', '19th Pz': '19th Panzer Division', '332nd Inf': '332nd Infantry Division', '9th SS Pz': '9th SS Panzer Division Hohenstaufen', '560th VG': '560th Volksgrenadier Division', '100th Jg': '100th Jäger Division', '255th Inf': '255th Infantry Division',
     'VIII Corps Art': 'VIII Corps Artillery', '29th Armd Bde': '29th Armoured Brigade',
     // Torch
     '1st Ranger': '1st Ranger Battalion', 'II Corps Art': 'II Corps Artillery', '6th Armd': '6th Armoured Division', '1st Para': '1st Parachute Brigade',
@@ -1012,8 +1038,8 @@ const Engine = (() => {
     },
     europe: {
       id: 'europe', name: 'Road to the Rhine', setting: 'Europe 1944',
-      blurb: 'The Allies break out of the Normandy beachhead. They need 10 victory points by turn 14 (Paris, Rouen, Brussels and Antwerp will do it). The Axis wins at once by taking Bayeux, the beachhead.',
-      maxTurns: 14, victory: { type: 'target', side: 'A', vp: 10 }, supplyRange: Infinity, theme: 'europe',
+      blurb: 'The Allies break out of the Normandy beachhead. They need 9 victory points by turn 14 (Paris, Rouen, Reims and Antwerp will do it). The Axis wins at once by taking Bayeux, the beachhead.',
+      maxTurns: 14, victory: { type: 'target', side: 'A', vp: 9 }, supplyRange: Infinity, theme: 'europe',
       sides: {
         A: { name: 'Allies', short: 'Allies', color: '#6c7a3a', ink: '#f4efd9', edge: 'W', flag: 'allies' },
         B: { name: 'Axis', short: 'Axis', color: '#5c656d', ink: '#f2f2ee', edge: 'E', flag: 'axis' },
@@ -1067,13 +1093,13 @@ const Engine = (() => {
         ['A', 'arm', 2, 6, 'Gds Armd'], ['A', 'arm', 3, 10, '3rd Armd'], ['A', 'arm', 2, 12, '2nd Armd'], ['A', 'mech', 3, 14, 'Pol Armd'],
         ['A', 'art', 3, 6, 'XXX Art'], ['A', 'art', 3, 11, 'VII Art'], ['A', 'abn', 0, 10, '82nd Abn'], ['A', 'abn', 0, 11, '101st Abn'],
         ['B', 'inf', 7, 4, '711th Inf'], ['B', 'inf', 7, 6, '716th Inf'], ['B', 'inf', 7, 8, '352nd Inf'], ['B', 'inf', 7, 12, '243rd Inf'], ['B', 'inf', 6, 14, '91st LL'], ['B', 'inf', 8, 10, '325th Inf'],
-        ['B', 'arm', 9, 7, 'Pz Lehr'], ['B', 'hvy', 10, 9, 's.Pz 503'], ['B', 'art', 8, 6, '84th Art'],
+        ['B', 'arm', 9, 7, 'Pz Lehr'], ['B', 'hvy', 10, 9, 's.Pz 503'], ['B', 'art', 8, 6, '84th Art'], ['B', 'arm', 9, 5, '21st Pz'], ['B', 'arm', 9, 12, '12th SS Pz'],
       ],
     },
     desert: {
       id: 'desert', name: 'Gazala Line', setting: 'North Africa 1942',
       blurb: 'The Afrika Korps strikes at the Gazala line. Supply runs only 8 hexes from a port or home edge. The Axis needs 9 victory points by turn 12 (Tobruk is the prize) or wins at once by taking Alexandria.',
-      maxTurns: 12, victory: { type: 'target', side: 'A', vp: 9 }, supplyRange: 8, theme: 'desert',
+      maxTurns: 12, victory: { type: 'target', side: 'A', vp: 9 }, supplyRange: 8, selfSupplied: ['LRDG'], theme: 'desert',
       sides: {
         A: { name: 'Axis', short: 'Axis', color: '#8a96a0', ink: '#1b2024', edge: 'W', flag: 'axis' },
         B: { name: 'Allies', short: 'Allies', color: '#6e4526', ink: '#f4e7c9', edge: 'E', flag: 'allies' },
@@ -1155,18 +1181,23 @@ const Engine = (() => {
   function terrainName(scId, ch) { const sc = SCEN[scId]; return (sc.terrainNames && sc.terrainNames[ch]) || TERRAIN[ch].name; }
   function hexInfo(m, k) {
     const t = TERRAIN[m.terr[k]], city = m.cities[k];
-    let mp = t.mp, shift = t.shift;
-    if (city) { mp = Math.min(mp, 1); shift = Math.max(shift, city.cap ? 2 : 1); }
     const river = m.river.has(k) && !t.impass;
-    if (river) shift += 1;
-    return { t, city, mp, shift, river, impass: !!t.impass, ch: m.terr[k] };
+    // defense bonus of the hex itself: the better of terrain and city, plus river
+    let def = t.def;
+    if (city) def = Math.max(def, city.cap ? DEF.capital : DEF.city);
+    if (river) def += DEF.river;
+    // cities are never a stop (towns have bridges and streets)
+    const stop = !city && (!!t.stop || river);
+    return { t, city, mp: t.mp, def, stop, river, impass: !!t.impass, ch: m.terr[k], sight: t.sight || 0 };
   }
   function moveCost(m, a, b) {
     const hi = hexInfo(m, b);
     if (hi.impass) return Infinity;
     if (m.roadEdges.has(a + '|' + b)) return 0.5;
-    return hi.mp + (hi.river ? 1 : 0);
+    return hi.mp;
   }
+  // Does moving a->b end the unit's move? (difficult terrain or a river, unless following a road)
+  function stopsAt(m, a, b) { return !m.roadEdges.has(a + '|' + b) && hexInfo(m, b).stop; }
 
   // ---------- state helpers ----------
   function byId(s, id) { return s.units.find(u => u.id === id); }
@@ -1181,6 +1212,7 @@ const Engine = (() => {
     let a = t.a, d = t.d, m = t.m;
     if (u.steps < 2) { a = Math.ceil(a / 2); d = Math.ceil(d / 2); }
     if (u.oos && u.side === s.active) { a = Math.max(1, Math.floor(a / 2)); m = Math.ceil(m / 2); }
+    if ((u.oosT || 0) >= OOS.defHalf) d = Math.max(1, Math.ceil(d / 2));
     return { a, d, m };
   }
   function log(s, kind, text) {
@@ -1199,10 +1231,10 @@ const Engine = (() => {
   function newGame(scenId, seed, opts = {}) {
     const sc = SCEN[scenId];
     let id = 1;
-    const units = sc.units.map(([side, type, c, r, name, start]) => ({ id: id++, side, type, c, r, name: name || '', full: fullName(name), nat: natOf(scenId, name), steps: 2, moved: false, attacked: false, dropped: false, oos: false, dig: start === 'dug' ? 'dug' : null }));
+    const units = sc.units.map(([side, type, c, r, name, start]) => ({ id: id++, side, type, c, r, name: name || '', full: fullName(name), nat: natOf(scenId, name), steps: 2, moved: false, attacked: false, dropped: false, oos: false, oosT: 0, self: (sc.selfSupplied || []).includes(name) || undefined, dig: start === 'dug' ? 'dug' : null }));
     const owner = {};
     sc.cities.forEach(ct => { if (ct.owner) owner[K(ct.c, ct.r)] = ct.owner; });
-    const s = { v: 2, scen: scenId, turn: 1, active: 'A', phase: 'move', rng: seed | 0, units, owner, log: [], trails: [], prevTrails: [], attacked: [], bombarded: [], pending: null, winner: null, dead: [], lastCombat: null, fog: !!opts.fog, seen: { A: {}, B: {} } };
+    const s = { v: 3, scen: scenId, turn: 1, active: 'A', phase: 'move', rng: seed | 0, units, owner, log: [], trails: [], prevTrails: [], attacked: [], bombarded: [], pending: null, winner: null, dead: [], lastCombat: null, fog: !!opts.fog, seen: { A: {}, B: {} } };
     refreshSupply(s);
     updateSeen(s);
     log(s, 'turn', `Turn 1: ${sc.sides.A.name} to move`);
@@ -1210,19 +1242,23 @@ const Engine = (() => {
   }
 
   // ---------- movement ----------
+  // Every hex the unit can move to: Map key -> {cost, path:[[c,r]...], drop?, minimum?}
   function reachable(s, u) {
     const res = new Map();
     if (!u || u.moved || u.side !== s.active || s.phase !== 'move' || s.pending || s.winner) return res;
     const m = getMap(s.scen), def = TYPES[u.type], f = factors(s, u), occ = occMap(s);
     const enemyZoc = zocOf(s, other(u.side));
     const ez = def.ignoresZoc ? new Set() : enemyZoc;
+    const flies = def.sym === 'hel';
     const start = K(u.c, u.r), startInZoc = ez.has(start);
-    const best = new Map([[start, 0]]), q = [[0, start]];
+    // node = hex key, plus '!' when the unit arrived there by a move that ends its turn (ZOC, terrain)
+    const best = new Map([[start, 0]]), parent = new Map(), q = [[0, start]];
     while (q.length) {
       q.sort((a, b) => a[0] - b[0]);
-      const [cost, k] = q.shift();
-      if (cost > best.get(k)) continue;
-      if (k !== start && ez.has(k)) continue; // entering enemy ZOC ends movement
+      const [cost, node] = q.shift();
+      if (cost > best.get(node)) continue;
+      if (node.endsWith('!')) continue;
+      const k = node;
       const [c, r] = P(k);
       for (const [nc, nr] of nbrs(m, c, r)) {
         const nk = K(nc, nr), o = occ.get(nk);
@@ -1230,23 +1266,31 @@ const Engine = (() => {
         if (k === start && startInZoc && ez.has(nk)) continue; // no ZOC-to-ZOC
         const c2 = cost + moveCost(m, k, nk);
         if (c2 > f.m) continue;
-        if (best.has(nk) && best.get(nk) <= c2) continue;
-        best.set(nk, c2); q.push([c2, nk]);
+        const end = ez.has(nk) || (!flies && stopsAt(m, k, nk));
+        const nn = end ? nk + '!' : nk;
+        if (best.has(nn) && best.get(nn) <= c2) continue;
+        best.set(nn, c2); parent.set(nn, node); q.push([c2, nn]);
       }
     }
-    for (const [k, c] of best) if (k !== start && !occ.get(k)) res.set(k, { cost: c });
+    const trace = node => { const p = []; for (let n = node; n; n = parent.get(n)) p.unshift(P(n.replace('!', ''))); return p; };
+    for (const [node, c] of best) {
+      const k = node.replace('!', '');
+      if (k === start || occ.get(k)) continue;
+      const cur = res.get(k);
+      if (!cur || c < cur.cost) res.set(k, { cost: c, path: trace(node) });
+    }
     // Any unit may always move one hex (unless ZOC-to-ZOC or impassable).
     for (const [nc, nr] of nbrs(m, u.c, u.r)) {
       const nk = K(nc, nr);
       if (res.has(nk) || occ.get(nk) || hexInfo(m, nk).impass) continue;
       if (startInZoc && ez.has(nk)) continue;
-      res.set(nk, { cost: f.m, minimum: true });
+      res.set(nk, { cost: f.m, minimum: true, path: [[u.c, u.r], [nc, nr]] });
     }
     if (def.airdrop && !u.dropped) {
       for (let r = 0; r < m.H; r++) for (let c = 0; c < m.W; c++) {
         const k = K(c, r);
         if (res.has(k) || occ.get(k) || hexInfo(m, k).impass || enemyZoc.has(k)) continue;
-        if (dist([u.c, u.r], [c, r]) <= def.airdrop) res.set(k, { cost: 0, drop: true });
+        if (dist([u.c, u.r], [c, r]) <= def.airdrop) res.set(k, { cost: 0, drop: true, path: [[u.c, u.r], [c, r]] });
       }
     }
     return res;
@@ -1255,7 +1299,7 @@ const Engine = (() => {
   // ---------- supply ----------
   function supplyNet(s, side) {
     const m = getMap(s.scen), sc = SCEN[s.scen], occ = occMap(s), ez = zocOf(s, other(side));
-    const range = sc.supplyRange ?? Infinity;
+    const range = supplyRange(sc, side);
     const ok = k => {
       if (hexInfo(m, k).impass) return false;
       const o = occ.get(k);
@@ -1275,9 +1319,18 @@ const Engine = (() => {
     }
     return d;
   }
+  // Start of a side's turn: mark supply and count turns cut off; long-isolated units wither.
+  // Some fronts limit supply for one side only (supplySide).
+  function supplyRange(sc, side) { return sc.supplyRange != null && (!sc.supplySide || sc.supplySide === side) ? sc.supplyRange : Infinity; }
   function refreshSupply(s) {
     const net = supplyNet(s, s.active);
-    for (const u of s.units) if (u.side === s.active) u.oos = !net.has(K(u.c, u.r));
+    for (const u of s.units.slice()) {
+      if (u.side !== s.active) continue;
+      u.oos = !u.self && !net.has(K(u.c, u.r));
+      u.oosT = u.oos ? (u.oosT || 0) + 1 : 0;
+      if (u.oosT === OOS.defHalf) log(s, 'loss', `${unitLabel(s, u)} cut off for ${u.oosT} turns: defense halved`);
+      if (u.oosT >= OOS.attrition) { log(s, 'loss', `${unitLabel(s, u)} without supply for ${u.oosT} turns`); loseStep(s, u); }
+    }
   }
 
   // ---------- fog of war ----------
@@ -1285,13 +1338,14 @@ const Engine = (() => {
     const m = getMap(s.scen), vis = new Set();
     for (const u of s.units) {
       if (u.side !== side) continue;
-      const rng = TYPES[u.type].ignoresZoc ? SIGHT_RECON : SIGHT;
+      const rng = (TYPES[u.type].ignoresZoc ? SIGHT_RECON : SIGHT) + sightBonus(m, u);
       for (let r = Math.max(0, u.r - rng - 1); r <= Math.min(m.H - 1, u.r + rng + 1); r++)
         for (let c = Math.max(0, u.c - rng); c <= Math.min(m.W - 1, u.c + rng); c++)
           if (dist([u.c, u.r], [c, r]) <= rng) vis.add(K(c, r));
     }
     return vis;
   }
+  function sightBonus(m, u) { return TYPES[u.type].sym === 'hel' ? 0 : ((TERRAIN[m.terr[K(u.c, u.r)]] || {}).sight || 0); }
   function canSee(s, side, u) { return !s.fog || u.side === side || visibleHexes(s, side).has(K(u.c, u.r)); }
   function updateSeen(s) {
     if (!s.fog) return;
@@ -1311,9 +1365,16 @@ const Engine = (() => {
     v.units = v.units.filter(u => u.side === side || vis.has(K(u.c, u.r)));
     return v;
   }
-  function defShift(s, u) {
-    const hi = hexInfo(getMap(s.scen), K(u.c, u.r));
-    return hi.shift + (u.dig === 'dug' ? 1 : 0);
+  // Defense in place: strength x (1 + bonuses). parts lists each bonus for display.
+  function defense(s, u) {
+    const m = getMap(s.scen), hi = hexInfo(m, K(u.c, u.r)), base = factors(s, u).d, parts = [];
+    const t = hi.t, city = hi.city;
+    if (city && (city.cap ? DEF.capital : DEF.city) >= t.def) parts.push({ what: city.cap ? 'capital' : 'city', pct: Math.round(100 * (city.cap ? DEF.capital : DEF.city)) });
+    else if (t.def) parts.push({ what: terrainName(s.scen, hi.ch), pct: Math.round(100 * t.def) });
+    if (hi.river) parts.push({ what: 'river', pct: Math.round(100 * DEF.river) });
+    if (u.dig === 'dug') parts.push({ what: 'entrenched', pct: Math.round(100 * DEF.dug) });
+    const mult = 1 + parts.reduce((t2, p) => t2 + p.pct, 0) / 100;
+    return { base, mult, d: Math.round(base * mult * 10) / 10, parts };
   }
 
   // ---------- combat ----------
@@ -1335,12 +1396,12 @@ const Engine = (() => {
     const m = getMap(s.scen), tgt = occMap(s).get(tk);
     if (!tgt) return { valid: false, why: 'No unit there.' };
     const us = ids.map(id => byId(s, id)).filter(Boolean);
-    const att = us.reduce((a, u) => a + attackValue(s, u), 0), def = factors(s, tgt).d;
+    const att = us.reduce((a, u) => a + attackValue(s, u), 0), dv = defense(s, tgt), def = dv.d;
     const ratio = def ? att / def : 99;
     let col = -1;
     THR.forEach((t, i) => { if (ratio >= t - 1e-9) col = i; });
-    const hi = hexInfo(m, tk), dug = tgt.dig === 'dug', shift = hi.shift + (dug ? 1 : 0);
-    const fin = col < 0 ? -1 : Math.max(0, col - shift);
+    const hi = hexInfo(m, tk), dug = tgt.dig === 'dug';
+    const fin = col;
     const adj = us.some(u => dist([u.c, u.r], [tgt.c, tgt.r]) === 1);
     const bombard = us.length > 0 && us.every(u => TYPES[u.type].range);
     let why = '';
@@ -1349,7 +1410,7 @@ const Engine = (() => {
     else if (col < 0) why = 'Odds below 1:3 are not allowed.';
     else if (bombard && (s.bombarded || []).includes(tk)) why = 'That hex was already bombarded this turn.';
     else if (!bombard && s.attacked.includes(tk)) why = 'That hex was already assaulted this turn.';
-    return { att, def, ratio, col, shift, fin, adj, hi, dug, bombard, valid: !why, why };
+    return { att, def, defBase: dv.base, mult: dv.mult, parts: dv.parts, ratio, col, fin, adj, hi, dug, bombard, valid: !why, why };
   }
   function loseStep(s, u) {
     u.steps -= 1;
@@ -1370,11 +1431,12 @@ const Engine = (() => {
     for (const [c, r] of nbrs(m, u.c, u.r)) {
       const k = K(c, r);
       if (occ.get(k) || hexInfo(m, k).impass || ez.has(k)) continue;
-      const score = (home === 'W' ? -c : c) * 10 + (hexInfo(m, k).shift);
+      const score = (home === 'W' ? -c : c) * 10 + (hexInfo(m, k).def);
       if (score > bestScore) { bestScore = score; best = [c, r]; }
     }
     if (!best) return false;
-    s.trails.push({ side: u.side, from: [u.c, u.r], to: best, retreat: true });
+    s.trails.push({ side: u.side, unit: u.id, from: [u.c, u.r], to: best, path: [[u.c, u.r], best], retreat: true });
+    u.last = { turn: s.turn, path: [[u.c, u.r], best], retreat: true };
     u.c = best[0]; u.r = best[1]; u.dig = null;
     log(s, 'move', `${unitLabel(s, u)} retreats`);
     return true;
@@ -1435,7 +1497,8 @@ const Engine = (() => {
         if (u.moved) return { error: 'That unit has already moved.' };
         const r = reachable(s, u).get(K(a.to[0], a.to[1]));
         if (!r) return { error: 'That unit cannot reach that hex.' };
-        s.trails.push({ side: u.side, from: [u.c, u.r], to: a.to.slice(), drop: !!r.drop });
+        s.trails.push({ side: u.side, unit: u.id, from: [u.c, u.r], to: a.to.slice(), path: r.path, drop: !!r.drop });
+        u.last = { turn: s.turn, path: r.path, drop: !!r.drop };
         u.c = a.to[0]; u.r = a.to[1]; u.moved = true; u.dig = null;
         if (r.drop) { u.dropped = true; log(s, 'move', `${unitLabel(s, u)} airdrops`); }
         enter(s, u); checkWin(s);
@@ -1448,6 +1511,7 @@ const Engine = (() => {
         if (!u || u.side !== s.active) return { error: 'That is not your unit.' };
         if (u.moved) return { error: 'That unit has already moved or been given orders this turn.' };
         if (u.dig === 'dug') return { error: 'That unit is already entrenched.' };
+        if (u.oos) return { error: 'Units out of supply cannot dig in.' };
         u.moved = true; u.dig = 'digging';
         log(s, 'move', `${unitLabel(s, u)} starts digging in`);
         return { ok: true };
@@ -1483,7 +1547,7 @@ const Engine = (() => {
           s.bombarded.push(tk);
           log(s, 'combat', `${us.length > 1 ? us.length + ' batteries' : unitLabel(s, us[0])} bombard ${unitLabel(s, tgt)} at ${COLS[o.fin]} odds: rolled ${die}, ${res === 'B1' ? 'a hit' : 'a miss'}`);
           if (res === 'B1') loseStep(s, tgt);
-          s.lastCombat = { target: [tgt.c, tgt.r], die, res, col: o.fin, base: o.col, shift: o.shift, att: o.att, def: o.def, vacated: false, bombard: true, side: s.active, city: cityName, units: report(), turn: s.turn };
+          s.lastCombat = { target: [tgt.c, tgt.r], die, res, col: o.fin, base: o.col, mult: o.mult, parts: o.parts, defBase: o.defBase, att: o.att, def: o.def, vacated: false, bombard: true, side: s.active, city: cityName, units: report(), turn: s.turn };
           checkWin(s);
           return { ok: true, die, res };
         }
@@ -1504,7 +1568,7 @@ const Engine = (() => {
           case 'DE': while (alive(s, tgt)) loseStep(s, tgt); break;
         }
         const vacated = !alive(s, tgt) || tgt.c !== from[0] || tgt.r !== from[1];
-        s.lastCombat = { target: from, die, res, col: o.fin, base: o.col, shift: o.shift, att: o.att, def: o.def, vacated, side: s.active, city: cityName, units: report(), turn: s.turn, held: inCap && (res === 'DR' || res === 'D1') };
+        s.lastCombat = { target: from, die, res, col: o.fin, base: o.col, mult: o.mult, parts: o.parts, defBase: o.defBase, att: o.att, def: o.def, vacated, side: s.active, city: cityName, units: report(), turn: s.turn, held: inCap && (res === 'DR' || res === 'D1') };
         if (vacated) {
           const adv = adjAtt.filter(u => alive(s, u)).map(u => u.id);
           if (adv.length && !occMap(s).get(tk)) s.pending = { hex: from, units: adv };
@@ -1518,7 +1582,9 @@ const Engine = (() => {
         if (a.unit == null) { s.pending = null; return { ok: true }; }
         if (!s.pending.units.includes(a.unit)) return { error: 'That unit cannot advance.' };
         const u = byId(s, a.unit);
-        s.trails.push({ side: u.side, from: [u.c, u.r], to: s.pending.hex.slice(), advance: true });
+        s.trails.push({ side: u.side, unit: u.id, from: [u.c, u.r], to: s.pending.hex.slice(), path: [[u.c, u.r], s.pending.hex.slice()], advance: true });
+        if (u.last && u.last.turn === s.turn && !u.last.retreat) u.last = { ...u.last, path: [...u.last.path, s.pending.hex.slice()] };
+        else u.last = { turn: s.turn, path: [[u.c, u.r], s.pending.hex.slice()] };
         u.c = s.pending.hex[0]; u.r = s.pending.hex[1]; u.dig = null;
         s.pending = null;
         log(s, 'move', `${unitLabel(s, u)} advances`);
@@ -1553,7 +1619,7 @@ const Engine = (() => {
     return out;
   }
 
-  return { K, P, other, dist, nbrs, toCube, fromCube, TERRAIN, TYPES, COLS, THR, CRT, BOMBARD, RESULT_TEXT, SIGHT, SIGHT_RECON, fullName, attackValue, highGround, nation, natOf, SCEN, SCEN_ORDER, getMap, hexInfo, terrainName, newGame, apply, reachable, eligibleAttackers, oddsFor, factors, supplyNet, zocOf, occMap, byId, vp, legalMoves, visibleHexes, canSee, fogView, defShift };
+  return { K, P, other, dist, nbrs, toCube, fromCube, TERRAIN, TYPES, COLS, THR, CRT, BOMBARD, RESULT_TEXT, SIGHT, SIGHT_RECON, DEF, OOS, supplyRange, fullName, sightBonus, stopsAt, defense, attackValue, highGround, nation, natOf, SCEN, SCEN_ORDER, getMap, hexInfo, terrainName, newGame, apply, reachable, eligibleAttackers, oddsFor, factors, supplyNet, zocOf, occMap, byId, vp, legalMoves, visibleHexes, canSee, fogView };
 })();
 if (typeof module !== 'undefined') module.exports = Engine;
 
@@ -1563,16 +1629,22 @@ if (typeof module !== 'undefined') module.exports = Engine;
 // Plays a full turn on a copy of the state through Engine.apply() and returns
 // the list of actions it took. The UI replays those actions on the real game.
 // It never sees dice before rolling: combat is judged by expected value from the CRT.
-const AI_FLAGS = (typeof process !== 'undefined' && process.env && process.env.AIF) ? Object.fromEntries(process.env.AIF.split(',').map(x => [x, true])) : { noGuard: true };
-let DANGER_K = (typeof process !== 'undefined' && process.env && process.env.DK) ? +process.env.DK : 0.7;
-let GUARD_K = (typeof process !== 'undefined' && process.env && process.env.GK) ? +process.env.GK : 0.6;
 const AI = (() => {
+  // Test switches (Node only): NF=flag1,-flag2 turns features on/off, NK='{"knob":1}' overrides numbers.
+  const ENV = (typeof process !== 'undefined' && process.env) ? process.env : {};
+  const AI_FLAGS = { noGuard: true, cover: true };
+  if (ENV.NF) for (const f of ENV.NF.split(',').filter(Boolean)) { if (f[0] === '-') delete AI_FLAGS[f.slice(1)]; else AI_FLAGS[f] = true; }
+  const KN = { expW: 0.5, coverW: 1.0, armorSafe: 1.6, cutW: 0.3, minCol: 3, terrW: 1.2, passes: 1, samples: 2, vpW: 4, capW: 6 };
+  if (ENV.NK) Object.assign(KN, JSON.parse(ENV.NK));
+  const DANGER_K = KN.DK ?? 0.7, GUARD_K = KN.GK ?? 0.6;
   const E = (typeof Engine !== 'undefined') ? Engine : require('./engine.js');
   const K = E.K, P = E.P;
 
   const PROFILES = {
-    hard: { attackThresh: 0.35, planThresh: 0.6, unitCost: 0.12, dangerW: 1.0 },
+    hard: { attackThresh: KN.attackThresh ?? 0.35, planThresh: KN.planThresh ?? 0.6, unitCost: KN.unitCost ?? 0.12, dangerW: KN.dangerW ?? 1.0 },
   };
+
+  let PR = PROFILES.hard; // profile in force (lookahead swaps in variants while planning)
 
   const typeVal = t => t.a + t.d + t.m * 0.5;
   const unitVal = u => typeVal(E.TYPES[u.type]) * (u.steps < 2 ? 0.62 : 1);
@@ -1589,7 +1661,7 @@ const AI = (() => {
   }
 
   // ---------- context: everything the AI precomputes at the start of its turn ----------
-  function buildCtx(s, side) {
+  function buildCtx(s, side, planned) {
     const m = E.getMap(s.scen), sc = E.SCEN[s.scen], enemy = E.other(side);
     const keys = Object.keys(m.terr).filter(k => !E.hexInfo(m, k).impass);
     // walking distance (hex steps over passable terrain) from every city
@@ -1613,7 +1685,12 @@ const AI = (() => {
     if (role === 'balanced' && turnsLeft <= 3) { const diff = E.vp(s, side) - E.vp(s, enemy); if (diff <= 0) objW *= 1.4; else defW *= 1.3; }
 
     // enemy reach & threat (what they could hit next turn, given our current positions)
-    const tmp = { ...s, active: enemy, phase: 'move', pending: null, winner: null, units: s.units.map(u => ({ ...u, moved: false, oos: false })) };
+    // planned: Map unit id -> hex key where our units will stand (second pass); enemy reach is measured against it
+    const tmp = { ...s, active: enemy, phase: 'move', pending: null, winner: null, units: s.units.map(u => {
+      const o = { ...u, moved: false, oos: false };
+      if (planned && planned.has(u.id)) { const [c, r] = P(planned.get(u.id)); o.c = c; o.r = r; }
+      return o;
+    }) };
     const threat = new Map(), threatN = new Map(), threatList = new Map(), enemyNear = new Map(), enemyEnter = new Set();
     for (const e of tmp.units.filter(u => u.side === enemy)) {
       const er = E.reachable(tmp, e);
@@ -1632,7 +1709,7 @@ const AI = (() => {
       for (const k of keys) { const d = E.dist([e.c, e.r], P(k)) / mv * 3; if (d < (enemyNear.get(k) ?? 99)) enemyNear.set(k, d); }
     }
     // objective potential per hex
-    const pot = new Map(), guard = new Map();
+    const pot = new Map(), guard = new Map(), ownPot = new Map();
     const cityThreat = {};
     for (const ct of sc.cities) {
       const ck = K(ct.c, ct.r), own = s.owner[ck];
@@ -1640,15 +1717,15 @@ const AI = (() => {
       cityThreat[ck] = own === side ? Math.max(0, (7 - near) / 7) : 0;
     }
     for (const k of keys) {
-      let p = 0, g = 0;
+      let p = 0, g = 0, op = 0;
       for (const ct of sc.cities) {
         const ck = K(ct.c, ct.r), own = s.owner[ck], d = cityDist[ck].get(k);
         if (d == null) continue;
         const w = ct.vp * (ct.cap ? 1.6 : 1);
         if (own !== side) p += w * Math.pow(0.8, d);
-        else if (cityThreat[ck] > 0) g += w * cityThreat[ck] * Math.pow(0.72, d);
+        else { op += w * Math.pow(0.8, d); if (cityThreat[ck] > 0) g += w * cityThreat[ck] * Math.pow(0.72, d); }
       }
-      pot.set(k, p); guard.set(k, g);
+      pot.set(k, p); guard.set(k, g); ownPot.set(k, op);
     }
     // material and endgame pressure
     const myMat = s.units.filter(u => u.side === side).reduce((t, u) => t + unitVal(u), 0);
@@ -1661,9 +1738,10 @@ const AI = (() => {
     }
     const myCap = sc.cities.find(ct => ct.cap && ct.owner === side);
     const supply = E.supplyNet(s, side);
-    const supplyPen = sc.supplyRange !== Infinity ? 9 : 5;
+    const supplyPen = E.supplyRange(sc, side) !== Infinity ? 9 : 5;
     const enemyPos = s.units.filter(u => u.side === enemy).map(u => [u.c, u.r]);
-    return { m, sc, side, enemy, role, enemyEnter, threatList, myCap, matRatio, objW, defW, threat, threatN, pot, guard, cityThreat, supply, supplyPen, enemyPos, cityDist };
+    const enemyAt = new Map(s.units.filter(u => u.side === enemy).map(u => [K(u.c, u.r), u]));
+    return { m, sc, side, enemy, role, ownPot, enemyAt, enemyEnter, threatList, myCap, matRatio, objW, defW, threat, threatN, pot, guard, cityThreat, supply, supplyPen, enemyPos, cityDist };
   }
 
   function minEnemyDist(ctx, h) { let d = 99; for (const p of ctx.enemyPos) d = Math.min(d, E.dist(p, h)); return d; }
@@ -1678,9 +1756,42 @@ const AI = (() => {
     const ranged = list.filter(x => x.ranged).map(x => x.a).sort((x, y) => y - x).slice(0, 2);
     const eff = close.reduce((t, x) => t + x, 0) + (close.length ? ranged.reduce((t, x) => t + x, 0) : 0);
     const def = Math.ceil(E.TYPES[u.type].d / (u.steps < 2 ? 2 : 1));
-    const col = oddsCol(eff, def, hi.shift);
+    const col = oddsCol(eff, def * (1 + hi.def), 0);
     if (col < 0) return 0;
     return EXP_LOSS[col] * stepVal(u) * (u.steps < 2 ? 1.4 : 1) * DANGER_K;
+  }
+
+  // Which enemy units would be out of supply at the start of their turn if our units stood on friendSet.
+  function enemyOOS(ctx, s, friendSet) {
+    const m = ctx.m, sc = ctx.sc, en = ctx.enemy, range = E.supplyRange(sc, en);
+    const enemyAt = ctx.enemyAt;
+    const zoc = h => { if (friendSet.has(h)) return true; const [c, r] = P(h); for (const [a, b] of E.nbrs(m, c, r)) if (friendSet.has(K(a, b))) return true; return false; };
+    const ok = h => !E.hexInfo(m, h).impass && !friendSet.has(h) && (enemyAt.has(h) || !zoc(h));
+    const d = new Map(), q = [];
+    const edgeCol = sc.sides[en].edge === 'W' ? 0 : m.W - 1;
+    for (let r = 0; r < m.H; r++) { const h = K(edgeCol, r); if (ok(h)) { d.set(h, 0); q.push(h); } }
+    for (const ct of sc.cities) { const h = K(ct.c, ct.r); if (ct.supply && s.owner[h] === en && ok(h) && !d.has(h)) { d.set(h, 0); q.push(h); } }
+    for (let i = 0; i < q.length; i++) {
+      const h = q[i], dh = d.get(h); if (dh >= range) continue;
+      const [c, r] = P(h);
+      for (const [nc, nr] of E.nbrs(m, c, r)) { const nh = K(nc, nr); if (!d.has(nh) && ok(nh)) { d.set(nh, dh + 1); q.push(nh); } }
+    }
+    let v = 0;
+    for (const [h, e] of enemyAt) if (!d.has(h)) v += typeVal(E.TYPES[e.type]) * (e.steps < 2 ? 0.6 : 1);
+    return v;
+  }
+
+  // How much new ground a unit's zone of control at k closes to the enemy, weighted by what lies behind it.
+  function coverValue(ctx, k, friendSet) {
+    const [c, r] = P(k);
+    let v = 0;
+    for (const h of [k, ...E.nbrs(ctx.m, c, r).map(([nc, nr]) => K(nc, nr))]) {
+      if (!ctx.enemyEnter.has(h)) continue;
+      const [hc, hr] = P(h);
+      if (friendSet.has(h) || E.nbrs(ctx.m, hc, hr).some(([a, b]) => friendSet.has(K(a, b)))) continue;
+      v += Math.min(3, ctx.ownPot.get(h) || 0) * 0.35;
+    }
+    return v;
   }
 
   function hexScore(s, ctx, u, k, friendSet) {
@@ -1689,7 +1800,10 @@ const AI = (() => {
     const friends = E.nbrs(ctx.m, c, r).filter(([nc, nr]) => friendSet.has(K(nc, nr))).length;
     sc += ctx.objW * (ctx.pot.get(k) || 0) * (t.range ? 0.5 : 1) * 2.2;
     sc += ctx.defW * (ctx.guard.get(k) || 0) * 2.2;
-    sc -= danger(ctx, u, k, friends) * PROFILES.hard.dangerW;
+    const fragile = t.d <= 3 && t.a >= 5 && !t.range;
+    sc -= danger(ctx, u, k, friends) * PR.dangerW * (AI_FLAGS.armorSafe && fragile ? KN.armorSafe : 1);
+    if (AI_FLAGS.cover && !t.range && !t.ignoresZoc) sc += KN.coverW * coverValue(ctx, k, friendSet);
+    if (AI_FLAGS.cut && ctx.cutBase != null) { const f2 = new Set(friendSet); f2.add(k); sc += KN.cutW * (enemyOOS(ctx, s, f2) - ctx.cutBase); }
     if (!ctx.supply.has(k)) sc -= ctx.supplyPen;
     sc += 0.45 * Math.min(friends, 3);
     const city = ctx.m.cities[k];
@@ -1699,7 +1813,7 @@ const AI = (() => {
       else sc += city.vp * 4 * (ctx.cityThreat[k] || 0) * ctx.defW;
     }
     if (t.range) { const de = minEnemyDist(ctx, [c, r]); if (de === 1) sc -= 3; else if (de === 2) sc += 1.5; }
-    sc += E.hexInfo(ctx.m, k).shift * 0.25 * ((ctx.threat.get(k) || 0) > 0 ? 1 : 0);
+    sc += E.hexInfo(ctx.m, k).def * 2 * KN.terrW * ((ctx.threat.get(k) || 0) > 0 ? 1 : 0);
     return sc;
   }
 
@@ -1716,17 +1830,18 @@ const AI = (() => {
     const m = E.getMap(s.scen), tk = K(tgt.c, tgt.r);
     const adj = members.filter(x => x.adj);
     const att = members.reduce((t, x) => t + E.attackValue(s, x.u), 0);
-    const shift = E.defShift(s, tgt);
+    const shift = 0, defV = E.defense(s, tgt).d;
     if (members.length && members.every(x => E.TYPES[x.u.type].range)) {
       // bombardment: no risk, chance of one step
-      const fb = oddsCol(att, E.factors(s, tgt).d, shift);
+      const fb = oddsCol(att, defV, shift);
       if (fb < 0) return { ev: -Infinity };
       const p = E.BOMBARD[fb].filter(r => r === 'B1').length / 6;
       return { ev: p * (lossVal(tgt) + (tgt.steps <= 1 ? bonus * 0.5 : 0)) + (tgt.dig === 'dug' ? 1.2 : 0), fin: fb, bombard: true };
     }
     if (!adj.length) return { ev: -Infinity };
-    const fin = oddsCol(att, E.factors(s, tgt).d, shift);
+    const fin = oddsCol(att, defV, shift);
     if (fin < 0) return { ev: -Infinity };
+    if (AI_FLAGS.minOdds && fin < KN.minCol && !(m.cities[tk] && m.cities[tk].cap && m.cities[tk].owner !== side)) return { ev: -Infinity };
     const strongest = adj.reduce((b, x) => (E.factors(s, x.u).a > E.factors(s, b.u).a ? x : b)).u;
     if (m.cities[tk] && m.cities[tk].cap) canRet = false;
     const vac = vacateValue(s, side, tk);
@@ -1771,7 +1886,7 @@ const AI = (() => {
 
   // ---------- movement planning ----------
   function planMoves(s, side, ctx) {
-    const m = ctx.m, P_ = PROFILES.hard;
+    const m = ctx.m, P_ = PR;
     const mine = s.units.filter(u => u.side === side && !u.moved);
     const enemies = s.units.filter(u => u.side !== side);
     const reach = new Map(mine.map(u => [u.id, E.reachable(s, u)]));
@@ -1830,7 +1945,7 @@ const AI = (() => {
         let best = null;
         for (const u of mine) {
           if (used.has(u.id) || !reach.get(u.id).has(k) || E.TYPES[u.type].range) continue;
-          const sc = E.factors(s, u).d * 2 + E.hexInfo(m, k).shift * 2 - E.dist([u.c, u.r], [ct.c, ct.r]) * 0.2;
+          const sc = E.factors(s, u).d * 2 + E.hexInfo(m, k).def * 4 - E.dist([u.c, u.r], [ct.c, ct.r]) * 0.2;
           if (!best || sc > best.sc) best = { u, sc };
         }
         if (best) { used.add(best.u.id); plan.set(best.u.id, k); taken.add(k); placed++; }
@@ -1862,7 +1977,7 @@ const AI = (() => {
           for (const k of reach.get(u.id).keys()) {
             if (taken.has(k)) continue;
             const d = ctx.cityDist[ck].get(k); if (d == null) continue;
-            const sc = -Math.max(0, d - 1) * 4 + E.hexInfo(m, k).shift - (ctx.threat.get(k) ? 0.5 : 0);
+            const sc = -Math.max(0, d - 1) * 4 + E.hexInfo(m, k).def * 2 - (ctx.threat.get(k) ? 0.5 : 0);
             if (!best || sc > best.sc) best = { k, sc, d };
           }
           if (!best || best.d > E.dist([u.c, u.r], cp)) continue;
@@ -1898,7 +2013,7 @@ const AI = (() => {
         const free = cand.o.filter(z => z.stay || !gTaken.has(z.k));
         if (!free.length) continue;
         free.sort((x, y) => (y.stay ? 1 : 0) - (x.stay ? 1 : 0) || (y.adj - x.adj) ||
-          (E.hexInfo(m, y.k).shift - E.hexInfo(m, x.k).shift) || ((ctx.threat.get(x.k) || 0) - (ctx.threat.get(y.k) || 0)));
+          (E.hexInfo(m, y.k).def - E.hexInfo(m, x.k).def) || ((ctx.threat.get(x.k) || 0) - (ctx.threat.get(y.k) || 0)));
         const pick = free[0];
         group.push({ u: cand.u, adj: pick.adj, k: pick.k });
         gTaken.add(pick.k);
@@ -1907,7 +2022,9 @@ const AI = (() => {
         const blocked = new Set([...occAll.keys(), ...gTaken, ...taken]);
         group.forEach(g => { if (!g.stay) blocked.delete(K(g.u.c, g.u.r)); });
         const r = attackEV(s, side, tgt, group, canRetreat(s, tgt, blocked, myPos), threatBonus(s, side, tgt));
-        const score = r.ev - group.length * P_.unitCost;
+        let expo = 0;
+        if (AI_FLAGS.exposeG) for (const g of group) if (!g.stay) expo += danger(ctx, g.u, g.k, 1);
+        const score = r.ev - group.length * P_.unitCost - expo * KN.expW;
         if (!best || score > best.score) best = { score, ev: r.ev, members: group.slice() };
       }
       return best;
@@ -1935,6 +2052,7 @@ const AI = (() => {
     for (const u of rest) {
       const cur = K(u.c, u.r), fs = friendSet();
       fs.delete(cur);
+      ctx.cutBase = AI_FLAGS.cut ? enemyOOS(ctx, s, fs) : null;
       let bestK = cur, bestS = hexScore(s, ctx, u, cur, fs);
       for (const k of reach.get(u.id).keys()) {
         if (taken.has(k)) continue;
@@ -1948,7 +2066,7 @@ const AI = (() => {
 
   // ---------- combat ----------
   function bestAttack(s, side) {
-    const P_ = PROFILES.hard;
+    const P_ = PR;
     let best = null;
     const myPos = s.units.filter(u => u.side === side).map(u => [u.c, u.r]);
     const occ = new Set(E.occMap(s).keys());
@@ -1985,26 +2103,36 @@ const AI = (() => {
   }
 
   // ---------- full turn ----------
-  function takeTurn(real) {
-    const s = JSON.parse(JSON.stringify(real));
-    const side = s.active, actions = [];
-    const view = () => E.fogView(s, side); // the AI only knows what its side can see
-    const doA = a => { const r = E.apply(s, a); if (!r.error) actions.push(a); return r; };
-    if (s.winner) return actions;
-    if (s.pending) doA({ t: 'advance', unit: chooseAdvance(view(), side) });
-    if (s.phase === 'move') {
-      const v = view();
-      const plan = planMoves(v, side, buildCtx(v, side));
-      let todo = [...plan.entries()];
-      for (let round = 0; round < 3 && todo.length && !s.winner; round++) {
-        const next = [];
-        for (const [id, k] of todo) { const r = doA({ t: 'move', unit: id, to: P(k) }); if (r.error) next.push([id, k]); if (s.winner) break; }
-        todo = next;
-      }
-      // everyone who stayed put digs in
-      if (!s.winner) for (const u of s.units) if (u.side === side && !u.moved && u.dig !== 'dug') doA({ t: 'entrench', unit: u.id });
-      if (!s.winner) doA({ t: 'phase' });
+  // Candidate plans for the lookahead: the same planner with different temperaments.
+  const VARIANTS = [
+    {},
+    { dangerW: 2.0, objMul: 0.6, defMul: 1.4 },                  // cautious: hold good ground
+    { dangerW: 0.5, objMul: 1.6, planThresh: 0.3 },              // aggressive: push for objectives
+  ];
+  function makePlan(v, side, variant) {
+    const saved = PR;
+    PR = { ...PROFILES.hard, ...variant };
+    try {
+      const ctx = buildCtx(v, side);
+      if (variant.objMul) ctx.objW *= variant.objMul;
+      if (variant.defMul) ctx.defW *= variant.defMul;
+      return planMoves(v, side, ctx);
+    } finally { PR = saved; }
+  }
+
+  // Plays our moves and attacks on s (mutating it); pushes actions through doA.
+  function playMoves(s, side, plan, doA) {
+    let todo = [...plan.entries()];
+    for (let round = 0; round < 3 && todo.length && !s.winner; round++) {
+      const next = [];
+      for (const [id, k] of todo) { const r = doA({ t: 'move', unit: id, to: P(k) }); if (r.error) next.push([id, k]); if (s.winner) break; }
+      todo = next;
     }
+    // everyone who stayed put digs in
+    if (!s.winner) for (const u of s.units) if (u.side === side && !u.moved && u.dig !== 'dug') doA({ t: 'entrench', unit: u.id });
+    if (!s.winner) doA({ t: 'phase' });
+  }
+  function playCombat(s, side, doA, view) {
     let guard = 0;
     while (!s.winner && s.phase === 'combat' && guard++ < 40) {
       if (s.pending) { doA({ t: 'advance', unit: chooseAdvance(view(), side) }); continue; }
@@ -2015,6 +2143,79 @@ const AI = (() => {
     }
     if (!s.winner && s.pending) doA({ t: 'advance', unit: chooseAdvance(view(), side) });
     if (!s.winner) doA({ t: 'endTurn' });
+  }
+
+  // Position value for side after the enemy's reply: material, cities, and the result if the game ended.
+  function evaluate(s, side) {
+    const en = E.other(side), sc = E.SCEN[s.scen];
+    if (s.winner) return s.winner.side === side ? 1000 : s.winner.side === null ? 0 : -1000;
+    const mat = x => s.units.filter(u => u.side === x).reduce((t, u) => t + unitVal(u), 0);
+    let v = mat(side) - mat(en);
+    const late = s.turn / sc.maxTurns;
+    const vpW = KN.vpW * (0.6 + late);
+    const v_ = sc.victory;
+    if (v_.type === 'target') {
+      const got = E.vp(s, v_.side), need = v_.vp;
+      // attacker's progress toward the target counts double when it is close to the line
+      const prog = got - need, w = Math.abs(prog) <= 2 ? 1.6 : 1;
+      v += (v_.side === side ? 1 : -1) * prog * vpW * w;
+    } else v += (E.vp(s, side) - E.vp(s, en)) * vpW;
+    // own capital under direct threat
+    const cap = sc.cities.find(ct => ct.cap && ct.owner === side);
+    if (cap) { const ck = K(cap.c, cap.r); const n = s.units.filter(u => u.side === en && E.dist([u.c, u.r], [cap.c, cap.r]) <= 1).length; if (n) v -= KN.capW * n * (s.units.some(u => u.side === side && u.c === cap.c && u.r === cap.r) ? 0.4 : 1.5); }
+    return v;
+  }
+
+  let depth = 0;
+  function lookahead(v, side) {
+    const cands = VARIANTS.map(vr => makePlan(v, side, vr));
+    // drop duplicate plans
+    const keyOf = p => [...p.entries()].sort((a, b) => a[0] - b[0]).map(e => e.join(':')).join(',');
+    const uniq = [], seen = new Set();
+    cands.forEach(p => { const k = keyOf(p); if (!seen.has(k)) { seen.add(k); uniq.push(p); } });
+    if (uniq.length === 1) return uniq[0];
+    let best = null;
+    depth++;
+    try {
+      for (const plan of uniq) {
+        let tot = 0;
+        for (let i = 0; i < KN.samples; i++) {
+          const s2 = JSON.parse(JSON.stringify(v));
+          // private dice: our own seed, never the game's hidden roll sequence
+          s2.rng = (0x9E3779B9 * (s2.turn * 2 + (side === 'B') + 1) + i * 7919) | 0;
+          const doA = a => E.apply(s2, a);
+          playMoves(s2, side, plan, doA);
+          playCombat(s2, side, doA, () => E.fogView(s2, side));
+          if (!s2.winner && s2.active !== side) {
+            for (const a of takeTurn(s2)) { if (E.apply(s2, a).error) break; }
+          }
+          tot += evaluate(s2, side);
+        }
+        const sc = tot / KN.samples;
+        if (!best || sc > best.sc) best = { sc, plan };
+      }
+    } finally { depth--; }
+    return best.plan;
+  }
+
+  function takeTurn(real) {
+    const s = JSON.parse(JSON.stringify(real));
+    const side = s.active, actions = [];
+    const view = () => E.fogView(s, side); // the AI only knows what its side can see
+    const doA = a => { const r = E.apply(s, a); if (!r.error) actions.push(a); return r; };
+    if (s.winner) return actions;
+    if (s.pending) doA({ t: 'advance', unit: chooseAdvance(view(), side) });
+    if (s.phase === 'move') {
+      const v = view();
+      let plan;
+      if (AI_FLAGS.look && depth === 0) plan = lookahead(v, side);
+      else {
+        plan = planMoves(v, side, buildCtx(v, side));
+        if (AI_FLAGS.refine) for (let pass = 0; pass < KN.passes; pass++) plan = planMoves(v, side, buildCtx(v, side, plan));
+      }
+      playMoves(s, side, plan, doA);
+    }
+    playCombat(s, side, doA, view);
     return actions;
   }
 
@@ -2027,7 +2228,7 @@ if (typeof module !== 'undefined') module.exports = AI;
 // ===================== HEXFRONT UI =====================
 (() => {
   const E = Engine, K = E.K, P = E.P;
-  const VERSION = '0.15.4', BUILD = '2026-11-19';
+  const VERSION = '0.16.1', BUILD = '2026-11-26';
   const S = 30, SQ3 = Math.sqrt(3), SAVE_KEY = 'hexfront.v1';
   try { console.info(`Hexfront v${VERSION} (${BUILD})`); } catch (e) { /* ignore */ }
   const THEMES = {
@@ -2058,7 +2259,7 @@ if (typeof module !== 'undefined') module.exports = AI;
 
   let state = null, sel = null, target = null, atk = new Set(), info = null, undo = [];
   let aiBusy = false, aiToken = 0, pickScen = null, pickWho = { A: 'human', B: 'ai' }, pickFog = false;
-  let showZoc = false, showSup = false, vb = null, mapW = 0, mapH = 0, staticFor = null, hoverEl = null;
+  let showZoc = false, showSup = false, showLast = false, vb = null, mapW = 0, mapH = 0, staticFor = null, hoverEl = null;
   let mode = null, pop = null, tray = null, nextIdx = 0, mapOnly = false;
   const isAI = side => !!(state && state.players && state.players[side] === 'ai');
   const hasAI = () => isAI('A') || isAI('B');
@@ -2083,6 +2284,7 @@ if (typeof module !== 'undefined') module.exports = AI;
     orders: ic('<rect x="5" y="4" width="14" height="17" rx="1.5"/><path d="M9 3h6v3H9zM8.5 11h7M8.5 14.5h7M8.5 18h4"/>'),
     undo: ic('<path d="M9 6L4 11l5 5"/><path d="M4 11h10.5a5 5 0 0 1 0 10H11"/>'),
     next: ic('<circle cx="11" cy="12" r="6.5"/><path d="M11 3v3M11 18v3M2 12h3M17 12h2.5"/><path d="M17.5 8.5L21 12l-3.5 3.5"/>'),
+    last: ic('<path d="M4 19l4-4 4 2 4-6 4-3"/><circle cx="4" cy="19" r="1.4" fill="currentColor"/><circle cx="8" cy="15" r="1.4" fill="currentColor"/><circle cx="12" cy="17" r="1.4" fill="currentColor"/><circle cx="16" cy="11" r="1.4" fill="currentColor"/><path d="M17 5.5l3 2.5-3.6 1"/>'),
     maponly: ic('<path d="M3 6.5l6-2.5 6 2.5 6-2.5v13.5l-6 2.5-6-2.5-6 2.5z"/><path d="M9 4v13.5M15 6.5V20"/>'),
     battle: ic('<path d="M4 4l10 10M14 14l-2.5 2.5M15.5 15.5l4 4M20 4L10 14M10 14l2.5 2.5M8.5 15.5l-4 4"/>'),
     obj: ic('<path d="M5 21V4"/><path d="M5 4.5h12l-2.5 4 2.5 4H5"/>'),
@@ -2091,7 +2293,7 @@ if (typeof module !== 'undefined') module.exports = AI;
     unit: ic('<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 8.5h8v5H8z"/><path d="M8 8.5l8 5M16 8.5l-8 5"/><path d="M8.5 17h7"/>'),
     charts: ic('<rect x="3.5" y="4" width="17" height="16" rx="1.5"/><path d="M3.5 9h17M3.5 14.5h17M9.5 4v16M15 4v16"/>'),
   };
-  const TOOLS = [['fit', 'Fit'], ['tex', 'Terrain'], ['zoc', 'ZOC'], ['sup', 'Supply'], ['info', 'Info'], ['orders', 'Orders'], ['undo', 'Undo'], ['maponly', 'Map only']];
+  const TOOLS = [['fit', 'Fit'], ['tex', 'Terrain'], ['zoc', 'ZOC'], ['sup', 'Supply'], ['info', 'Info'], ['orders', 'Orders'], ['undo', 'Undo'], ['last', 'Moves'], ['maponly', 'Map only']];
   const TRAYS = [['unit', 'Unit'], ['battle', 'Battle'], ['obj', 'Objectives'], ['forces', 'Forces'], ['log', 'Log'], ['charts', 'Charts']];
   $('toolbar').innerHTML = TOOLS.map(([k, l]) => `<button type="button" data-tool="${k}" aria-label="${l}">${ICONS[k]}<span>${l}</span></button>`).join('');
   $('bnav').innerHTML = TRAYS.map(([k, l]) => `<button type="button" data-tray="${k}" aria-label="${l}"${k === 'unit' ? ' class="desk"' : ''}>${ICONS[k]}<span>${l}</span></button>`).join('');
@@ -2201,7 +2403,7 @@ if (typeof module !== 'undefined') module.exports = AI;
     const far = `<g transform="translate(${farX.toFixed(1)},${(-z * 0.12).toFixed(1)})">${symbol(u.type, farW, farH, ink)}</g>` + farStar +
       `<text y="${(h - z * 0.08).toFixed(1)}" text-anchor="middle" font-family="${FONT}" font-weight="700" font-size="${(z * 0.3).toFixed(1)}" fill="${ink}" letter-spacing=".4">${opts.ghost ? '?' : fac}</text>`;
     g += opts.lod === 'near' ? near + nearStar : `<g class="lod-near">${near}${nearStar}</g><g class="lod-far">${far}</g>`;
-    if (opts.oos) g += `<g transform="translate(${-h + 1},${-h + 1})"><circle r="6.5" fill="#c4412d" stroke="#1a1e18" stroke-width="1.2"/><text y="3.4" text-anchor="middle" font-family="${FONT}" font-weight="700" font-size="10" fill="#fff">S</text></g>`;
+    if (opts.oos) { const n = opts.oosT >= 2 ? String(opts.oosT) : ''; g += `<g transform="translate(${-h + 1},${-h + 1})"><circle r="${n ? 7.5 : 6.5}" fill="#c4412d" stroke="#1a1e18" stroke-width="1.2"/><text y="3.4" text-anchor="middle" font-family="${FONT}" font-weight="700" font-size="${n ? 8.5 : 10}" fill="#fff">S${n}</text></g>`; }
     if (u.dig) { // amber while digging in, green once entrenched
       const dug = u.dig === 'dug';
       g += `<g transform="translate(${-h + 1},${h - 1})"><circle r="7.2" fill="${dug ? '#4f7f33' : '#d99a2b'}" stroke="#1a1e18" stroke-width="1.3"/><path d="M-4.2 1.8h8.4M-3.4 -.6h3M.6 -.6h3M-1.6 -3h3.2" stroke="${dug ? '#eaf3d8' : '#2a1c05'}" stroke-width="1.6" stroke-linecap="round"/></g>`;
@@ -2312,6 +2514,27 @@ if (typeof module !== 'undefined') module.exports = AI;
     return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${ex.toFixed(1)}" y2="${ey.toFixed(1)}" stroke="rgba(15,15,10,.55)" stroke-width="${(opts.w || 3) + 2.5}" stroke-linecap="round" ${dash}/>` +
       `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${ex.toFixed(1)}" y2="${ey.toFixed(1)}" stroke="${color}" stroke-width="${opts.w || 3}" stroke-linecap="round" marker-end="url(#arrowA)" ${dash}/>`;
   }
+  // A move drawn hex by hex: a line through the centre of every hex crossed, a dot on each, arrowhead at the end.
+  function pathLine(path, color, opts = {}) {
+    if (!path || path.length < 2) return '';
+    const pts = path.map(h => center(...h));
+    const [lx, ly] = pts[pts.length - 1], [px, py] = pts[pts.length - 2];
+    const L = Math.hypot(lx - px, ly - py) || 1, sh = Math.min(14, L / 3);
+    const draw = pts.slice(0, -1).concat([[lx - (lx - px) / L * sh, ly - (ly - py) / L * sh]]);
+    const d = 'M' + draw.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join('L');
+    const dash = opts.dash ? `stroke-dasharray="${opts.dash}"` : '', w = opts.w || 3;
+    let o = `<path d="${d}" fill="none" stroke="rgba(15,15,10,.55)" stroke-width="${w + 2.5}" stroke-linecap="round" stroke-linejoin="round" ${dash}/>` +
+      `<path d="${d}" fill="none" stroke="${color}" stroke-width="${w}" stroke-linecap="round" stroke-linejoin="round" marker-end="url(#arrowA)" ${dash}/>`;
+    for (const [x, y] of pts.slice(1, -1)) o += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${(w * 0.9).toFixed(1)}" fill="${color}" stroke="rgba(15,15,10,.6)" stroke-width="1"/>`;
+    return o;
+  }
+  const trailPath = t => t.path || [t.from, t.to];
+  // Unit whose details are open (Info popup on phones, Unit panel on desktop)
+  function infoUnitId() {
+    if (pop && pop.kind === 'info') return pop.unit;
+    if (!PHONE.matches && tray === 'unit' && info) { const u = E.occMap(V()).get(info); return u ? u.id : null; }
+    return null;
+  }
   const ring = (x, y, color, w, extra = '') => `<rect ${extra} x="${x - 24}" y="${y - 24}" width="48" height="48" rx="5" fill="none" stroke="${color}" stroke-width="${w}"/>`;
   function renderDyn() {
     const m = E.getMap(state.scen), th = THEMES[sc().theme], v = V(), who = viewer();
@@ -2340,8 +2563,18 @@ if (typeof module !== 'undefined') module.exports = AI;
       o += `<g transform="translate(${x + bo},${y - bo})"><circle r="7" fill="${col}" stroke="#1a1e18" stroke-width="1.2"/><text y="3.5" text-anchor="middle" font-family="${FONT}" font-weight="700" font-size="10" fill="#fff">${ct.vp}</text></g>`;
     }
     const seenOK = t => !vis || t.side === who || vis.has(K(...t.to)) || vis.has(K(...t.from));
-    for (const t of state.prevTrails) if (seenOK(t)) o += arrow(t.from, t.to, sideOf(t.side).color, { w: 3.2, dash: t.retreat ? '5 4' : (t.drop ? '2 5' : '') });
-    for (const t of state.trails) if (seenOK(t)) o += arrow(t.from, t.to, '#e8a83a', { w: 2, dash: '4 3' });
+    // Moves are hidden unless asked for: all of the last turn's with the Moves tool, or one unit's last move in its details.
+    if (showLast) {
+      for (const t of state.prevTrails) if (seenOK(t)) o += pathLine(trailPath(t), sideOf(t.side).color, { w: 3, dash: t.retreat ? '5 4' : (t.drop ? '2 5' : '') });
+      for (const t of state.trails) if (seenOK(t)) o += pathLine(trailPath(t), '#e8a83a', { w: 2.4, dash: t.retreat ? '5 4' : '' });
+    } else {
+      const iu = infoUnitId() != null ? E.byId(v, infoUnitId()) : null;
+      if (iu && iu.last && iu.last.turn >= state.turn - 1) {
+        let p = iu.last.path;
+        if (vis && iu.side !== who) { const i = p.findIndex(h => vis.has(K(...h))); p = i < 0 ? [] : p.slice(Math.max(0, i - 1)); } // only the part your side could see
+        o += pathLine(p, iu.side === who || !vis ? '#e8a83a' : sideOf(iu.side).color, { w: 3, dash: iu.last.retreat ? '5 4' : (iu.last.drop ? '2 5' : '') });
+      }
+    }
     if (state.lastCombat && !state.pending) { const [x, y] = center(...state.lastCombat.target); o += `<polygon points="${hexPts(x, y, S - 3)}" fill="none" stroke="#d4573f" stroke-width="2" stroke-dasharray="3 3"/>`; }
     if (state.pending) { const [x, y] = center(...state.pending.hex); o += `<polygon class="pulse" points="${hexPts(x, y, S - 2)}" fill="rgba(147,181,107,.3)" stroke="#4e7a2a" stroke-width="3"/>`; }
     const myTurn = !aiBusy && !isAI(state.active) && !state.winner;
@@ -2384,7 +2617,7 @@ if (typeof module !== 'undefined') module.exports = AI;
       if (target && atk.has(u.id)) rg = ring(x, y, '#e8a83a', 3);
       else if (target && mine && eligT.includes(u.id)) rg = ring(x, y, '#e8a83a', 1.5, 'stroke-dasharray="4 3"');
       if (state.pending && state.pending.units.includes(u.id)) rg = ring(x, y, '#e8a83a', 3, 'class="pulse"');
-      units += rg + counterSVG(state.scen, u, x, y, 40, { dim, oos: u.oos && mine, f: E.factors(state, E.byId(state, u.id) || u), uid: u.id });
+      units += rg + counterSVG(state.scen, u, x, y, 40, { dim, oos: (u.oos && mine) || (u.oosT || 0) > 0, oosT: u.oosT || 0, f: E.factors(state, E.byId(state, u.id) || u), uid: u.id });
     }
     o += units;
     o += `<polygon id="hoverHex" points="${hexPts(0, 0, S - 1)}" fill="none" stroke="rgba(255,252,235,.9)" stroke-width="2" visibility="hidden"/>`;
@@ -2404,16 +2637,21 @@ if (typeof module !== 'undefined') module.exports = AI;
     rows.push(['Strength', u.steps < 2 ? 'Reduced (1 step left)' : 'Full (2 steps)']);
     if (E.highGround(state, real)) rows.push(['High ground', '+1 attack when firing from here']);
     rows.push(['Terrain', `${E.terrainName(state.scen, hi.ch)}${hi.river ? ' + river' : ''}${hi.city ? ` · ${hi.city.name}` : ''}`]);
-    const shift = E.defShift(state, real);
-    rows.push(['Defending here', shift ? `Attacks shift ${shift} column${shift > 1 ? 's' : ''} left` : 'No terrain bonus']);
-    if (u.dig === 'dug') rows.push(['Entrenched', '+1 column while it holds']);
+    const dv = E.defense(state, real);
+    rows.push(['Defends at', dv.parts.length ? `${fmtN(dv.d)} (${dv.base} ${dv.parts.map(p => `+${p.pct}% ${p.what}`).join(', ')})` : `${dv.base} (no bonus here)`]);
+    if (u.dig === 'dug') rows.push(['Entrenched', `+${Math.round(E.DEF.dug * 100)}% defense while it holds`]);
     if (u.dig === 'digging') rows.push(['Digging in', 'Entrenched next turn if not attacked']);
-    if (mine) rows.push(['Supply', real.oos ? 'Cut off: half attack and move' : 'In supply']);
+    const sb = E.sightBonus(E.getMap(state.scen), real);
+    if (state.fog && sb) rows.push(['Sight', `${(t.ignoresZoc ? E.SIGHT_RECON : E.SIGHT) + sb} hexes (+${sb} from high ground)`]);
+    if (real.self) rows.push(['Supply', 'Carries its own: never out of supply']);
+    const ot = real.oosT || 0;
+    if (ot > 0) rows.push(['Supply', ot >= E.OOS.attrition ? `Cut off ${ot} turns: defense halved, loses a step each turn` : ot >= E.OOS.defHalf ? `Cut off ${ot} turns: defense halved; loses a step next turn if still cut off` : 'Cut off: half attack and move, cannot dig in']);
+    else if (mine && !real.self) rows.push(['Supply', 'In supply']);
     if (mine && real.moved) rows.push(['This turn', u.dig === 'digging' ? 'Given orders' : 'Moved']);
     if (mine && real.attacked) rows.push(['This turn', 'Has attacked']);
     if (E.zocOf(state, E.other(u.side)).has(k)) rows.push(['Position', 'In enemy zone of control']);
     if (t.airdrop) rows.push(['Airdrop', real.dropped ? 'Used' : 'Ready']);
-    return { f, t, rows, base: u.steps < 2 ? { a: Math.ceil(t.a / 2), d: Math.ceil(t.d / 2), m: t.m } : t };
+    return { f, t, rows, dv, base: u.steps < 2 ? { a: Math.ceil(t.a / 2), d: Math.ceil(t.d / 2), m: t.m } : t };
   }
 
   // ---------- popup on the map ----------
@@ -2434,22 +2672,24 @@ if (typeof module !== 'undefined') module.exports = AI;
     else if (u.dig === 'dug') why = 'Already entrenched. It keeps the bonus until it moves.';
     else if (u.dig === 'digging') why = 'Already digging in.';
     else if (E.byId(state, u.id).moved) why = 'This unit has already moved this turn.';
-    return `<div class="order"><b style="font:700 16px/1 var(--ui);letter-spacing:.04em;text-transform:uppercase">Entrench</b><p>Stay put and dig in. If not attacked before your next turn, attacks on it shift one column left until it moves.</p>
+    else if (E.byId(state, u.id).oos) why = 'Out of supply: it cannot dig in.';
+    return `<div class="order"><b style="font:700 16px/1 var(--ui);letter-spacing:.04em;text-transform:uppercase">Entrench</b><p>Stay put and dig in. If not attacked before your next turn, it defends at +${Math.round(E.DEF.dug * 100)}% until it moves.</p>
         <button type="button" class="primary" data-pop="entrench" data-unit="${u.id}" ${why ? 'disabled' : ''}>Entrench</button>${why ? `<p style="color:var(--signal)">${esc(why)}</p>` : ''}</div>`;
   }
-  function statsHTML(f, base) {
-    const st = (lbl, val, b) => `<div><small>${lbl}</small><b class="${val < b ? 'down' : ''}">${val}</b></div>`;
-    return `<div class="stats">${st('Attack', f.a, base.a)}${st('Defense', f.d, base.d)}${st('Move', f.m, base.m)}</div>`;
+  const fmtN = n => (Math.round(n * 10) / 10).toString();
+  function statsHTML(f, base, dv) {
+    const st = (lbl, val, b) => `<div><small>${lbl}</small><b class="${val < b ? 'down' : val > b ? 'up' : ''}">${fmtN(val)}</b></div>`;
+    return `<div class="stats">${st('Attack', f.a, base.a)}${st('Defense', dv ? dv.d : f.d, base.d)}${st('Move', f.m, base.m)}</div>`;
   }
   function renderPop() {
     const el = $('pop');
     if (!pop) { el.classList.remove('show'); return; }
     const v = V(), u = E.byId(v, pop.unit);
     if (!u) { pop = null; el.classList.remove('show'); return; }
-    const sd = sideOf(u.side), { f, t, rows, base } = unitFacts(u);
+    const sd = sideOf(u.side), { f, t, rows, base, dv } = unitFacts(u);
     let html = `<div class="pop-h">${miniCounter(u, 44, f)}<div><b>${esc(fname(u))}</b><small>${esc(sd.name)} · ${esc(t.name)}${u.name ? ` · counter “${esc(u.name)}”` : ''}</small></div><button type="button" class="pop-x" data-pop="close" aria-label="Close">×</button></div>`;
     if (pop.kind === 'info') {
-      html += statsHTML(f, base);
+      html += statsHTML(f, base, dv);
       html += `<ul>${rows.map(([a, b]) => `<li><span>${esc(a)}</span><span>${b && b.html ? b.html : esc(b)}</span></li>`).join('')}</ul>`;
       if (t.note) html += `<p class="note">${esc(t.note)}</p>`;
     } else html += orderBlock(u);
@@ -2499,10 +2739,12 @@ if (typeof module !== 'undefined') module.exports = AI;
     const m = E.getMap(state.scen), hi = E.hexInfo(m, k), [c, r] = P(k);
     const tname = E.terrainName(state.scen, hi.ch);
     if (hi.impass) return `<p>${esc(tname)}: impassable.</p>`;
-    const parts = [`${esc(tname)}, ${hi.mp} MP`];
-    if (hi.river) parts.push('river (+1 MP)');
-    if (E.nbrs(m, c, r).some(([nc, nr]) => m.roadEdges.has(k + '|' + K(nc, nr)))) parts.push('road (½ MP along it)');
-    let s = `<p>Hex ${hexId(c, r)} · ${parts.join(' · ')}</p><p>Defender shifts odds ${hi.shift} column${hi.shift === 1 ? '' : 's'} left.</p>`;
+    const parts = [esc(tname)];
+    if (hi.river) parts.push('river');
+    const road = E.nbrs(m, c, r).some(([nc, nr]) => m.roadEdges.has(k + '|' + K(nc, nr)));
+    if (road) parts.push('road (½ MP along it)');
+    const mv = hi.stop ? `Entering ends a unit’s move${road ? ' unless it follows the road' : ''}.` : 'Costs 1 MP to enter.';
+    let s = `<p>Hex ${hexId(c, r)} · ${parts.join(' · ')}</p><p>${mv} Defenders here get ${hi.def ? `+${Math.round(hi.def * 100)}%` : 'no bonus'}.${hi.sight ? ` Units here see ${hi.sight} hexes farther.` : ''}</p>`;
     if (hi.city) { const own = state.owner[k]; s += `<p><b style="color:var(--ink)">${esc(hi.city.name)}</b>${hi.city.cap ? ' (capital)' : ''} · ${hi.city.vp} VP · ${own ? esc(sideOf(own).name) : 'Unclaimed'}${hi.city.supply ? ' · supply source' : ''}</p>`; }
     return s;
   }
@@ -2513,10 +2755,10 @@ if (typeof module !== 'undefined') module.exports = AI;
     if (!k) { el.innerHTML = `<p class="empty">${tapWord('Click')} a unit or hex to see it here. Counters read attack-defense-move. With Orders on in the left toolbar, ${tapWord('click')} one of your units to give it orders.</p>`; return; }
     const u = E.occMap(v).get(k);
     if (!u) { el.innerHTML = `<div class="unitcard">${terrainLine(k)}</div>`; return; }
-    const { f, t, rows, base } = unitFacts(u), sd = sideOf(u.side);
+    const { f, t, rows, base, dv } = unitFacts(u), sd = sideOf(u.side);
     const showOrders = u.side === state.active && !isAI(u.side);
     el.innerHTML = `<div class="unitcard"><div class="pop-h">${miniCounter(u, 44, f)}<div><b>${esc(fname(u))}</b><small>${esc(sd.name)} · ${esc(t.name)}</small></div><span></span></div>
-      ${statsHTML(f, base)}<ul>${rows.map(([a, b]) => `<li><span>${esc(a)}</span><span>${b && b.html ? b.html : esc(b)}</span></li>`).join('')}</ul>
+      ${statsHTML(f, base, dv)}<ul>${rows.map(([a, b]) => `<li><span>${esc(a)}</span><span>${b && b.html ? b.html : esc(b)}</span></li>`).join('')}</ul>
       ${t.note ? `<p class="note">${esc(t.note)}</p>` : ''}
       ${showOrders || mode === 'orders' ? `<h3 style="margin:16px 0 0">Orders</h3>${orderBlock(u)}` : ''}
       <h3 style="margin:16px 0 6px">Hex</h3>${terrainLine(k)}</div>`;
@@ -2558,12 +2800,11 @@ if (typeof module !== 'undefined') module.exports = AI;
     const o = E.oddsFor(state, target, ids), tgt = E.occMap(state).get(target);
     if (!tgt) { target = null; atk.clear(); return renderCombat(); }
     const list = elig.map(id => { const u = E.byId(state, id), av = E.attackValue(state, u), rng = E.dist([u.c, u.r], [tgt.c, tgt.r]) > 1; return `<li data-atk="${id}" class="${atk.has(id) ? '' : 'off'}"><span>${esc(fname(u))}${rng ? ' (firing from range)' : ''}${E.highGround(state, u) ? ' · high ground +1' : ''}${u.oos ? ' · out of supply, halved' : ''}</span><b>${av}</b></li>`; }).join('');
-    const base = o.col >= 0 ? E.COLS[o.col] : '—', fin = o.fin >= 0 ? E.COLS[o.fin] : '—';
-    const why = [];
-    if (o.shift) why.push(`${o.shift} left for ${[o.hi.city ? (o.hi.city.cap ? 'capital' : 'city') : (o.hi.t.shift ? 'terrain' : ''), o.hi.river ? 'river' : '', o.dug ? 'entrenched' : ''].filter(Boolean).join(', ')}`);
+    const fin = o.fin >= 0 ? E.COLS[o.fin] : '—';
+    const defTxt = o.parts.length ? `defense ${o.defBase} ${o.parts.map(p => `+${p.pct}% ${p.what}`).join(', ')} = ${fmtN(o.def)}` : `defense ${o.def}`;
     const arts = elig.filter(id => E.TYPES[E.byId(state, id).type].range);
-    el.innerHTML = `<ul class="atklist">${list}<li class="total"><span>Against ${esc(fname(tgt))} (defense ${o.def})</span><b>${o.att} : ${o.def}</b></li></ul>
-      <div class="odds"><b>${fin}</b>${o.bombard ? '<span class="mode">Bombardment</span>' : ''}<span>${base} odds${why.length ? `, shifted ${why.join(' ')}` : ''}</span></div>
+    el.innerHTML = `<ul class="atklist">${list}<li class="total"><span>Against ${esc(fname(tgt))} (${esc(defTxt)})</span><b>${o.att} : ${fmtN(o.def)}</b></li></ul>
+      <div class="odds"><b>${fin}</b>${o.bombard ? '<span class="mode">Bombardment</span>' : ''}<span>odds${(tgt.oosT || 0) >= E.OOS.defHalf ? ' · defender cut off, defense halved' : ''}</span></div>
       ${o.fin >= 0 ? `<p class="empty" style="margin:0 0 6px">If you roll:</p>${crtCells(o.bombard ? E.BOMBARD : E.CRT, o.fin)}` : ''}
       ${o.dug && o.bombard ? '<p class="empty" style="color:var(--ok);margin-bottom:8px">Shelling will destroy its entrenchment, hit or miss.</p>' : ''}
       ${o.valid ? '' : `<p class="empty" style="color:var(--danger);margin-bottom:10px">${esc(o.why)}</p>`}
@@ -2583,8 +2824,10 @@ if (typeof module !== 'undefined') module.exports = AI;
     const special = [...new Set(s.units.map(u => u[1]))].filter(t => !['inf', 'mech', 'arm', 'art'].includes(t)).map(t => `${E.TYPES[t].name}: ${E.TYPES[t].note}`);
     const rules = [
       'Capitals hold: a unit defending a capital never retreats; it loses a step instead.',
-      s.supplyRange !== Infinity ? `Supply reaches only ${s.supplyRange} hexes from a port or your home edge.` : 'Supply traces any distance to your home edge or a supply city.',
-      state.fog ? `Fog of war is on: you see ${E.SIGHT} hexes from your units (${E.SIGHT_RECON} for recon).` : 'Fog of war is off: all units are visible.',
+      s.supplyRange !== Infinity ? `${s.supplySide ? `${s.sides[s.supplySide].name}: s` : 'S'}upply reaches only ${s.supplyRange} hexes from a port or your home edge.` : 'Supply traces any distance to your home edge or a supply city.',
+      ...(s.selfSupplied ? [`${s.selfSupplied.map(n => E.fullName(n) || n).join(', ')} carries its own supply and is never cut off.`] : []),
+      'Cut-off units attack and move at half; after 2 turns their defense halves too, and from the 3rd turn they lose a step each turn.',
+      state.fog ? `Fog of war is on: you see ${E.SIGHT} hexes from your units (${E.SIGHT_RECON} for recon), ${E.TERRAIN.h.sight} more from hills or mountains.` : 'Fog of war is off: all units are visible.',
       ...special,
     ];
     $('objExtra').innerHTML = `<section><h3>Briefing</h3><p class="brief">${esc(s.blurb)}</p></section>
@@ -2601,7 +2844,7 @@ if (typeof module !== 'undefined') module.exports = AI;
     const status = u => {
       const st = [];
       if (u.steps < 2) st.push('Reduced');
-      if (u.oos && who === state.active) st.push('No supply');
+      if ((u.oosT || 0) > 0) st.push(u.oosT > 1 ? `No supply ${u.oosT} turns` : 'No supply');
       if (u.dig === 'dug') st.push('Entrenched'); else if (u.dig === 'digging') st.push('Digging');
       if (who === state.active && state.phase === 'move' && !u.moved) st.push('Ready');
       if (who === state.active && state.phase === 'combat' && !u.attacked) st.push('Can attack');
@@ -2617,20 +2860,21 @@ if (typeof module !== 'undefined') module.exports = AI;
       ${lost.length ? `<h3 style="margin:14px 0 8px;font:600 13px/1 var(--ui);letter-spacing:.14em;text-transform:uppercase;color:var(--muted)">Destroyed · ${lost.length}</h3><ul class="forces">${lost.map(d => `<li class="lost">${miniCounter({ side: d.side, type: d.type, steps: 1, name: d.name, nat: d.nat }, 36)}<div><b>${esc(d.full || E.fullName(d.name) || E.TYPES[d.type].name)}</b><small>${esc(E.TYPES[d.type].name)} · lost on turn ${d.turn}</small></div><span class="st">Destroyed</span></li>`).join('')}</ul>` : ''}`;
   }
   function chartsHTML() {
-    const tr = Object.entries(E.TERRAIN).map(([ch, t]) => `<tr><td style="text-align:left">${esc(E.terrainName(state.scen, ch))}</td><td>${t.impass ? '—' : t.mp}</td><td>${t.impass ? '—' : t.shift}</td></tr>`).join('');
+    const pc = x => x ? `+${Math.round(x * 100)}%` : '—';
+    const tr = Object.entries(E.TERRAIN).map(([ch, t]) => `<tr><td style="text-align:left">${esc(E.terrainName(state.scen, ch))}</td><td>${t.impass ? 'Impassable' : t.stop ? 'Stop (road: ½)' : '1 (road: ½)'}</td><td>${t.impass ? '—' : pc(t.def)}</td><td>${t.sight ? '+' + t.sight : '—'}</td></tr>`).join('');
     const tbl = (T, f = r => r) => `<tr><th>Die</th>${E.COLS.map(c => `<th>${c}</th>`).join('')}</tr>` + [0, 1, 2, 3, 4, 5].map(d => `<tr><th>${d + 1}</th>${T.map(col => `<td>${f(col[d])}</td>`).join('')}</tr>`).join('');
     const units = Object.entries(E.TYPES).map(([k, t]) => `<tr><td style="text-align:left">${t.name}</td><td>${t.a}-${t.d}-${t.m}</td><td style="text-align:left">${t.note || ''}</td></tr>`).join('');
-    return `<div class="tblwrap"><h3>Terrain</h3><table class="crt"><tr><th style="text-align:left">Terrain</th><th>MP</th><th>Odds shift</th></tr>${tr}<tr><td style="text-align:left">City / capital</td><td>1</td><td>1 / 2</td></tr><tr><td style="text-align:left">River hex</td><td>+1</td><td>+1</td></tr><tr><td style="text-align:left">Entrenched unit</td><td>—</td><td>+1</td></tr></table></div>
+    return `<div class="tblwrap"><h3>Terrain</h3><table class="crt"><tr><th style="text-align:left">Terrain</th><th>Movement</th><th>Defense</th><th>Sight</th></tr>${tr}<tr><td style="text-align:left">City / capital</td><td>1 (never a stop)</td><td>${pc(E.DEF.city)} / ${pc(E.DEF.capital)}</td><td>—</td></tr><tr><td style="text-align:left">River hex</td><td>Stop (bridge: ½)</td><td>${pc(E.DEF.river)} more</td><td>—</td></tr><tr><td style="text-align:left">Entrenched unit</td><td>—</td><td>${pc(E.DEF.dug)} more</td><td>—</td></tr></table><p class="empty" style="margin-top:6px">Defense bonuses add up: infantry (4) entrenched in forest defends at 4 × 2 = 8. A city uses its own bonus or the terrain’s, whichever is better.</p></div>
     <div class="tblwrap"><h3>Combat results</h3><table class="crt">${tbl(E.CRT)}</table><p class="empty" style="margin-top:6px">AE all adjacent attackers lose a step · A1 strongest attacker loses a step · EX both lose a step · DR defender retreats · D1 defender loses a step and retreats · DE defender eliminated.</p></div>
     <div class="tblwrap"><h3>Bombardment (artillery only)</h3><table class="crt">${tbl(E.BOMBARD, r => (r === '-' ? '—' : 'Hit'))}</table><p class="empty" style="margin-top:6px">A hit costs the defender one step. Artillery is never hurt; the defender never retreats.</p></div>
     <div class="tblwrap"><h3>Units</h3><table class="crt"><tr><th style="text-align:left">Unit</th><th>Attack-Defense-Move</th><th style="text-align:left">Notes</th></tr>${units}</table></div>`;
   }
   function rulesHTML() {
     return `<div><h3>Turn</h3><ul><li>Each turn, one side moves, then fights, then hands over. Then the other side does the same.</li><li>Units have two steps. A reduced unit (corner tab) has its attack and defense halved. Losing a second step eliminates it.</li><li>One unit per hex.</li></ul></div>
-    <div><h3>Movement and orders</h3><ul><li>Spend movement points (MP) by terrain. Moving along a road costs ½ MP per hex. Entering a river hex costs +1 MP.</li><li>The six hexes around an enemy unit are its zone of control (ZOC). A unit entering one must stop, and cannot move directly from one enemy ZOC hex to another. A unit can always move at least one hex.</li><li><b>Entrench</b> (order): instead of moving, a unit digs in. If it is not attacked or bombarded before its side's next turn, it becomes entrenched: attacks on it shift one column left until it moves or retreats.</li></ul></div>
-    <div><h3>Combat</h3><ul><li>Add up the attack factors of the units you choose and compare them with the defender's defense (rounded down). Terrain, cities, rivers and entrenchment shift the odds column left. Then roll one die.</li><li><b>Bombardment:</b> artillery may attack alone from up to two hexes away, using the bombardment table. It is never hurt and the defender never retreats, but a hit costs a step, which can destroy an already reduced unit. A hex can be bombarded once and assaulted once per turn.</li><li>Shelling an entrenched unit always destroys its entrenchment, hit or miss. Infantry, armor and mechanized units that attack give up their entrenchment; artillery keeps it.</li><li><b>High ground:</b> artillery firing from hills or mountains adds +1 to its attack.</li><li><b>Capitals hold:</b> a unit defending a capital (★) never retreats; it loses a step instead.</li><li>If the defender's hex empties, one adjacent attacker may advance into it.</li></ul></div>
-    <div><h3>Supply</h3><ul><li>At the start of your turn, units that cannot trace a path to your home map edge or a friendly supply city (blocked by enemy units and enemy ZOC unless a friendly unit is there) are out of supply: half attack and half movement.</li></ul></div>
-    <div><h3>Fog of war (optional)</h3><ul><li>Each side sees ${E.SIGHT} hexes from its units (${E.SIGHT_RECON} for recon). Unseen enemy units are hidden; their last known position is shown faded.</li></ul></div>` + chartsHTML();
+    <div><h3>Movement and orders</h3><ul><li>Each hex costs 1 movement point (MP); along a road it costs ½.</li><li><b>Difficult ground stops you:</b> entering forest, hills, mountains, marsh or a river hex ends the unit’s move, unless it is following a road (a bridge, for rivers). Cities never stop a move. Helicopters fly over it all.</li><li>The six hexes around an enemy unit are its zone of control (ZOC). A unit entering one must stop, and cannot move directly from one enemy ZOC hex to another. A unit can always move at least one hex.</li><li><b>Entrench</b> (order): instead of moving, a unit digs in. If it is not attacked or bombarded before its side's next turn, it becomes entrenched: +${Math.round(E.DEF.dug * 100)}% defense until it moves or retreats. Units out of supply cannot dig in.</li></ul></div>
+    <div><h3>Combat</h3><ul><li>Add up the attack factors of the units you choose and compare them with the defender's defense. Terrain, cities, rivers and entrenchment raise the defense (see the Terrain table). The odds are rounded down to the nearest column, then you roll one die.</li><li><b>Bombardment:</b> artillery may attack alone from up to two hexes away, using the bombardment table. It is never hurt and the defender never retreats, but a hit costs a step, which can destroy an already reduced unit. A hex can be bombarded once and assaulted once per turn.</li><li>Shelling an entrenched unit always destroys its entrenchment, hit or miss. Infantry, armor and mechanized units that attack give up their entrenchment; artillery keeps it.</li><li><b>High ground:</b> artillery firing from hills or mountains adds +1 to its attack.</li><li><b>Capitals hold:</b> a unit defending a capital (★) never retreats; it loses a step instead.</li><li>If the defender's hex empties, one adjacent attacker may advance into it.</li></ul></div>
+    <div><h3>Supply</h3><ul><li>At the start of your turn, each unit traces a path to your home map edge or a friendly supply city. Enemy units and enemy ZOC block it, unless a friendly unit stands in that hex. Some fronts limit how long the path can be.</li><li><b>1st turn cut off:</b> half attack, half movement, cannot dig in (red S on the counter).</li><li><b>${E.OOS.defHalf}nd turn:</b> defense is halved too.</li><li><b>${E.OOS.attrition}rd turn on:</b> the unit loses a step at the start of each of its turns until supply is restored. Surrounding an enemy and holding the ring wears it down.</li></ul></div>
+    <div><h3>Fog of war (optional)</h3><ul><li>Each side sees ${E.SIGHT} hexes from its units (${E.SIGHT_RECON} for recon), and ${E.TERRAIN.h.sight} more from hills or mountains. Unseen enemy units are hidden; their last known position is shown faded.</li></ul></div>` + chartsHTML();
   }
   function renderStatus() {
     const s = sc(), side = sideOf(state.active);
@@ -2646,7 +2890,7 @@ if (typeof module !== 'undefined') module.exports = AI;
     else if (state.pending) { mb.textContent = 'Advance or stay'; mb.disabled = true; }
     else mb.textContent = state.phase === 'move' ? 'Go to combat' : 'End turn';
     const tb = q => document.querySelector(`[data-tool="${q}"]`);
-    tb('tex').setAttribute('aria-pressed', useTex); tb('zoc').setAttribute('aria-pressed', showZoc); tb('sup').setAttribute('aria-pressed', showSup);
+    tb('tex').setAttribute('aria-pressed', useTex); tb('zoc').setAttribute('aria-pressed', showZoc); tb('sup').setAttribute('aria-pressed', showSup); tb('last').setAttribute('aria-pressed', showLast);
     tb('info').setAttribute('aria-pressed', mode === 'info'); tb('orders').setAttribute('aria-pressed', mode === 'orders');
     tb('undo').disabled = !undo.length || aiBusy;
     const busy = aiBusy || isAI(state.active) || !!state.winner;
@@ -2915,13 +3159,13 @@ if (typeof module !== 'undefined') module.exports = AI;
       const unitRow = u => `<div class="bm-u">${miniCounter({ side: u.side, nat: u.nat, type: u.type, steps: u.outcome === 'destroyed' ? u.steps : (u.outcome.startsWith('reduced') ? u.steps - 1 : u.steps), name: u.name }, 34)}<div><b>${esc(u.full || E.fullName(u.name) || E.TYPES[u.type].name)}</b><i class="${u.outcome.replace(/ /g, '')}">${OUTCOME[u.outcome]}</i></div></div>`;
       const sideBox = (side, list, label) => `<div class="bm-side" style="border-top-color:${sideOf(side).color}"><h4>${label} · ${esc(sideOf(side).name)}</h4>${list.map(unitRow).join('')}</div>`;
       const where = lc.city ? `at ${lc.city}` : `at hex ${hexId(...lc.target)}`;
-      const shiftTxt = lc.shift ? `, shifted ${lc.shift} column${lc.shift > 1 ? 's' : ''} for the defender's position` : '';
+      const shiftTxt = lc.parts && lc.parts.length ? ` (${lc.defBase} ${lc.parts.map(p => `+${p.pct}% ${p.what}`).join(', ')})` : '';
       const pov = viewer() || atkSide, raw = tone(lc.res);
       const povTone = pov === atkSide ? raw : raw === 'good' ? 'bad' : raw === 'bad' ? 'good' : raw;
       const kicker = `${flagSVG(atkSide)}${lc.bombard ? 'Bombardment' : 'Battle'} ${esc(where)} · ${esc(sideOf(atkSide).name)} attack`;
       $('bmCard').innerHTML = `<div class="bm-k">${kicker}</div>
         <h2 class="bm-h ${povTone}">${esc(SHORT[lc.res])}</h2>
-        <div class="bm-roll">${dieFace(lc.die, 46)}<span>Rolled <b>${lc.die}</b> at <b>${E.COLS[lc.col]}</b> odds: attack ${lc.att} against defense ${lc.def}${shiftTxt}.</span></div>
+        <div class="bm-roll">${dieFace(lc.die, 46)}<span>Rolled <b>${lc.die}</b> at <b>${E.COLS[lc.col]}</b> odds: attack ${lc.att} against defense ${fmtN(lc.def)}${shiftTxt}.</span></div>
         <div class="bm-sides">${sideBox(atkSide, atkU, lc.bombard ? 'Firing' : 'Attackers')}${sideBox(defSide, defU, 'Defender')}</div>
         ${lc.bombard && state.log.slice(-4).some(l => /entrenchment destroyed/.test(l.text)) ? '<p class="bm-note">The shelling destroyed the defender’s entrenchment.</p>' : ''}
         ${lc.held ? '<p class="bm-note">Capitals hold: the defender stood its ground and took a loss instead of retreating.</p>' : ''}
@@ -3113,29 +3357,46 @@ if (typeof module !== 'undefined') module.exports = AI;
   }
 
   // ---------- new game ----------
+  let newTab = 'scen';
   function openNew() {
-    $('scenCards').innerHTML = E.SCEN_ORDER.map(id => {
-      const s = E.SCEN[id];
-      const special = [...new Set(s.units.map(u => u[1]))].filter(t => !['inf', 'mech', 'arm', 'art'].includes(t)).map(t => E.TYPES[t].name);
-      const mini = side => `<svg viewBox="-20 -20 40 40">${counterSVG(id, { side, type: side === 'A' ? 'arm' : 'inf', steps: 2, name: '' }, 0, 0, 34, { lod: 'near' })}</svg>`;
-      return `<button type="button" class="card" data-scen="${id}"><span class="set">${esc(s.setting)}</span><h4>${esc(s.name)}</h4>
-        <div class="vs">${mini('A')}${esc(s.sides.A.name)} <span style="color:var(--muted)">vs</span> ${mini('B')}${esc(s.sides.B.name)}</div>
-        <p>${esc(s.blurb)}</p><p>${s.maxTurns} turns${special.length ? ` · Special units: ${esc(special.join(', '))}` : ''}${s.supplyRange !== Infinity ? ` · Supply range ${s.supplyRange}` : ''}</p></button>`;
-    }).join('');
-    pickScen = null; renderSetup();
+    newTab = 'scen'; pickScen = null; renderNewList(); renderSetup();
     $('newDlg').showModal();
+  }
+  // Compact list: one row per front; details open only when one is chosen.
+  function renderNewList() {
+    $('newTabs').querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-pressed', b.dataset.tab === newTab));
+    if (newTab === 'camp') {
+      $('scenCards').innerHTML = `<div class="soon"><p><b style="color:var(--ink)">Campaigns are coming.</b> One large battle on a bigger map with many more units, reinforcements arriving on a schedule (and ways to cut them off), morale, fatigue, experience and headquarters that support nearby units.</p></div>`;
+      return;
+    }
+    $('scenCards').innerHTML = E.SCEN_ORDER.map(id => {
+      const s2 = E.SCEN[id];
+      return `<button type="button" class="srow" data-scen="${id}"><span class="sw"><i style="background:${s2.sides.A.color}"></i><i style="background:${s2.sides.B.color}"></i></span>
+        <span class="t"><b>${esc(s2.name)}</b><small>${esc(s2.setting)} · ${s2.maxTurns} turns</small></span><span class="chev">›</span></button>`;
+    }).join('');
+  }
+  function victoryText(s2) {
+    const v2 = s2.victory, cap = s2.cities.filter(c => c.cap);
+    const capTxt = cap.length ? ` Capturing the enemy capital (${cap.map(c => esc(c.name)).join(' / ')}) wins at once.` : '';
+    return (v2.type === 'target' ? `${esc(s2.sides[v2.side].name)} need ${v2.vp} victory points by turn ${s2.maxTurns}.` : `Most victory points after turn ${s2.maxTurns} wins.`) + capTxt;
   }
   function renderSetup() {
     const box = $('setup'), row = $('newRow');
-    $('scenCards').querySelectorAll('.card').forEach(c => c.setAttribute('aria-pressed', c.dataset.scen === pickScen));
+    $('newPick').hidden = !!pickScen;
     if (!pickScen) { box.hidden = true; row.innerHTML = '<button type="button" data-nr="cancel">Cancel</button>'; return; }
     const sc2 = E.SCEN[pickScen];
+    const special = [...new Set(sc2.units.map(u => u[1]))].filter(t => !['inf', 'mech', 'arm', 'art'].includes(t)).map(t => E.TYPES[t].name);
+    const mini = side => `<svg viewBox="-20 -20 40 40">${counterSVG(pickScen, { side, type: side === 'A' ? 'arm' : 'inf', steps: 2, name: '' }, 0, 0, 34, { lod: 'near' })}</svg>`;
     box.hidden = false;
-    box.innerHTML = `<div class="setup"><h3>Who commands each side?</h3>${['A', 'B'].map(sd => `<div class="who"><span class="nm"><i style="background:${sc2.sides[sd].color}"></i>${esc(sc2.sides[sd].name)}${sd === 'A' ? ' <small style="color:var(--muted);font-weight:500">moves first</small>' : ''}</span>
+    box.innerHTML = `<div class="sdetail"><span class="set">${esc(sc2.setting)}</span><h3 class="nm">${esc(sc2.name)}</h3>
+      <div class="vs">${mini('A')}${esc(sc2.sides.A.name)} <span style="color:var(--muted)">vs</span> ${mini('B')}${esc(sc2.sides.B.name)}</div>
+      <p>${esc(sc2.blurb)}</p>
+      <p class="facts">${sc2.maxTurns} turns${special.length ? ` · Special units: ${esc(special.join(', '))}` : ''}${sc2.supplyRange !== Infinity ? ` · Supply range ${sc2.supplyRange}${sc2.supplySide ? ` (${esc(sc2.sides[sc2.supplySide].name)} only)` : ''}` : ''}</p></div>
+      <div class="setup"><h3>Who commands each side?</h3>${['A', 'B'].map(sd => `<div class="who"><span class="nm"><i style="background:${sc2.sides[sd].color}"></i>${esc(sc2.sides[sd].name)}${sd === 'A' ? ' <small style="color:var(--muted);font-weight:500">moves first</small>' : ''}</span>
       <div class="seg" role="group" aria-label="${esc(sc2.sides[sd].name)}"><button type="button" data-who="${sd}:human" aria-pressed="${pickWho[sd] === 'human'}">Human</button><button type="button" data-who="${sd}:ai" aria-pressed="${pickWho[sd] === 'ai'}">Computer</button></div></div>`).join('')}
       <div class="who"><span class="nm">Fog of war</span><div class="seg" role="group" aria-label="Fog of war"><button type="button" data-fog="0" aria-pressed="${!pickFog}">Off</button><button type="button" data-fog="1" aria-pressed="${pickFog}">On</button></div></div>
       <p style="margin:0;font-size:13.5px">Computer opponents play on Hard and obey the fog. Two humans can share this screen or play by email.</p></div>`;
-    row.innerHTML = `<button type="button" class="primary" data-nr="start">Start ${esc(sc2.name)}</button><button type="button" data-nr="cancel">Cancel</button>`;
+    row.innerHTML = `<button type="button" class="primary" data-nr="start">Start</button><button type="button" data-nr="back">‹ Back</button>`;
   }
   function seed() { try { return crypto.getRandomValues(new Int32Array(1))[0]; } catch (e) { return (Math.random() * 2 ** 31) | 0; } }
   function setState(s) {
@@ -3252,6 +3513,7 @@ if (typeof module !== 'undefined') module.exports = AI;
     else if (t === 'tex') { useTex = !useTex; try { localStorage.setItem('hexfront.tex', useTex ? '1' : '0'); } catch (er) { /* ignore */ } renderStatic(); }
     else if (t === 'zoc') showZoc = !showZoc;
     else if (t === 'sup') showSup = !showSup;
+    else if (t === 'last') showLast = !showLast;
     else if (t === 'info' || t === 'orders') {
       mode = mode === t ? null : t;
       if (!mode) closePop();
@@ -3299,8 +3561,9 @@ if (typeof module !== 'undefined') module.exports = AI;
   $('scenCards').addEventListener('click', e => {
     const card = e.target.closest('[data-scen]'); if (!card) return;
     pickScen = card.dataset.scen; renderSetup();
-    $('setup').scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    $('newDlg').querySelector('.dlg').scrollTop = 0;
   });
+  $('newTabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (!b) return; newTab = b.dataset.tab; renderNewList(); });
   $('setup').addEventListener('click', e => {
     const b = e.target.closest('[data-who],[data-fog]'); if (!b) return;
     if (b.dataset.who) { const [sd, who] = b.dataset.who.split(':'); pickWho[sd] = who; }
@@ -3310,6 +3573,7 @@ if (typeof module !== 'undefined') module.exports = AI;
   $('newRow').addEventListener('click', e => {
     const b = e.target.closest('[data-nr]'); if (!b) return;
     if (b.dataset.nr === 'cancel') { $('newDlg').close(); return; }
+    if (b.dataset.nr === 'back') { pickScen = null; renderSetup(); return; }
     const g = E.newGame(pickScen, seed(), { fog: pickFog });
     g.players = { A: pickWho.A, B: pickWho.B };
     $('newDlg').close(); closeTray();
