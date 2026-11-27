@@ -1234,7 +1234,7 @@ const Engine = (() => {
     const units = sc.units.map(([side, type, c, r, name, start]) => ({ id: id++, side, type, c, r, name: name || '', full: fullName(name), nat: natOf(scenId, name), steps: 2, moved: false, attacked: false, dropped: false, oos: false, oosT: 0, self: (sc.selfSupplied || []).includes(name) || undefined, dig: start === 'dug' ? 'dug' : null }));
     const owner = {};
     sc.cities.forEach(ct => { if (ct.owner) owner[K(ct.c, ct.r)] = ct.owner; });
-    const s = { v: 3, scen: scenId, turn: 1, active: 'A', phase: 'move', rng: seed | 0, units, owner, log: [], trails: [], prevTrails: [], attacked: [], bombarded: [], pending: null, winner: null, dead: [], lastCombat: null, fog: !!opts.fog, seen: { A: {}, B: {} } };
+    const s = { v: 3, scen: scenId, turn: 1, active: 'A', phase: 'move', rng: seed | 0, units, owner, log: [], trails: [], prevTrails: [], attacked: [], bombarded: [], pending: null, winner: null, dead: [], lastCombat: null, fog: !!opts.fog, seen: { A: {}, B: {} }, spot: { A: {}, B: {} } };
     refreshSupply(s);
     updateSeen(s);
     log(s, 'turn', `Turn 1: ${sc.sides.A.name} to move`);
@@ -1347,14 +1347,22 @@ const Engine = (() => {
   }
   function sightBonus(m, u) { return TYPES[u.type].sym === 'hel' ? 0 : ((TERRAIN[m.terr[K(u.c, u.r)]] || {}).sight || 0); }
   function canSee(s, side, u) { return !s.fog || u.side === side || visibleHexes(s, side).has(K(u.c, u.r)); }
+  // seen[side]: enemies that were in sight and have since vanished (shown as faded "last seen" ghosts).
+  // spot[side]: where each currently visible enemy is, so we know its last position once it slips away.
   function updateSeen(s) {
     if (!s.fog) return;
     s.seen = s.seen || { A: {}, B: {} };
+    s.spot = s.spot || { A: {}, B: {} };
+    const alive = new Set(s.units.map(u => String(u.id)));
     for (const side of ['A', 'B']) {
-      const vis = visibleHexes(s, side), seen = s.seen[side];
-      for (const id of Object.keys(seen)) if (vis.has(K(seen[id].c, seen[id].r))) delete seen[id];
-      for (const u of s.units) if (u.side !== side && vis.has(K(u.c, u.r))) seen[u.id] = { c: u.c, r: u.r, type: u.type, name: u.name, steps: u.steps, turn: s.turn };
-      for (const u of s.units) if (u.side !== side && vis.has(K(u.c, u.r))) delete seen[u.id]; // currently visible: not a ghost
+      const vis = visibleHexes(s, side), seen = s.seen[side], spot = s.spot[side];
+      for (const id of Object.keys(seen)) if (!alive.has(id) || vis.has(K(seen[id].c, seen[id].r))) delete seen[id];
+      for (const u of s.units) {
+        if (u.side === side) continue;
+        if (vis.has(K(u.c, u.r))) { spot[u.id] = { c: u.c, r: u.r, type: u.type, name: u.name, steps: u.steps, turn: s.turn }; delete seen[u.id]; }
+        else if (spot[u.id]) { seen[u.id] = spot[u.id]; delete spot[u.id]; }
+      }
+      for (const id of Object.keys(spot)) if (!alive.has(id)) delete spot[id];
     }
   }
   // What one side is allowed to know: a copy with hidden enemy units removed.
@@ -1632,17 +1640,23 @@ if (typeof module !== 'undefined') module.exports = Engine;
 const AI = (() => {
   // Test switches (Node only): NF=flag1,-flag2 turns features on/off, NK='{"knob":1}' overrides numbers.
   const ENV = (typeof process !== 'undefined' && process.env) ? process.env : {};
-  const AI_FLAGS = { noGuard: true, cover: true };
+  const AI_FLAGS = { noGuard: true, ghosts: true };
   if (ENV.NF) for (const f of ENV.NF.split(',').filter(Boolean)) { if (f[0] === '-') delete AI_FLAGS[f.slice(1)]; else AI_FLAGS[f] = true; }
-  const KN = { expW: 0.5, coverW: 1.0, armorSafe: 1.6, cutW: 0.3, minCol: 3, terrW: 1.2, passes: 1, samples: 2, vpW: 4, capW: 6 };
+  const KN = { expW: 0.5, coverW: 1.0, armorSafe: 1.6, cutW: 0.3, minCol: 3, terrW: 1.2, passes: 1, vmIn: 1.8, vmOut: 0.6, vmHold: 0.5, samples: 2, vpW: 4, capW: 6 };
   if (ENV.NK) Object.assign(KN, JSON.parse(ENV.NK));
   const DANGER_K = KN.DK ?? 0.7, GUARD_K = KN.GK ?? 0.6;
   const E = (typeof Engine !== 'undefined') ? Engine : require('./engine.js');
   const K = E.K, P = E.P;
 
+  // Difficulty levels. cover: fill gaps in the line; terrW: value of defensive ground; noise: random error in
+  // choosing hexes; idle: chance a spare unit just stays put. Randomness uses the AI's own seed, never the game's dice.
   const PROFILES = {
-    hard: { attackThresh: KN.attackThresh ?? 0.35, planThresh: KN.planThresh ?? 0.6, unitCost: KN.unitCost ?? 0.12, dangerW: KN.dangerW ?? 1.0 },
+    hard: { attackThresh: KN.attackThresh ?? 0.35, planThresh: KN.planThresh ?? 0.6, unitCost: KN.unitCost ?? 0.12, dangerW: KN.dangerW ?? 1.0, cover: true, terrW: KN.terrW, noise: 0, idle: 0 },
+    normal: { attackThresh: 0.5, planThresh: 0.9, unitCost: 0.12, dangerW: 0.5, cover: false, terrW: 0.25, noise: KN.nNoise ?? 2, idle: 0.12, stopP: 0.1 },
+    easy: { attackThresh: 1.0, planThresh: 1.8, unitCost: 0.12, dangerW: 0.15, cover: false, terrW: 0, noise: KN.eNoise ?? 5, idle: 0.35, stopP: 0.35 },
   };
+  let seed = 1;
+  const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
 
   let PR = PROFILES.hard; // profile in force (lookahead swaps in variants while planning)
 
@@ -1652,6 +1666,8 @@ const AI = (() => {
   const lossVal = u => stepVal(u) + (u.steps <= 1 ? typeVal(E.TYPES[u.type]) * 0.35 : 0);
   // expected defender steps lost per final odds column (retreats count a little)
   const EXP_LOSS = E.CRT.map(col => col.reduce((t, r) => t + ({ DE: 2, D1: 1.2, EX: 1, DR: 0.3 }[r] || 0), 0) / 6);
+  // the same when the defender has no line of retreat: a retreat result costs a step instead
+  const EXP_LOSS_PIN = E.CRT.map(col => col.reduce((t, r) => t + ({ DE: 2, D1: 2, EX: 1, DR: 1 }[r] || 0), 0) / 6);
 
   function oddsCol(att, def, shift) {
     const ratio = def ? att / def : 99;
@@ -1691,6 +1707,15 @@ const AI = (() => {
       if (planned && planned.has(u.id)) { const [c, r] = P(planned.get(u.id)); o.c = c; o.r = r; }
       return o;
     }) };
+    // Under fog, enemies seen in the last two turns may still be near where they were last spotted.
+    if (s.fog && s.seen && s.seen[side] && AI_FLAGS.ghosts) {
+      const occ = new Set(tmp.units.map(u => K(u.c, u.r)));
+      for (const [id, g] of Object.entries(s.seen[side])) {
+        if (s.turn - g.turn > 2 || occ.has(K(g.c, g.r))) continue;
+        tmp.units.push({ id: -1 - +id, side: enemy, type: g.type, c: g.c, r: g.r, steps: g.steps, moved: false, oos: false, ghost: true });
+        occ.add(K(g.c, g.r));
+      }
+    }
     const threat = new Map(), threatN = new Map(), threatList = new Map(), enemyNear = new Map(), enemyEnter = new Set();
     for (const e of tmp.units.filter(u => u.side === enemy)) {
       const er = E.reachable(tmp, e);
@@ -1708,6 +1733,24 @@ const AI = (() => {
       const mv = E.TYPES[e.type].m;
       for (const k of keys) { const d = E.dist([e.c, e.r], P(k)) / mv * 3; if (d < (enemyNear.get(k) ?? 99)) enemyNear.set(k, d); }
     }
+    // Victory maths (target fronts): the cheapest set of cities that gets the attacker to its target.
+    // The attacker concentrates on them; the defender guards them hardest; an attacker already over the line holds.
+    const cityMul = {};
+    if (AI_FLAGS.vmath && v.type === 'target') {
+      const atk = v.side, need = v.vp - E.vp(s, atk);
+      const atkUnits = s.units.filter(u => u.side === atk);
+      const cands = sc.cities.filter(ct => s.owner[K(ct.c, ct.r)] !== atk).map(ct => {
+        const d = Math.min(99, ...atkUnits.map(u => E.dist([u.c, u.r], [ct.c, ct.r])));
+        return { ct, d, score: ct.vp / (1 + d) };
+      }).sort((a, b) => b.score - a.score);
+      let got = 0; const plan = new Set();
+      for (const c of cands) { if (got >= need + 1) break; plan.add(K(c.ct.c, c.ct.r)); got += c.ct.vp; }
+      for (const ct of sc.cities) {
+        const ck = K(ct.c, ct.r);
+        cityMul[ck] = ct.cap ? 1 : plan.has(ck) ? KN.vmIn : KN.vmOut;
+      }
+      if (side === atk && need <= 0) { objW *= KN.vmHold; defW = Math.max(defW, 0.9); }
+    }
     // objective potential per hex
     const pot = new Map(), guard = new Map(), ownPot = new Map();
     const cityThreat = {};
@@ -1721,7 +1764,7 @@ const AI = (() => {
       for (const ct of sc.cities) {
         const ck = K(ct.c, ct.r), own = s.owner[ck], d = cityDist[ck].get(k);
         if (d == null) continue;
-        const w = ct.vp * (ct.cap ? 1.6 : 1);
+        const w = ct.vp * (ct.cap ? 1.6 : 1) * (cityMul[ck] ?? 1);
         if (own !== side) p += w * Math.pow(0.8, d);
         else { op += w * Math.pow(0.8, d); if (cityThreat[ck] > 0) g += w * cityThreat[ck] * Math.pow(0.72, d); }
       }
@@ -1746,7 +1789,18 @@ const AI = (() => {
 
   function minEnemyDist(ctx, h) { let d = 99; for (const p of ctx.enemyPos) d = Math.min(d, E.dist(p, h)); return d; }
 
-  function danger(ctx, u, k, friendsAround) {
+  // Could a unit at k fall back if pushed? Needs an open neighbour the enemy cannot reach or touch.
+  function pinned(ctx, k, friendSet) {
+    const [c, r] = P(k);
+    for (const [nc, nr] of E.nbrs(ctx.m, c, r)) {
+      const h = K(nc, nr);
+      if (E.hexInfo(ctx.m, h).impass || friendSet.has(h) || ctx.enemyAt.has(h) || ctx.enemyEnter.has(h)) continue;
+      if (E.nbrs(ctx.m, nc, nr).some(([a, b]) => ctx.enemyAt.has(K(a, b)))) continue;
+      return false;
+    }
+    return true;
+  }
+  function danger(ctx, u, k, friendsAround, friendSet) {
     const list = ctx.threatList.get(k);
     if (!list) return 0;
     const hi = E.hexInfo(ctx.m, k), [c, r] = P(k);
@@ -1758,7 +1812,8 @@ const AI = (() => {
     const def = Math.ceil(E.TYPES[u.type].d / (u.steps < 2 ? 2 : 1));
     const col = oddsCol(eff, def * (1 + hi.def), 0);
     if (col < 0) return 0;
-    return EXP_LOSS[col] * stepVal(u) * (u.steps < 2 ? 1.4 : 1) * DANGER_K;
+    const pin = AI_FLAGS.pin && friendSet && pinned(ctx, k, friendSet);
+    return (pin ? EXP_LOSS_PIN : EXP_LOSS)[col] * stepVal(u) * (u.steps < 2 ? 1.4 : 1) * DANGER_K;
   }
 
   // Which enemy units would be out of supply at the start of their turn if our units stood on friendSet.
@@ -1801,8 +1856,9 @@ const AI = (() => {
     sc += ctx.objW * (ctx.pot.get(k) || 0) * (t.range ? 0.5 : 1) * 2.2;
     sc += ctx.defW * (ctx.guard.get(k) || 0) * 2.2;
     const fragile = t.d <= 3 && t.a >= 5 && !t.range;
-    sc -= danger(ctx, u, k, friends) * PR.dangerW * (AI_FLAGS.armorSafe && fragile ? KN.armorSafe : 1);
-    if (AI_FLAGS.cover && !t.range && !t.ignoresZoc) sc += KN.coverW * coverValue(ctx, k, friendSet);
+    sc -= danger(ctx, u, k, friends, friendSet) * PR.dangerW * (AI_FLAGS.armorSafe && fragile ? KN.armorSafe : 1);
+    if (PR.cover && !t.range && !t.ignoresZoc) sc += KN.coverW * coverValue(ctx, k, friendSet);
+    if (PR.noise) sc += (rnd() - 0.5) * 2 * PR.noise;
     if (AI_FLAGS.cut && ctx.cutBase != null) { const f2 = new Set(friendSet); f2.add(k); sc += KN.cutW * (enemyOOS(ctx, s, f2) - ctx.cutBase); }
     if (!ctx.supply.has(k)) sc -= ctx.supplyPen;
     sc += 0.45 * Math.min(friends, 3);
@@ -1813,7 +1869,7 @@ const AI = (() => {
       else sc += city.vp * 4 * (ctx.cityThreat[k] || 0) * ctx.defW;
     }
     if (t.range) { const de = minEnemyDist(ctx, [c, r]); if (de === 1) sc -= 3; else if (de === 2) sc += 1.5; }
-    sc += E.hexInfo(ctx.m, k).def * 2 * KN.terrW * ((ctx.threat.get(k) || 0) > 0 ? 1 : 0);
+    sc += E.hexInfo(ctx.m, k).def * 2 * PR.terrW * ((ctx.threat.get(k) || 0) > 0 ? 1 : 0);
     return sc;
   }
 
@@ -2050,6 +2106,7 @@ const AI = (() => {
       return f;
     };
     for (const u of rest) {
+      if (PR.idle && rnd() < PR.idle) continue;
       const cur = K(u.c, u.r), fs = friendSet();
       fs.delete(cur);
       ctx.cutBase = AI_FLAGS.cut ? enemyOOS(ctx, s, fs) : null;
@@ -2111,7 +2168,7 @@ const AI = (() => {
   ];
   function makePlan(v, side, variant) {
     const saved = PR;
-    PR = { ...PROFILES.hard, ...variant };
+    PR = { ...saved, ...variant };
     try {
       const ctx = buildCtx(v, side);
       if (variant.objMul) ctx.objW *= variant.objMul;
@@ -2138,6 +2195,7 @@ const AI = (() => {
       if (s.pending) { doA({ t: 'advance', unit: chooseAdvance(view(), side) }); continue; }
       const b = bestAttack(view(), side);
       if (!b) break;
+      if (PR.stopP && rnd() < PR.stopP) break; // lower levels sometimes leave attacks on the table
       const r = doA({ t: 'attack', target: b.target, attackers: b.attackers });
       if (r.error) break;
     }
@@ -2199,6 +2257,10 @@ const AI = (() => {
   }
 
   function takeTurn(real) {
+    if (depth === 0) {
+      PR = PROFILES[(real.level && real.level[real.active]) || ENV.LEVEL || 'hard'] || PROFILES.hard;
+      seed = (real.turn * 7919 + (real.active === 'B' ? 104729 : 0) + 17) | 0;
+    }
     const s = JSON.parse(JSON.stringify(real));
     const side = s.active, actions = [];
     const view = () => E.fogView(s, side); // the AI only knows what its side can see
@@ -2228,7 +2290,7 @@ if (typeof module !== 'undefined') module.exports = AI;
 // ===================== HEXFRONT UI =====================
 (() => {
   const E = Engine, K = E.K, P = E.P;
-  const VERSION = '0.16.1', BUILD = '2026-11-26';
+  const VERSION = '0.17.0', BUILD = '2026-11-27';
   const S = 30, SQ3 = Math.sqrt(3), SAVE_KEY = 'hexfront.v1';
   try { console.info(`Hexfront v${VERSION} (${BUILD})`); } catch (e) { /* ignore */ }
   const THEMES = {
@@ -2258,7 +2320,9 @@ if (typeof module !== 'undefined') module.exports = AI;
   const svg = $('map'), gStatic = $('gStatic'), gDyn = $('gDyn');
 
   let state = null, sel = null, target = null, atk = new Set(), info = null, undo = [];
-  let aiBusy = false, aiToken = 0, pickScen = null, pickWho = { A: 'human', B: 'ai' }, pickFog = false;
+  let aiBusy = false, aiToken = 0, pickScen = null, pickWho = { A: 'human', B: 'ai' }, pickFog = false, pickLevel = 'hard';
+  try { pickLevel = localStorage.getItem('hexfront.level') || 'hard'; } catch (e) { /* default hard */ }
+  const LEVELS = [['easy', 'Easy'], ['normal', 'Normal'], ['hard', 'Hard']];
   let showZoc = false, showSup = false, showLast = false, vb = null, mapW = 0, mapH = 0, staticFor = null, hoverEl = null;
   let mode = null, pop = null, tray = null, nextIdx = 0, mapOnly = false;
   const isAI = side => !!(state && state.players && state.players[side] === 'ai');
@@ -2827,6 +2891,7 @@ if (typeof module !== 'undefined') module.exports = AI;
       s.supplyRange !== Infinity ? `${s.supplySide ? `${s.sides[s.supplySide].name}: s` : 'S'}upply reaches only ${s.supplyRange} hexes from a port or your home edge.` : 'Supply traces any distance to your home edge or a supply city.',
       ...(s.selfSupplied ? [`${s.selfSupplied.map(n => E.fullName(n) || n).join(', ')} carries its own supply and is never cut off.`] : []),
       'Cut-off units attack and move at half; after 2 turns their defense halves too, and from the 3rd turn they lose a step each turn.',
+      ...(['A', 'B'].some(sd => state.players && state.players[sd] === 'ai') ? [`Computer skill: ${(LEVELS.find(l => l[0] === ((state.level && state.level[['A', 'B'].find(sd => state.players[sd] === 'ai')]) || 'hard')) || LEVELS[2])[1]}.`] : []),
       state.fog ? `Fog of war is on: you see ${E.SIGHT} hexes from your units (${E.SIGHT_RECON} for recon), ${E.TERRAIN.h.sight} more from hills or mountains.` : 'Fog of war is off: all units are visible.',
       ...special,
     ];
@@ -3395,7 +3460,8 @@ if (typeof module !== 'undefined') module.exports = AI;
       <div class="setup"><h3>Who commands each side?</h3>${['A', 'B'].map(sd => `<div class="who"><span class="nm"><i style="background:${sc2.sides[sd].color}"></i>${esc(sc2.sides[sd].name)}${sd === 'A' ? ' <small style="color:var(--muted);font-weight:500">moves first</small>' : ''}</span>
       <div class="seg" role="group" aria-label="${esc(sc2.sides[sd].name)}"><button type="button" data-who="${sd}:human" aria-pressed="${pickWho[sd] === 'human'}">Human</button><button type="button" data-who="${sd}:ai" aria-pressed="${pickWho[sd] === 'ai'}">Computer</button></div></div>`).join('')}
       <div class="who"><span class="nm">Fog of war</span><div class="seg" role="group" aria-label="Fog of war"><button type="button" data-fog="0" aria-pressed="${!pickFog}">Off</button><button type="button" data-fog="1" aria-pressed="${pickFog}">On</button></div></div>
-      <p style="margin:0;font-size:13.5px">Computer opponents play on Hard and obey the fog. Two humans can share this screen or play by email.</p></div>`;
+      ${pickWho.A === 'ai' || pickWho.B === 'ai' ? `<div class="who"><span class="nm">Computer skill</span><div class="seg" role="group" aria-label="Computer skill">${LEVELS.map(([k, n]) => `<button type="button" data-lvl="${k}" aria-pressed="${pickLevel === k}">${n}</button>`).join('')}</div></div>` : ''}
+      <p style="margin:0;font-size:13.5px">${pickWho.A === 'ai' || pickWho.B === 'ai' ? 'Easy makes mistakes and leaves openings; Hard plays its best. The computer only sees what fog of war lets it see.' : 'Two humans can share this screen or play by email.'}</p></div>`;
     row.innerHTML = `<button type="button" class="primary" data-nr="start">Start</button><button type="button" data-nr="back">‹ Back</button>`;
   }
   function seed() { try { return crypto.getRandomValues(new Int32Array(1))[0]; } catch (e) { return (Math.random() * 2 ** 31) | 0; } }
@@ -3565,7 +3631,8 @@ if (typeof module !== 'undefined') module.exports = AI;
   });
   $('newTabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (!b) return; newTab = b.dataset.tab; renderNewList(); });
   $('setup').addEventListener('click', e => {
-    const b = e.target.closest('[data-who],[data-fog]'); if (!b) return;
+    const b = e.target.closest('[data-who],[data-fog],[data-lvl]'); if (!b) return;
+    if (b.dataset.lvl) { pickLevel = b.dataset.lvl; try { localStorage.setItem('hexfront.level', pickLevel); } catch (err) { /* ignore */ } }
     if (b.dataset.who) { const [sd, who] = b.dataset.who.split(':'); pickWho[sd] = who; }
     if (b.dataset.fog) pickFog = b.dataset.fog === '1';
     renderSetup();
@@ -3576,6 +3643,7 @@ if (typeof module !== 'undefined') module.exports = AI;
     if (b.dataset.nr === 'back') { pickScen = null; renderSetup(); return; }
     const g = E.newGame(pickScen, seed(), { fog: pickFog });
     g.players = { A: pickWho.A, B: pickWho.B };
+    g.level = { A: pickLevel, B: pickLevel };
     $('newDlg').close(); closeTray();
     setState(g); persist();
     if (!isAI('A')) { if (hasAI()) { smartFit(); toast2(`Your turn: ${sideOf('A').name}`); } else showHandoff('Turn 1 · New game'); }
