@@ -310,6 +310,9 @@ dialog::backdrop { background: rgba(8,10,7,.72); }
 .bwnew { justify-self: start; }
 .bwprev { width: 100%; height: auto; border-radius: 4px; border: 1px solid var(--line); background: #1a1712; }
 @media (max-width: 560px) { .bwmap { grid-template-columns: 1fr; } }
+.qrbox { display: grid; place-items: center; background: #fff; border-radius: 8px; padding: 14px; }
+.qrbox canvas, .qrbox video { width: min(420px, 100%); height: auto; aspect-ratio: 1; display: block; object-fit: cover; image-rendering: pixelated; }
+.qrpart { text-align: center; font: 600 15px/1.4 var(--ui); margin: 10px 0 0; min-height: 21px; }
 @media (max-width: 560px) { .sides2 { grid-template-columns: 1fr; } }
 .srow .t b { display: block; font: 700 16px/1.15 var(--ui); }
 .srow .t small { color: var(--muted); font-size: 12.5px; }
@@ -525,7 +528,23 @@ table.crt th { color: var(--muted); font-weight: 600; }
   <p>Copy the text below into an email to your opponent. They open Hexfront, choose Load turn and paste it. Dice are stored in the code, so reloading cannot re-roll a battle.</p>
   <textarea id="sendText" readonly aria-label="Turn code"></textarea>
   <div class="err" id="sendMsg" aria-live="polite"></div>
-  <div class="row"><button type="button" class="primary" id="copyMail">Copy email text</button><button type="button" id="copyCode">Copy code only</button><button type="button" data-close>Close</button></div>
+  <div class="row"><button type="button" class="primary" id="copyMail">Copy email text</button><button type="button" id="copyCode">Copy code only</button><button type="button" id="shareTurn" hidden>Share…</button><button type="button" id="qrTurn">Show QR codes</button><button type="button" data-close>Close</button></div>
+</div></dialog>
+
+<dialog id="qrDlg"><div class="dlg">
+  <h2>Pass the turn by QR code</h2>
+  <p>On the other device open Hexfront, choose <b>Load turn</b>, then <b>Scan QR codes</b>, and point its camera here. The codes cycle by themselves; hold steady until every part is read.</p>
+  <div class="qrbox"><canvas id="qrCanvas" width="720" height="720" aria-label="Turn code as QR"></canvas></div>
+  <div id="qrPart" class="qrpart" aria-live="polite"></div>
+  <div class="row"><button type="button" id="qrPause">Pause</button><button type="button" data-close>Close</button></div>
+</div></dialog>
+
+<dialog id="scanDlg"><div class="dlg">
+  <h2>Scan QR codes</h2>
+  <p>Point the camera at the QR codes on your opponent's screen. Parts are collected in any order.</p>
+  <div class="qrbox"><video id="scanVideo" playsinline muted aria-label="Camera"></video></div>
+  <div id="scanMsg" class="qrpart" aria-live="polite">Starting camera…</div>
+  <div class="row"><button type="button" data-close>Cancel</button></div>
 </div></dialog>
 
 <dialog id="loadDlg"><div class="dlg">
@@ -534,7 +553,7 @@ table.crt th { color: var(--muted); font-weight: 600; }
   <textarea id="loadText" aria-label="Paste turn code" placeholder="HXF1.…"></textarea>
   <input type="file" id="loadFile" accept=".txt,.json,text/plain,application/json">
   <div class="err" id="loadErr" aria-live="polite"></div>
-  <div class="row"><button type="button" class="primary" id="loadGo">Load</button><button type="button" data-close>Cancel</button></div>
+  <div class="row"><button type="button" class="primary" id="loadGo">Load</button><button type="button" id="scanGo">Scan QR codes</button><button type="button" data-close>Cancel</button></div>
 </div></dialog>
 
 <dialog id="rulesDlg"><div class="dlg">
@@ -4209,7 +4228,7 @@ const TerrainArt = (() => {
 // ===================== HEXFRONT UI =====================
 (() => {
   const E = Engine, K = E.K, P = E.P;
-  const VERSION = '0.27.2', BUILD = '2026-11-28';
+  const VERSION = '0.28.0', BUILD = '2026-11-28';
   const S = 30, SQ3 = Math.sqrt(3), SAVE_KEY = 'hexfront.v1';
   try { console.info(`Hexfront v${VERSION} (${BUILD})`); } catch (e) { /* ignore */ }
   const THEMES = {
@@ -5562,6 +5581,96 @@ const TerrainArt = (() => {
     return s;
   }
   let lastMail = '', lastCode = '';
+
+  // ---------- passing a turn in the same room: share sheet and QR codes ----------
+  // Vendor libraries live next to index.html and load only when a QR screen opens.
+  const libs = {};
+  const lib = (name, file) => libs[name] || (libs[name] = new Promise((ok, no) => {
+    if (window[name]) return ok(window[name]);
+    const el = document.createElement('script'); el.src = file; el.onload = () => (window[name] ? ok(window[name]) : no(new Error('load'))); el.onerror = () => no(new Error('load'));
+    document.head.appendChild(el);
+  }));
+  // A turn code is split into small QR parts: "HXQ:<part>/<count>:<tag>:<text>". The tag ties the parts of one code together.
+  const QR_CHUNK = 700;
+  function qrParts(code) {
+    let h = 0; for (let i = 0; i < code.length; i++) h = (h * 31 + code.charCodeAt(i)) >>> 0;
+    const tag = h.toString(36).slice(0, 5), n = Math.ceil(code.length / QR_CHUNK);
+    return Array.from({ length: n }, (_, i) => `HXQ:${i + 1}/${n}:${tag}:${code.slice(i * QR_CHUNK, (i + 1) * QR_CHUNK)}`);
+  }
+  let qrTimer = null, qrPaused = false;
+  async function openQR() {
+    let qrcode;
+    try { qrcode = await lib('qrcode', 'vendor/qrcode.min.js'); } catch (e) { $('sendMsg').style.color = 'var(--danger)'; $('sendMsg').textContent = 'The QR code tool could not load. Use Share or email instead.'; return; }
+    const parts = qrParts(lastCode), cv = $('qrCanvas'), g = cv.getContext('2d');
+    let i = 0; qrPaused = false; $('qrPause').textContent = 'Pause';
+    const draw = () => {
+      const q = qrcode(0, 'L'); q.addData(parts[i], 'Byte'); q.make();
+      const n = q.getModuleCount(), quiet = 4, px = Math.floor(cv.width / (n + quiet * 2)), off = Math.floor((cv.width - px * n) / 2);
+      g.fillStyle = '#fff'; g.fillRect(0, 0, cv.width, cv.height); g.fillStyle = '#000';
+      for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (q.isDark(r, c)) g.fillRect(off + c * px, off + r * px, px, px);
+      $('qrPart').textContent = parts.length > 1 ? `Part ${i + 1} of ${parts.length}` : 'One part';
+    };
+    draw();
+    clearInterval(qrTimer);
+    if (parts.length > 1) qrTimer = setInterval(() => { if (!qrPaused) { i = (i + 1) % parts.length; draw(); } }, 1100);
+    $('qrDlg').showModal();
+  }
+  $('qrPause').addEventListener('click', () => { qrPaused = !qrPaused; $('qrPause').textContent = qrPaused ? 'Resume' : 'Pause'; });
+  $('qrDlg').addEventListener('close', () => clearInterval(qrTimer));
+  $('qrTurn').addEventListener('click', openQR);
+  // the system share sheet (AirDrop, Quick Share, messages…), where the device has one
+  if (navigator.share) $('shareTurn').hidden = false;
+  $('shareTurn').addEventListener('click', async () => {
+    try { await navigator.share({ title: 'Hexfront turn', text: lastMail }); }
+    catch (e) { if (e.name !== 'AbortError') { $('sendMsg').style.color = 'var(--danger)'; $('sendMsg').textContent = 'Sharing did not work here. Copy the text instead.'; } }
+  });
+  // camera scanner: collects every part, then loads the turn
+  let scanStream = null, scanRun = 0;
+  async function openScan() {
+    const run = ++scanRun, msg = t => { $('scanMsg').textContent = t; };
+    $('scanDlg').showModal(); msg('Starting camera…');
+    const detector = 'BarcodeDetector' in window ? await BarcodeDetector.getSupportedFormats().then(f => (f.includes('qr_code') ? new BarcodeDetector({ formats: ['qr_code'] }) : null)).catch(() => null) : null;
+    let jsQR = null;
+    if (!detector) { try { jsQR = await lib('jsQR', 'vendor/jsqr.min.js'); } catch (e) { msg('The scanner could not load. Paste the code instead.'); return; } }
+    try { scanStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false }); }
+    catch (e) { msg(location.protocol === 'https:' || location.hostname === 'localhost' ? 'No camera access. Allow the camera for this site, or paste the code instead.' : 'The camera only works when Hexfront is opened over https. Paste the code instead.'); return; }
+    if (run !== scanRun) { stopScan(); return; }
+    const v = $('scanVideo'); v.srcObject = scanStream; await v.play().catch(() => {});
+    const cv = document.createElement('canvas'), g = cv.getContext('2d', { willReadFrequently: true });
+    let tag = null, n = 0; const got = new Map();
+    msg('Looking for a code…');
+    const tick = async () => {
+      if (run !== scanRun || !scanStream) return;
+      let text = null;
+      try {
+        if (v.videoWidth) {
+          if (detector) { const r = await detector.detect(v); text = r[0] && r[0].rawValue; }
+          else {
+            const w = Math.min(640, v.videoWidth), h = Math.round(v.videoHeight * w / v.videoWidth);
+            cv.width = w; cv.height = h; g.drawImage(v, 0, 0, w, h);
+            const r = jsQR(g.getImageData(0, 0, w, h).data, w, h, { inversionAttempts: 'dontInvert' }); text = r && r.data;
+          }
+        }
+      } catch (e) { /* try the next frame */ }
+      const mt = text && /^HXQ:(\d+)\/(\d+):(\w+):(.*)$/s.exec(text);
+      if (mt) {
+        if (tag !== mt[3]) { tag = mt[3]; n = +mt[2]; got.clear(); }
+        got.set(+mt[1], mt[4]);
+        msg(n > 1 ? `Read ${got.size} of ${n} parts` : 'Read');
+        if (got.size === n) {
+          const code = Array.from({ length: n }, (_, i) => got.get(i + 1)).join('');
+          stopScan(); $('scanDlg').close();
+          $('loadText').value = code; doLoad();
+          return;
+        }
+      } else if (text && /HXF[01]\./.test(text)) { stopScan(); $('scanDlg').close(); $('loadText').value = text; doLoad(); return; }
+      requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }
+  function stopScan() { scanRun++; if (scanStream) { scanStream.getTracks().forEach(t => t.stop()); scanStream = null; } $('scanVideo').srcObject = null; }
+  $('scanDlg').addEventListener('close', stopScan);
+  $('scanGo').addEventListener('click', () => { $('loadDlg').close(); openScan(); });
   async function openSend() {
     $('sendMsg').textContent = '';
     lastCode = await encode(state);
