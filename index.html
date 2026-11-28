@@ -3182,26 +3182,29 @@ const TerrainArt = (() => {
     rock: ['#c9b28d', '#6f5841'], rockLit: '#f2e7cf', snow: ['#ffffff', '#c9d3db'], snowLine: .7,
     water: ['#b8d0d6', '#6f97a6'], reed: '#5e7a3e', tuft: '#a79b6c', hill: ['#e6d9b2', '#c9b385'], ridge: '#8a7350', ridgeLit: '#f6eed6',
     bush: ['#55703c', '#7f9858'], cypress: ['#4f6535', '#71894c'], toneDark: '#4a3a1a', toneLight: '#ffffff', tone: [.12, .2],
+    relief: { mid: '#cecbc4', dark: '#928e9c', light: '#f6f4ea' }, massif: { base: '#bcb3a3', edge: '#9c9282', light: '#e9e3d6', dark: '#3f3833' },
   };
   const PAL = {
     temperate: SUMMER,
     europe: { ...SUMMER, base: { ...SUMMER.base, '.': '#e8e6cf', f: '#e8e6cf', s: '#c9d5b2' } },
-    steppe: { ...SUMMER, base: { ...SUMMER.base, '.': '#ece4c6', f: '#ece4c6', h: '#ded2ae' }, tuft: '#b0a06a' },
+    steppe: { ...SUMMER, kind: 'steppe', base: { ...SUMMER.base, '.': '#ece4c6', f: '#ece4c6', h: '#ded2ae' }, tuft: '#b0a06a' },
     winter: {
-      ...SUMMER,
+      ...SUMMER, kind: 'winter',
       base: { '.': '#eef1f2', f: '#eef1f2', h: '#e3e8ea', m: '#dde2e5', s: '#dfe8ec', w: '#7f9bad', x: '#d6dadb' },
       con: ['#5f7a63', '#33473a'], dec: ['#8b8576', '#5f574a'], mass: '#c9d3d4', massShade: '#8f9da3', shadow: '#3a4650',
       rock: ['#c3c3c0', '#6d7277'], rockLit: '#ffffff', snowLine: .35,
       water: ['#e6eef2', '#a9bfca'], reed: '#8a8a72', tuft: '#a9aea6', hill: ['#ffffff', '#cdd6dc'], ridge: '#7d8a92', ridgeLit: '#ffffff',
       bush: ['#6f7465', '#9aa08e'], cypress: ['#4f5e52', '#7d8c80'], toneDark: '#3a4a5a', tone: [.08, .25],
+      relief: { mid: '#dce2e9', dark: '#8a98ac', light: '#ffffff' }, massif: { base: '#d9dfe4', edge: '#b4bec7', light: '#ffffff', dark: '#46525e' },
     },
     desert: {
-      ...SUMMER,
+      ...SUMMER, kind: 'desert',
       base: { '.': '#efdcae', f: '#efdcae', h: '#e2c792', m: '#d8bf94', s: '#efe6cf', w: '#6b9cb1', x: '#ddc392' },
       con: ['#8d9a5a', '#5b6638'], dec: ['#9aa462', '#636c3c'], mass: '#c9c28a', massShade: '#8a7f4c',
       rock: ['#d4a774', '#7c5232'], rockLit: '#f7e3bf', snowLine: 9,
       water: ['#e7e0c8', '#c9bc98'], reed: '#8a8450', tuft: '#b49a62', hill: ['#f2dfb0', '#d7b57a'], ridge: '#9a7444', ridgeLit: '#fbf0d2',
       bush: ['#7c7c48', '#a3a364'], cypress: ['#6b7040', '#949a5c'], toneDark: '#6a4a1a', tone: [.1, .18],
+      relief: { mid: '#dcc49e', dark: '#a28068', light: '#faeed4' }, massif: { base: '#cdae84', edge: '#a8875c', light: '#f3e1bf', dark: '#4e341e' },
     },
   };
 
@@ -3241,6 +3244,60 @@ const TerrainArt = (() => {
     for (let k = 0; k < 4; k++) { const dx = -h * .22 + k * h * .15; o += `<path d="M${f(x + dx)} ${f(y - h * .7)}q${f(h * .02)} ${f(h * .12)} 0 ${f(h * .22)}" stroke="${P.cypress[0]}" stroke-width="1.2" fill="none" stroke-linecap="round"/>`; }
     return o;
   }
+  // bare winter tree: trunk and forked branches, a little snow in the crooks
+  function bareTree(P, x, y, h, seed) {
+    const r = rng('bare', seed);
+    let o = shadow(P, x, y, h * .3), br = '';
+    const branch = (x0, y0, a, len, w, d) => {
+      const x1 = x0 + Math.cos(a) * len, y1 = y0 + Math.sin(a) * len;
+      br += `<path d="M${f(x0)} ${f(y0)}L${f(x1)} ${f(y1)}" stroke="#5a4a3c" stroke-width="${f(w)}" stroke-linecap="round"/>`;
+      if (d > 0) for (const da of [-.45, .4]) branch(x1, y1, a + da + r.uniform(-.15, .15), len * .68, w * .62, d - 1);
+    };
+    branch(x, y, -Math.PI / 2, h * .38, Math.max(1.1, h * .09), 0);
+    const tx = x, ty = y - h * .38;
+    for (const a of [-2.2, -1.75, -1.35, -.95]) branch(tx, ty, a + r.uniform(-.1, .1), h * .3, h * .05, 2);
+    o += br + `<path d="M${f(x - h * .08)} ${f(y - h * .4)}h${f(h * .1)}M${f(x + h * .05)} ${f(y - h * .55)}h${f(h * .08)}" stroke="#ffffff" stroke-width="1.2" stroke-linecap="round" opacity=".85"/>`;
+    return o;
+  }
+  // snow on the shoulders of a pine
+  function snowPine(P, x, y, h) {
+    let o = pine(P, x, y, h);
+    for (let k = 0; k < 3; k++) { const top = y - h + k * h * .22, hw = h * (.17 + .075 * k); o += `<path d="M${f(x)} ${f(top + .5)}L${f(x - hw * .55)} ${f(top + h * .26)}L${f(x - hw * .2)} ${f(top + h * .22)}Z" fill="#ffffff" opacity=".9"/>`; }
+    return o;
+  }
+  const drift = (x, y, w) => `<path d="M${f(x - w)} ${f(y)}Q${f(x - w * .3)} ${f(y - w * .45)} ${f(x + w)} ${f(y)}Z" fill="#ffffff"/><path d="M${f(x - w * .1)} ${f(y - w * .18)}Q${f(x + w * .4)} ${f(y - w * .2)} ${f(x + w)} ${f(y)}H${f(x - w * .2)}Z" fill="#b9c7d0" opacity=".7"/>`;
+  // desert: crescent dunes with a shaded lee side and a few ripples, rocks, dry scrub, palms
+  function dune(x, y, w) {
+    return `<ellipse cx="${f(x + w * .25)}" cy="${f(y + 1)}" rx="${f(w)}" ry="${f(w * .14)}" fill="#8a6a3c" opacity=".2"/>` +
+      `<path d="M${f(x - w)} ${f(y)}Q${f(x - w * .2)} ${f(y - w * .55)} ${f(x + w * .25)} ${f(y - w * .42)}Q${f(x + w * .7)} ${f(y - w * .3)} ${f(x + w)} ${f(y)}Z" fill="#f3e2b6"/>` +
+      `<path d="M${f(x + w * .25)} ${f(y - w * .42)}Q${f(x + w * .7)} ${f(y - w * .3)} ${f(x + w)} ${f(y)}Q${f(x + w * .4)} ${f(y - w * .08)} ${f(x + w * .1)} ${f(y - w * .1)}Q${f(x + w * .3)} ${f(y - w * .25)} ${f(x + w * .25)} ${f(y - w * .42)}Z" fill="#c99d5e" opacity=".8"/>` +
+      `<path d="M${f(x - w * .7)} ${f(y - w * .1)}q${f(w * .3)} ${f(-w * .12)} ${f(w * .6)} ${f(-w * .1)}M${f(x - w * .55)} ${f(y - w * .2)}q${f(w * .25)} ${f(-w * .1)} ${f(w * .5)} ${f(-w * .08)}" stroke="#d9b77c" stroke-width=".8" fill="none"/>`;
+  }
+  const rock = (x, y, w) => `<path d="M${f(x - w)} ${f(y)}L${f(x - w * .6)} ${f(y - w * .7)}L${f(x + w * .2)} ${f(y - w * .85)}L${f(x + w)} ${f(y)}Z" fill="#c4a27a"/><path d="M${f(x + w * .2)} ${f(y - w * .85)}L${f(x + w)} ${f(y)}H${f(x + w * .1)}Z" fill="#8f6a46"/>`;
+  function scrub(x, y, w, col = '#8a7a48') {
+    let o = `<ellipse cx="${f(x + w * .3)}" cy="${f(y)}" rx="${f(w)}" ry="${f(w * .22)}" fill="#6a4a1a" opacity=".18"/>`;
+    for (const a of [-2.6, -2.2, -1.9, -1.57, -1.25, -.95, -.55]) o += `<path d="M${f(x)} ${f(y)}L${f(x + Math.cos(a) * w)} ${f(y + Math.sin(a) * w * .8)}" stroke="${col}" stroke-width=".9" stroke-linecap="round"/>`;
+    return o;
+  }
+  function palm(P, x, y, h, ph = 0) {
+    let o = shadow(P, x, y, h * .35) + `<path d="M${f(x)} ${f(y)}Q${f(x + h * .12)} ${f(y - h * .5)} ${f(x + h * .05)} ${f(y - h * .85)}" stroke="#7a5a3a" stroke-width="${f(Math.max(1.2, h * .08))}" fill="none" stroke-linecap="round"/>`;
+    const tx = x + h * .05, ty = y - h * .85;
+    for (const a of [-2.9, -2.3, -1.7, -1.2, -.6, -.1]) {
+      const l = h * .42, ex = tx + Math.cos(a + ph * .05) * l, ey = ty + Math.sin(a) * l * .55 + l * .25;
+      o += `<path d="M${f(tx)} ${f(ty)}Q${f((tx + ex) / 2)} ${f(ty - l * .25)} ${f(ex)} ${f(ey)}" stroke="${a < -1.5 ? P.dec[1] : P.dec[0]}" stroke-width="2.2" fill="none" stroke-linecap="round"/>`;
+    }
+    return o;
+  }
+  // steppe: birch, white trunk and a light, airy crown
+  function birch(P, x, y, h, ph = 0) {
+    let o = shadow(P, x, y, h * .3) + `<path d="M${f(x)} ${f(y)}V${f(y - h * .55)}" stroke="#f1ede2" stroke-width="${f(Math.max(1.2, h * .09))}" stroke-linecap="round"/>`;
+    o += `<path d="M${f(x - .5)} ${f(y - h * .15)}h1.2M${f(x - .5)} ${f(y - h * .32)}h1.2" stroke="#3a3228" stroke-width=".8"/>`;
+    o += `<path d="${crown(x, y - h * .68, h * .22, h * .3, ph, 6, .12)}" fill="#8aa258"/><path d="${crown(x - h * .05, y - h * .73, h * .15, h * .2, ph + 1, 6, .12)}" fill="#b2c47a"/>`;
+    return o;
+  }
+  const feather = (x, y) => `<path d="M${f(x)} ${f(y)}q-2 -4 -5 -6M${f(x)} ${f(y)}q-.5 -5 -1 -8M${f(x)} ${f(y)}q1.5 -4 4 -6" stroke="#c9b98a" stroke-width=".8" fill="none" stroke-linecap="round"/>`;
+  // one tree of the right kind for the theater
+  const tree = (P, x, y, h, seed, ph) => P.kind === 'winter' ? bareTree(P, x, y, h, seed) : P.kind === 'desert' ? palm(P, x, y, h * 1.1, ph) : P.kind === 'steppe' ? birch(P, x, y, h, ph) : broadleaf(P, x, y, h, ph);
   const tuft = (P, x, y) => `<path d="M${f(x - 1.5)} ${f(y)}l-1 -2.5M${f(x)} ${f(y)}v-3M${f(x + 1.5)} ${f(y)}l1 -2.5" stroke="${P.tuft}" stroke-width=".8"/>`;
 
   // ---------- terrain ----------
@@ -3271,7 +3328,8 @@ const TerrainArt = (() => {
     for (const [x, y] of trees) {
       const h = r.uniform(12, 17), q = r.random();
       const kind = v === 1 ? 'c' : v === 2 ? 'd' : v === 3 ? (q < .55 ? 'c' : 'd') : (q < .4 ? 'c' : 'd');
-      o += kind === 'c' ? pine(P, x, y + 2, h) : broadleaf(P, x, y + 2, h * .95, r.uniform(0, 6));
+      if (P.kind === 'desert') { o += kind === 'c' ? scrub(x, y + 2, 4.5, P.dec[1]) : palm(P, x, y + 2, h * 1.05, r.uniform(0, 6)); continue; }
+      o += kind === 'c' ? (P.kind === 'winter' ? snowPine(P, x, y + 2, h) : pine(P, x, y + 2, h)) : tree(P, x, y + 2, h * .95, seed + ',' + x.toFixed(0) + ',' + y.toFixed(0), r.uniform(0, 6));
     }
     return o;
   }
@@ -3346,12 +3404,13 @@ const TerrainArt = (() => {
     return o;
   }
 
+  const i0 = x => x.toFixed(0);
   function marsh(P, v, seed) {
     const S = D, r = rng('S', v, seed);
     const pools = { 1: [[-9, -6, 10, 4.5], [9, 9, 12, 5]], 2: [[0, 2, 16, 7.5]], 3: [[-13, 9, 8, 3.5], [5, -10, 9, 4], [13, 6, 7, 3.2]], 4: [[-5, -3, 13, 5], [12, 12, 6, 2.6]] }[v];
     const inPool = (x, y, pad) => pools.some(([a, c, b, d]) => ((x - a) / (b + pad)) ** 2 + ((y - c) / (d + pad)) ** 2 < 1);
     let o = '';
-    for (const [x, y, rx, ry] of pools) o += `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="${P.water[1]}"/><ellipse cx="${x + 1}" cy="${y + .8}" rx="${f(rx * .82)}" ry="${f(ry * .7)}" fill="${P.water[0]}"/><path d="M${f(x - rx * .5)} ${f(y - ry * .2)}h${f(rx * .5)}" stroke="#eef5f2" stroke-width=".9" opacity=".8"/>`;
+    for (const [x, y, rx, ry] of pools) if (P.kind === 'winter') o += `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="#c9d8e0"/><ellipse cx="${x - 1}" cy="${y - .6}" rx="${f(rx * .85)}" ry="${f(ry * .7)}" fill="#eef4f7"/><path d="M${f(x - rx * .4)} ${f(y - ry * .3)}l${f(rx * .3)} ${f(ry * .4)}l${f(rx * .35)} ${f(-ry * .2)}" stroke="#9fb4c0" stroke-width=".6" fill="none"/>`; else o += `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="${P.water[1]}"/><ellipse cx="${x + 1}" cy="${y + .8}" rx="${f(rx * .82)}" ry="${f(ry * .7)}" fill="${P.water[0]}"/><path d="M${f(x - rx * .5)} ${f(y - ry * .2)}h${f(rx * .5)}" stroke="#eef5f2" stroke-width=".9" opacity=".8"/>`;
     const things = [];
     for (let i = 0; i < 18; i++) {
       const x = r.uniform(-S * .72, S * .72), y = r.uniform(-S * .6, S * .66);
@@ -3365,20 +3424,47 @@ const TerrainArt = (() => {
         const hg = r.uniform(5, 8);
         o += `<path d="M${f(x)} ${f(y)}q-.5 ${f(-hg * .6)} -2.5 ${f(-hg)}M${f(x)} ${f(y)}v${f(-hg * 1.1)}M${f(x)} ${f(y)}q1 ${f(-hg * .5)} 3 ${f(-hg * .85)}" stroke="${P.reed}" stroke-width=".95" fill="none" stroke-linecap="round"/>`;
         if (r.random() < .3) o += `<ellipse cx="${f(x)}" cy="${f(y - hg * 1.1)}" rx=".9" ry="2" fill="#6b4a2a"/>`;
-      } else if (kind === 'bush') o += bush(P, x, y, r.uniform(4.5, 6), r.uniform(0, 6));
-      else o += swamptree(P, x, y, r.uniform(19, 23), r.uniform(0, 6));
+      } else if (kind === 'bush') o += P.kind === 'desert' ? scrub(x, y, r.uniform(4, 5.5)) : P.kind === 'winter' ? bareTree(P, x, y, 9, seed + 'b' + i0(x)) : bush(P, x, y, r.uniform(4.5, 6), r.uniform(0, 6));
+      else o += P.kind === 'winter' ? bareTree(P, x, y, r.uniform(17, 20), seed + 't' + i0(x)) : P.kind === 'desert' ? palm(P, x, y, r.uniform(15, 18), 0) : swamptree(P, x, y, r.uniform(19, 23), r.uniform(0, 6));
     }
     return o;
   }
 
   function clear(P, v, seed) {
     const S = D, r = rng('C', v, seed), things = [];
-    const items = v === 2 ? [['tree', 2]] : v === 3 ? [['bush', 3]] : v === 4 ? [['tree', 1], ['bush', 2]] : [];
-    for (const [kind, n] of items) for (let i = 0; i < n; i++) things.push([r.uniform(-S * .4, S * .5), r.uniform(-S * .5, S * .5), kind]);
-    for (let i = 0; i < 5; i++) things.push([r.uniform(-S * .5, S * .6), r.uniform(-S * .6, S * .6), 'tuft']);
+    const add = (kind, n) => { for (let i = 0; i < n; i++) things.push([r.uniform(-S * .4, S * .5), r.uniform(-S * .5, S * .5), kind]); };
+    if (P.kind === 'desert') {
+      // no trees: dunes, rocks and dry scrub
+      if (v === 2) add('dune', 2); if (v === 3) { add('rock', 2); add('scrub', 2); } if (v === 4) { add('bigdune', 1); add('scrub', 1); }
+      add('ripple', 3);
+    } else if (P.kind === 'winter') {
+      // leafless trees, the odd pine, snow drifts
+      if (v === 2) add('tree', 2); if (v === 3) add('drift', 3); if (v === 4) { add('tree', 1); add('pine', 1); }
+      add('drift', 2);
+    } else if (P.kind === 'steppe') {
+      // open grassland: feather grass, a rare birch
+      if (v === 2) add('tree', 1); if (v === 3) add('feather', 4); if (v === 4) { add('bush', 1); add('feather', 2); }
+      add('tuft', 6);
+    } else {
+      if (v === 2) add('tree', 2); if (v === 3) add('bush', 3); if (v === 4) { add('tree', 1); add('bush', 2); }
+      add('tuft', 5);
+    }
     things.sort((a, b) => a[0] - b[0]);
     let o = '';
-    for (const [y, x, kind] of things) o += kind === 'tree' ? broadleaf(P, x, y, r.uniform(12, 15), r.uniform(0, 6)) : kind === 'bush' ? bush(P, x, y, r.uniform(4, 5.5), r.uniform(0, 6)) : tuft(P, x, y);
+    for (const [y, x, kind] of things) {
+      const ph = r.uniform(0, 6);
+      if (kind === 'tree') o += tree(P, x, y, r.uniform(12, 15), seed + ',' + x.toFixed(0), ph);
+      else if (kind === 'pine') o += snowPine(P, x, y, r.uniform(12, 15));
+      else if (kind === 'bush') o += bush(P, x, y, r.uniform(4, 5.5), ph);
+      else if (kind === 'drift') o += drift(x, y, r.uniform(5, 8));
+      else if (kind === 'dune') o += dune(x, y, r.uniform(12, 15));
+      else if (kind === 'bigdune') o += dune(x, y + 4, r.uniform(20, 24));
+      else if (kind === 'rock') o += rock(x, y, r.uniform(3.5, 5));
+      else if (kind === 'scrub') o += scrub(x, y, r.uniform(3.5, 5));
+      else if (kind === 'ripple') o += `<path d="M${f(x - 5)} ${f(y)}q2.5 -1.6 5 0t5 0" stroke="#d6b57a" stroke-width=".8" fill="none"/>`;
+      else if (kind === 'feather') o += feather(x, y);
+      else o += tuft(P, x, y);
+    }
     return o;
   }
   function sea(P, seed) {
@@ -3387,12 +3473,212 @@ const TerrainArt = (() => {
     return o;
   }
 
+  // ---------- hills: soft relief seen from above ----------
+  const LOBES = { 1: [[0, 2, 30, 26, 0]], 2: [[0, 0, 38, 18, -25]], 3: [[-14, -8, 20, 17, 0], [16, 10, 19, 16, 0]], 4: [[-6, -4, 26, 22, 0], [19, 17, 16, 10, 35]] };
+  function hillRelief(P, v) {
+    const c = P.relief; let o = '';
+    for (const [cx, cy, rx, ry, rot] of LOBES[v]) {
+      const tr = `rotate(${rot} ${cx} ${cy})`;
+      o += `<ellipse cx="${cx}" cy="${cy}" rx="${f(rx * 1.1)}" ry="${f(ry * 1.1)}" fill="${c.mid}" opacity=".5" transform="${tr}"/>` +
+        `<ellipse cx="${f(cx + rx * .32)}" cy="${f(cy + ry * .38)}" rx="${f(rx * .62)}" ry="${f(ry * .56)}" fill="${c.dark}" opacity=".62" transform="${tr}"/>` +
+        `<ellipse cx="${f(cx - rx * .3)}" cy="${f(cy - ry * .34)}" rx="${f(rx * .55)}" ry="${f(ry * .5)}" fill="${c.light}" opacity=".95" transform="${tr}"/>`;
+    }
+    return o;
+  }
+  function hillTufts(P, v, seed) {
+    const r = rng('tf', v, seed); let o = '';
+    for (let i = 0; i < 4; i++) { const x = r.uniform(-D * .5, D * .55), y = r.uniform(-D * .5, D * .55); o += P.kind === 'winter' ? '' : P.kind === 'desert' ? scrub(x, y, 3.5) : tuft(P, x, y); }
+    return o;
+  }
+
+  // ---------- mountains: rock masses seen from above, joined across shared edges like forests ----------
+  const MPEAKS = { 1: [[0, -2, 1]], 2: [[-12, -8, .8], [13, 9, .85]], 3: [[-18, 9, .65], [-1, -3, .85], [17, -11, .7]], 4: [[-4, 3, 1], [19, -13, .6]] };
+  const LDIR = [-Math.SQRT1_2, -Math.SQRT1_2]; // light from the upper left
+  function massif(P, v, nb, seed) {
+    const S = D, c = P.massif, r = rng('M', v, seed), ph = [0, 1, 2, 3, 4, 5].map(() => r.uniform(0, 6.28));
+    const margin = (i, along) => nb[i] ? -S * .14 : S * (.14 + .07 * Math.sin(along * .19 + ph[i]) + .04 * Math.sin(along * .47 + ph[i] * 2));
+    const inside = (x, y, extra = 0) => EDGE_A.every((a, i) => {
+      const n = [Math.cos(a), Math.sin(a)], along = -x * n[1] + y * n[0];
+      return S * SQ3 / 2 - (x * n[0] + y * n[1]) >= margin(i, along) + extra;
+    });
+    // the rock mass: overlapping discs, softened
+    let mass = '';
+    for (let gy = -7; gy < 8; gy++) for (let gx = -7; gx < 8; gx++) {
+      const x = gx * 8 + (((gy % 2) + 2) % 2) * 4 + r.uniform(-2, 2), y = gy * 7 + r.uniform(-2, 2);
+      if (inside(x, y)) mass += `<circle cx="${f(x)}" cy="${f(y)}" r="7.5"/>`;
+    }
+    // ridges: from each summit toward every neighbouring mountain hex (so ranges join up), plus a few spurs of its own
+    const ridges = [];
+    const peaks = MPEAKS[v];
+    peaks.forEach(([px, py, sc], pi) => {
+      const dirs = [];
+      // only the main summit sends ridges to neighbouring mountain hexes, so ranges join without a tangle
+      if (pi === 0) nb.forEach((q, i) => { if (q === 2) dirs.push([EDGE_A[i] + r.uniform(-.15, .15), S * .95]); });
+      const own = MSTYLE ? (pi === 0 ? 2 : 1) + Math.floor(r.random() * 2) : 2 + Math.floor(r.random() * 2);
+      for (let i = 0; i < own; i++) dirs.push([r.uniform(0, 6.28), S * sc * r.uniform(.45, .7)]);
+      for (const [a, len] of dirs) {
+        const pts = [[px, py]];
+        let x = px, y = py, ang = a;
+        for (let t = 0; t < len; t += 3.2) {
+          ang += r.uniform(-.18, .18); x += Math.cos(ang) * 3.2; y += Math.sin(ang) * 3.2;
+          if (!inside(x, y, -S * .1)) break;
+          pts.push([x, y]);
+        }
+        ridges.push({ pts, sc });
+      }
+    });
+    if (MSTYLE) return massMarkup(c, mass, false) + sharpShade(MSTYLE, c, ridges, inside, r);
+    // shading: light on the side of each ridge that faces the light, shadow on the other, tapering downhill
+    let lit = '', dark = '';
+    for (const { pts, sc } of ridges) {
+      const n = pts.length;
+      for (let i = 1; i < n; i++) {
+        const [x0, y0] = pts[i - 1], [x1, y1] = pts[i], dx = x1 - x0, dy = y1 - y0, L = Math.hypot(dx, dy) || 1;
+        const nx = -dy / L, ny = dx / L, face = nx * LDIR[0] + ny * LDIR[1], side = face > 0 ? 1 : -1;
+        const t = i / n, w = (1 - t * .7) * 6.5 * sc + 1.5, j = r.uniform(.8, 1.25);
+        lit += `<ellipse cx="${f(x1 + nx * side * w * .8)}" cy="${f(y1 + ny * side * w * .8)}" rx="${f(w * j)}" ry="${f(w * .7 * j)}" opacity="${f(.2 + .3 * Math.abs(face))}"/>`;
+        dark += `<ellipse cx="${f(x1 - nx * side * w * .9)}" cy="${f(y1 - ny * side * w * .9)}" rx="${f(w * 1.1 * j)}" ry="${f(w * .75 * j)}" opacity="${f(.45 + .4 * Math.abs(face))}"/>`;
+        // little spurs off the ridge
+        if (i % 4 === 2 && r.random() < .6) {
+          const sa = Math.atan2(dy, dx) + (r.random() < .5 ? 1 : -1) * r.uniform(.8, 1.3), sl = r.uniform(5, 9) * sc;
+          const sx = x1 + Math.cos(sa) * sl, sy = y1 + Math.sin(sa) * sl, snx = -Math.sin(sa), sny = Math.cos(sa), sf = snx * LDIR[0] + sny * LDIR[1];
+          if (inside(sx, sy)) {
+            lit += `<ellipse cx="${f(sx + snx * Math.sign(sf) * 2)}" cy="${f(sy + sny * Math.sign(sf) * 2)}" rx="${f(w * .55)}" ry="${f(w * .4)}" opacity=".3"/>`;
+            dark += `<ellipse cx="${f(sx - snx * Math.sign(sf) * 2.2)}" cy="${f(sy - sny * Math.sign(sf) * 2.2)}" rx="${f(w * .6)}" ry="${f(w * .45)}" opacity=".55"/>`;
+          }
+        }
+      }
+    }
+    for (const [px, py, sc] of peaks) lit += `<ellipse cx="${f(px - 3 * sc)}" cy="${f(py - 3 * sc)}" rx="${f(6 * sc)}" ry="${f(5 * sc)}" opacity=".55"/>`;
+    return `<g filter="url(#ta-rock)"><g fill="${c.edge}" transform="translate(1.5,2)">${mass}</g><g fill="${c.base}">${mass}</g></g>` +
+      `<g filter="url(#ta-rockshade)"><g fill="${c.dark}">${dark}</g><g fill="${c.light}">${lit}</g></g>`;
+  }
+
+  // sharp-edged mountain shading: flat tones cut along the ridges, gullies cut into the slopes
+  let MSTYLE = null;
+  const massMarkup = (c, mass, blur) => `<g${blur ? ' filter="url(#ta-rock)"' : ''}><g fill="${c.edge}" transform="translate(1.2,1.6)">${mass}</g><g fill="${c.base}">${mass}</g></g>`;
+  function sharpShade(st, c, ridges, inside, r) {
+    const tone = k => st.tones[k] || c[k];
+    let lit = '', mid = '', dark = '', glow = '';
+    const P2 = pts => 'M' + pts.map(([x, y]) => f(x) + ' ' + f(y)).join(' L') + 'Z';
+    for (const { pts, sc } of ridges) {
+      const n = pts.length; if (n < 3) continue;
+      // which side of this ridge faces the light (on average)
+      let fsum = 0; const N = [];
+      for (let i = 0; i < n; i++) {
+        const a = pts[Math.max(0, i - 1)], b = pts[Math.min(n - 1, i + 1)], dx = b[0] - a[0], dy = b[1] - a[1], L = Math.hypot(dx, dy) || 1;
+        N.push([-dy / L, dx / L]); fsum += (-dy / L) * LDIR[0] + (dx / L) * LDIR[1];
+      }
+      const side = fsum >= 0 ? 1 : -1, strength = Math.min(1, Math.abs(fsum) / n + .35);
+      const off = (k, w) => pts.map(([x, y], i) => { const t = i / (n - 1), j = 1 + (i % 2 ? st.jag : -st.jag) * r.uniform(.5, 1); const ww = w * (1 - t * .65) * sc * j + 1.2; return [x + N[i][0] * side * k * ww, y + N[i][1] * side * k * ww]; });
+      const litEdge = off(1, st.litW), darkEdge = off(-1, st.darkW);
+      lit += `<path d="${P2([...pts, ...litEdge.reverse()])}" opacity="${f(st.litOp * strength)}"/>`;
+      dark += `<path d="${P2([...pts, ...darkEdge.reverse()])}" opacity="${f(st.darkOp * (1.1 - strength * .3))}"/>`;
+      if (st.glow) { const g2 = off(1, st.litW * .28); glow += `<path d="${P2([...pts, ...g2.reverse()])}" opacity=".7"/>`; }
+      // gullies: narrow wedges cut down the slopes from the ridge
+      for (let i = 1; i < n - 1; i += st.gullyStep) {
+        for (const sd of [1, -1]) {
+          if (r.random() > st.gullyP) continue;
+          const [x, y] = pts[i], [nx, ny] = N[i], t = i / (n - 1), len = (st.darkW + 4) * (1 - t * .5) * sc * r.uniform(.9, 1.4);
+          const tx = -ny, ty = nx, wd = r.uniform(1.2, 2.4);
+          const tip = [x + nx * side * sd * len + tx * r.uniform(-2, 2), y + ny * side * sd * len + ty * r.uniform(-2, 2)];
+          const tri = P2([[x - tx * wd, y - ty * wd], [x + tx * wd, y + ty * wd], tip]);
+          if (sd < 0) dark += `<path d="${tri}" opacity="${f(st.darkOp)}"/>`; else mid += `<path d="${tri}" opacity="${f(st.midOp)}"/>`;
+        }
+      }
+    }
+    return `<g fill="${tone('mid')}">${mid}</g><g fill="${tone('dark')}">${dark}</g><g fill="${tone('light')}">${lit}</g>` + (glow ? `<g fill="${tone('glow')}">${glow}</g>` : '');
+  }
+
+  // ---------- mountains as shaded relief: a generated height surface, lit from the upper left ----------
+  // Rendered to pixels (it is a raster by nature) and placed as an image under the vector layers.
+  function perlin(seed) {
+    const r = rng('perlin', seed), p = [...Array(256).keys()];
+    for (let i = 255; i > 0; i--) { const j = Math.floor(r.random() * (i + 1)); [p[i], p[j]] = [p[j], p[i]]; }
+    const P = new Uint8Array(512); for (let i = 0; i < 512; i++) P[i] = p[i & 255];
+    const G = [[1, 1], [-1, 1], [1, -1], [-1, -1], [1.4, 0], [-1.4, 0], [0, 1.4], [0, -1.4]];
+    const fade = t => t * t * t * (t * (t * 6 - 15) + 10);
+    return (x, y) => {
+      const xi = Math.floor(x), yi = Math.floor(y), xf = x - xi, yf = y - yi, X = xi & 255, Y = yi & 255;
+      const g = (h, dx, dy) => { const q = G[h & 7]; return q[0] * dx + q[1] * dy; };
+      const aa = P[P[X] + Y], ab = P[P[X] + Y + 1], ba = P[P[X + 1] + Y], bb = P[P[X + 1] + Y + 1];
+      const u = fade(xf), v = fade(yf);
+      const x1 = g(aa, xf, yf) + u * (g(ba, xf - 1, yf) - g(aa, xf, yf)), x2 = g(ab, xf, yf - 1) + u * (g(bb, xf - 1, yf - 1) - g(ab, xf, yf - 1));
+      return (x1 + v * (x2 - x1)) * .7;
+    };
+  }
+  const ROT = [0, 1, 2, 3, 4, 5, 6].map(o => [Math.cos(o * .65), Math.sin(o * .65)]);
+  const RELIEF = {
+    temperate: { shadow: [146, 142, 156], mid: [206, 203, 196], lit: [246, 244, 234], tint: [184, 190, 150] },
+    winter: { shadow: [138, 152, 172], mid: [220, 226, 233], lit: [255, 255, 255], tint: [200, 212, 224] },
+    desert: { shadow: [162, 128, 104], mid: [220, 196, 158], lit: [250, 238, 212], tint: [206, 178, 130] },
+  };
+  RELIEF.europe = RELIEF.temperate; RELIEF.steppe = RELIEF.temperate;
+  // m: map; S: hex size; center(c, r); res: pixels per map unit. Returns { x, y, w, h, data } or null.
+  function reliefLayer(m, S, center, theme, res, opt = {}) {
+    const want = opt.terr || 'm';
+    const isM = (c, r) => c >= 0 && r >= 0 && c < m.W && r < m.H && m.terr[c + ',' + r] === want;
+    const cells = []; for (let r = 0; r < m.H; r++) for (let c = 0; c < m.W; c++) if (isM(c, r)) cells.push(center(c, r));
+    if (!cells.length) return null;
+    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+    for (const [x, y] of cells) { x0 = Math.min(x0, x - S * 1.3); y0 = Math.min(y0, y - S * 1.3); x1 = Math.max(x1, x + S * 1.3); y1 = Math.max(y1, y + S * 1.3); }
+    x0 = Math.max(0, x0); y0 = Math.max(0, y0);
+    const W = Math.ceil((x1 - x0) * res), H = Math.ceil((y1 - y0) * res);
+    const nz = perlin('relief' + want), nw = perlin('warp' + want), ne = perlin('edge' + want), sig2 = 2 * (S * .72) ** 2;
+    const fq = 1 / (S * (opt.scale || .75));
+    // spatial lookup of mountain hex centres
+    const near = (x, y) => { let wsum = 0, msum = 0;
+      for (const [cx, cy] of cells) { const d2 = (x - cx) ** 2 + (y - cy) ** 2; if (d2 < (S * 2) ** 2) msum += Math.exp(-d2 / sig2); }
+      return msum; };
+    const hgt = new Float32Array(W * H), mask = new Float32Array(W * H);
+    for (let j = 0; j < H; j++) for (let i = 0; i < W; i++) {
+      const x = x0 + i / res, y = y0 + j / res;
+      let mk = near(x, y);
+      // ragged edge where the range meets other ground
+      mk = mk + ne(x * fq * 1.6, y * fq * 1.6) * .45;
+      const a = Math.min(1, Math.max(0, (mk - .5) / .45));
+      mask[j * W + i] = a * a * (3 - 2 * a);
+      if (a <= 0) continue;
+      // domain-warped ridged noise: sharp crests, branching valleys
+      const wx = x * fq + nw(x * fq * .35, y * fq * .35) * .55, wy = y * fq + nw(x * fq * .35 + 9.1, y * fq * .35 + 3.3) * .55;
+      let sum = 0, amp = 1, fr = 1, wgt = 1;
+      for (let o = 0; o < (opt.oct || 5); o++) {
+        // each octave turned ~37 degrees so ridges branch instead of running in parallel
+        const ca = ROT[o][0], sa = ROT[o][1], ux = (wx * ca - wy * sa) * fr + o * 17.3, uy = (wx * sa + wy * ca) * fr + o * 5.1;
+        let n = 1 - Math.abs(nz(ux, uy)); n *= n; n *= wgt; wgt = Math.min(1, n * 1.8);
+        sum += n * amp; amp *= (opt.gain || .45); fr *= 2.03;
+      }
+      hgt[j * W + i] = Math.sqrt(mask[j * W + i]) * ((opt.base ?? .06) + sum * (opt.detail ?? .94));
+    }
+    const C = RELIEF[theme] || RELIEF.temperate, ex = (opt.relief || 1) * S * .9 * res; // vertical exaggeration
+    const L = [-.55, -.55, .63], data = new Uint8ClampedArray(W * H * 4);
+    const contour = opt.contours ? opt.contours : 0;
+    for (let j = 1; j < H - 1; j++) for (let i = 1; i < W - 1; i++) {
+      const k = j * W + i, a = mask[k]; if (a <= .01) continue;
+      const dx = (hgt[k + 1] - hgt[k - 1]) * ex / 2, dy = (hgt[k + W] - hgt[k - W]) * ex / 2;
+      const nl = Math.hypot(dx, dy, 1), sh = Math.max(0, (-dx * L[0] - dy * L[1] + L[2]) / nl);
+      // colour ramp: shadow -> mid -> lit
+      let col;
+      if (sh < .62) { const t = sh / .62; col = C.shadow.map((v, q) => v + (C.mid[q] - v) * t); }
+      else { const t = Math.min(1, (sh - .62) / .3); col = C.mid.map((v, q) => v + (C.lit[q] - v) * t); }
+      // low valleys pick up a little tint
+      const lowT = Math.max(0, .45 - hgt[k] / Math.max(.01, a)) * (opt.tint ?? .5);
+      col = col.map((v, q) => v + (C.tint[q] - v) * lowT);
+      if (contour) { const z = hgt[k] * contour, fr2 = z - Math.floor(z); if (fr2 < .06 * Math.hypot(dx, dy) / 3 + .02) col = col.map(v => v * .86); }
+      data[k * 4] = col[0]; data[k * 4 + 1] = col[1]; data[k * 4 + 2] = col[2]; data[k * 4 + 3] = Math.min(255, a * 300) * (opt.alpha ?? 1) * (opt.detailOnly ? Math.min(1, Math.abs(sh - .7) * 3.2) : 1);
+    }
+    return { x: x0, y: y0, w: W / res, h: H / res, pw: W, ph: H, data };
+  }
+  let HILL_TEX = { relief: .3, scale: .9, oct: 4, base: .5, detail: .5, alpha: .6, tint: 0 };
+  let RELIEF_OPT = { on: true, res: 2, relief: .55, tint: .4, scale: 1.25, oct: 5 }, encodePNG = null;
+
   // ---------- settlements ----------
   const WALLS = ['#efe6d2', '#e6dccb', '#ead8b0', '#dcd6cc', '#f1ead9'], ROOFS = ['#9b4a35', '#8a3f2e', '#6e5a4a', '#5d6670', '#a5583c'];
   const pick = (r, a) => a[Math.floor(r.random() * a.length)];
   const gshadow = (x, y, w, o = .25) => `<ellipse cx="${f(x + 3)}" cy="${f(y + .5)}" rx="${f(w)}" ry="2" fill="#2f2a1e" opacity="${o}"/>`;
+  let SNOW = false, SAND = false; // winter: roofs are white; desert: flat sandy roofs
   function house(r, x, y, sc = 1) {
-    const kind = pick(r, ['gable', 'gable', 'wide', 'two', 'hip', 'L']), wall = pick(r, WALLS), roof = pick(r, ROOFS);
+    const kind = pick(r, ['gable', 'gable', 'wide', 'two', 'hip', 'L']), wall = pick(r, WALLS), roof0 = pick(r, ROOFS), roof = SNOW ? '#f4f6f7' : roof0;
     const w = { gable: 7, wide: 11, two: 7, hip: 9, L: 10 }[kind] * sc, hh = { gable: 5, wide: 5, two: 9, hip: 6, L: 5 }[kind] * sc;
     let o = gshadow(x, y, w * .75);
     if (kind === 'L') {
@@ -3411,7 +3697,8 @@ const TerrainArt = (() => {
   function block(r, x, y, tall) {
     const w = r.uniform(7, 11), hh = tall ? r.uniform(13, 21) : r.uniform(8, 13), wall = pick(r, ['#e3d9c4', '#d8cfbe', '#cfc4ad', '#e9e1cf']);
     let o = gshadow(x + 1, y, w * .8, .28) + `<rect x="${f(x - w / 2)}" y="${f(y - hh)}" width="${f(w)}" height="${f(hh)}" fill="${wall}"/><rect x="${f(x + w * .05)}" y="${f(y - hh)}" width="${f(w * .45)}" height="${f(hh)}" fill="#000" opacity=".1"/>`;
-    o += `<rect x="${f(x - w / 2 - .5)}" y="${f(y - hh - 1.6)}" width="${f(w + 1)}" height="1.8" fill="${pick(r, ['#6e5a4a', '#5d6670', '#8a3f2e'])}"/>`;
+    const cap = pick(r, ['#6e5a4a', '#5d6670', '#8a3f2e']);
+    o += `<rect x="${f(x - w / 2 - .5)}" y="${f(y - hh - 1.6)}" width="${f(w + 1)}" height="1.8" fill="${SNOW ? '#f4f6f7' : SAND ? '#c9b48a' : cap}"/>`;
     for (let row = 0; row < Math.floor(hh / 4); row++) for (let col = 0; col < Math.floor(w / 3); col++) o += `<rect x="${f(x - w / 2 + 1.2 + col * 3)}" y="${f(y - hh + 2 + row * 4)}" width="1.3" height="1.7" fill="#7d8790" opacity=".75"/>`;
     return o;
   }
@@ -3455,9 +3742,18 @@ const TerrainArt = (() => {
     o += `<rect x="${f(x + 8)}" y="${f(y - 30)}" width="7" height="30" fill="#d8cfbe"/><rect x="${f(x + 11.5)}" y="${f(y - 30)}" width="3.5" height="30" fill="#000" opacity=".1"/><path d="M${f(x + 7.5)} ${f(y - 30)}h8l-1.5 -3h-5z" fill="#6e5a4a"/>`;
     return o;
   }
+  // desert towns: flat-roofed whitewashed houses, a domed mosque with a minaret
+  function adobe(r, x, y, sc = 1) {
+    const w = r.uniform(6, 10) * sc, hh = r.uniform(5, 8) * sc, wall = pick(r, ['#f3ead6', '#ead9b4', '#f6f0e2', '#e2cfa5']);
+    let o = gshadow(x, y, w * .75) + `<rect x="${f(x - w / 2)}" y="${f(y - hh)}" width="${f(w)}" height="${f(hh)}" fill="${wall}"/><rect x="${f(x + w * .1)}" y="${f(y - hh)}" width="${f(w * .4)}" height="${f(hh)}" fill="#000" opacity=".08"/>`;
+    o += `<rect x="${f(x - w / 2 - .5)}" y="${f(y - hh - 1)}" width="${f(w + 1)}" height="1.3" fill="#c9b48a"/><rect x="${f(x - w * .25)}" y="${f(y - hh * .6)}" width="1.6" height="2" fill="#6a5a48"/>`;
+    return o;
+  }
+  const mosque = (x, y) => gshadow(x + 1, y, 9, .28) + `<rect x="${f(x - 6)}" y="${f(y - 8)}" width="12" height="8" fill="#f3ead6"/><path d="M${f(x - 5)} ${f(y - 8)}Q${f(x)} ${f(y - 17)} ${f(x + 5)} ${f(y - 8)}Z" fill="#7fa3a8"/>` +
+    `<rect x="${f(x + 7)}" y="${f(y - 22)}" width="3" height="22" fill="#efe4cc"/><path d="M${f(x + 6.5)} ${f(y - 22)}L${f(x + 8.5)} ${f(y - 26)}L${f(x + 10.5)} ${f(y - 22)}Z" fill="#7fa3a8"/>`;
   // which picture a city gets: by name for landmarks, otherwise by its value
   const LANDMARK = { paris: 'eiffel', moscow: 'kremlin', 'tractor factory': 'factory', 'red october': 'factory', barrikady: 'factory', 'central station': 'station', 'mamayev kurgan': 'kurgan', 'grain elevator': 'elevator' };
-  function settlement(ct, seed) {
+  function settlement(ct, seed, P) {
     const S = D, r = rng('town', seed), lm = LANDMARK[(ct.name || '').toLowerCase()];
     const kind = lm === 'eiffel' || lm === 'kremlin' ? 'capital' : lm ? lm : ct.vp >= 3 || ct.cap ? 'city' : 'town';
     if (kind === 'kurgan') return null; // drawn as its hill
@@ -3493,10 +3789,10 @@ const TerrainArt = (() => {
     }
     things.sort((a, b) => a[0] - b[0]);
     let o = '';
-    const P = PAL.temperate;
     for (const [y, x, k] of things) {
-      if (k === 'house') o += house(r, x, y, kind === 'town' ? 1.15 : 1);
-      else if (k === 'tree') o += broadleaf(P, x, y, 11, r.uniform(0, 6));
+      if (k === 'house') o += P.kind === 'desert' ? adobe(r, x, y, kind === 'town' ? 1.15 : 1) : house(r, x, y, kind === 'town' ? 1.15 : 1);
+      else if (k === 'tree') o += tree(P, x, y, 11, seed + i0(x), r.uniform(0, 6));
+      else if (k === 'church' && P.kind === 'desert') o += mosque(x, y);
       else if (k === 'tall' || k === 'block') o += block(r, x, y, k === 'tall');
       else if (k === 'church') o += church(x, y);
       else if (k === 'eiffel') o += eiffel(x, y, S * 1.25);
@@ -3508,21 +3804,25 @@ const TerrainArt = (() => {
     return o;
   }
 
+  // a different hill drawing can be swapped in (used for design comps)
+  let hillArt = null, hillShade = null, mountShade = null, TONE_OFF = false, RELIEF_BLUR = 8;
   // ---------- whole map ----------
   // Returns SVG markup (no outer <svg>) for the terrain of map m, in game units with hex size S.
   // center(c, r) gives a hex centre; cities are drawn as settlements in place of their terrain.
   function render(m, cities, theme, S, center) {
-    const P = PAL[theme] || PAL.temperate, k = S / D, hp = (s, x = 0, y = 0) => [0, 1, 2, 3, 4, 5].map(i => f(x + s * Math.cos(Math.PI / 3 * i)) + ',' + f(y + s * Math.sin(Math.PI / 3 * i))).join(' ');
+    const P = PAL[theme] || PAL.temperate;
+    SNOW = P.kind === 'winter'; SAND = P.kind === 'desert';
+    const k = S / D, hp = (s, x = 0, y = 0) => [0, 1, 2, 3, 4, 5].map(i => f(x + s * Math.cos(Math.PI / 3 * i)) + ',' + f(y + s * Math.sin(Math.PI / 3 * i))).join(' ');
     const cityAt = new Map(cities.map(ct => [ct.c + ',' + ct.r, ct]));
     const at = (c, r) => (c >= 0 && r >= 0 && c < m.W && r < m.H ? m.terr[c + ',' + r] : null);
     const nbr = (c, r, i) => { const odd = c & 1; const d = [[1, odd], [0, 1], [-1, odd], [-1, odd - 1], [0, -1], [1, odd - 1]][i]; return [c + d[0], r + d[1]]; };
-    let base = '', tone = '', forests = '', rest = '';
+    let base = '', tone = '', forests = '', rest = '', shades = '';
     for (let r = 0; r < m.H; r++) for (let c = 0; c < m.W; c++) {
       const t = m.terr[c + ',' + r], [x, y] = center(c, r), ct = cityAt.get(c + ',' + r);
       const lm = ct && LANDMARK[(ct.name || '').toLowerCase()];
-      const bt = ct && lm !== 'kurgan' ? '.' : t;
+      const bt = (ct && lm !== 'kurgan') || t === 'm' || t === 'h' ? '.' : t;
       base += `<polygon points="${hp(S + .5, x, y)}" fill="${P.base[bt] || P.base['.']}"/>`;
-      if (t !== 'w') {
+      if (t !== 'w' && t !== '.' && t !== 'f' && t !== 'h' && t !== 'm' && !ct) {
         const q = rng('T', c, r);
         for (let i = 0; i < 4; i++) tone += `<ellipse cx="${f(x + q.uniform(-.6, .6) * S)}" cy="${f(y + q.uniform(-.6, .6) * S)}" rx="${f(q.uniform(.3, .55) * S)}" ry="${f(q.uniform(.2, .4) * S)}" fill="${i % 2 ? P.toneLight : P.toneDark}" opacity="${P.tone[i % 2]}"/>`;
       }
@@ -3532,7 +3832,7 @@ const TerrainArt = (() => {
       const g = (body, clip) => `<g transform="translate(${f(x)},${f(y)}) scale(${(flip && !ct ? -k : k).toFixed(4)},${k.toFixed(4)})"${clip ? ' clip-path="url(#ta-clip)"' : ''}>${body}</g>`;
       if (ct && lm !== 'kurgan') {
         // bigger places fill more of their hex
-        const s = settlement(ct, c + ',' + r), z = lm === 'eiffel' || lm === 'kremlin' || ct.vp >= 5 ? 1.32 : ct.vp >= 3 || ct.cap ? 1.2 : ct.vp >= 2 ? 1.1 : 1;
+        const s = settlement(ct, c + ',' + r, P), z = lm === 'eiffel' || lm === 'kremlin' || ct.vp >= 5 ? 1.32 : ct.vp >= 3 || ct.cap ? 1.2 : ct.vp >= 2 ? 1.1 : 1;
         if (s) rest += g(`<g transform="scale(${z})">${s}</g>`, true);
         continue;
       }
@@ -3540,25 +3840,57 @@ const TerrainArt = (() => {
       if (t === 'f') {
         const nb = [0, 1, 2, 3, 4, 5].map(i => { const q = at(...nbr(c, r, i)); return q === null || q === 'f' ? 1 : 0; });
         forests += `<g transform="translate(${f(x)},${f(y)}) scale(${k.toFixed(4)})">${forest(P, v, nb, c + ',' + r)}</g>`;
-      } else if (t === 'm') rest += g(mountain(P, v), true);
-      else if (t === 'h') rest += g(hills(P, v), true);
+      } else if (t === 'm') {
+        if (RELIEF_OPT.on && !mountShade) { /* drawn by the relief layer */ }
+        else if (!mountShade) {
+          const nb = [0, 1, 2, 3, 4, 5].map(i => { const q = at(...nbr(c, r, i)); return q === null ? 1 : q === 'm' ? 2 : 0; });
+          forests += `<g transform="translate(${f(x)},${f(y)}) scale(${k.toFixed(4)})">${massif(P, v, nb, c + ',' + r)}</g>`;
+        } else if (mountShade) {
+          shades += `<g transform="translate(${f(x)},${f(y)}) scale(${(flip ? -k : k).toFixed(4)},${k.toFixed(4)})">${mountShade(P, v, c + ',' + r, 'shade')}</g>`;
+          rest += `<g transform="translate(${f(x)},${f(y)}) scale(${(flip ? -k : k).toFixed(4)},${k.toFixed(4)})">${mountShade(P, v, c + ',' + r, 'body')}</g>`;
+        } else rest += g(mountain(P, v), true);
+      }
+      else if (t === 'h') {
+        if (!hillShade && !hillArt) {
+          shades += `<g transform="translate(${f(x)},${f(y)}) scale(${(flip ? -k : k).toFixed(4)},${k.toFixed(4)})">${hillRelief(P, v)}</g>`;
+          rest += g(hillTufts(P, v, c + ',' + r), true);
+        } else if (hillShade) {
+          // top-down relief: soft light and shadow, unclipped so neighbouring hills melt into one landform
+          shades += `<g transform="translate(${f(x)},${f(y)}) scale(${(flip ? -k : k).toFixed(4)},${k.toFixed(4)})">${hillShade(P, v, c + ',' + r, 'shade')}</g>`;
+          rest += g(hillShade(P, v, c + ',' + r, 'body'), true);
+        } else rest += g(hillArt ? hillArt(P, v, c + ',' + r) : hills(P, v), true);
+      }
       else if (t === 's') rest += g(marsh(P, v, c + ',' + r), true);
       else if (t === '.') rest += g(clear(P, v, c + ',' + r), true);
       else if (t === 'w') rest += g(sea(P, c + ',' + r), true);
     }
-    const defs = `<defs><clipPath id="ta-clip"><polygon points="${hp(D + .3)}"/></clipPath><filter id="ta-soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${f(7 * k)}"/></filter>` +
+    const defs = `<defs><clipPath id="ta-clip"><polygon points="${hp(D + .3)}"/></clipPath><filter id="ta-soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${f(7 * k)}"/></filter><filter id="ta-relief" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${f(RELIEF_BLUR * k)}"/></filter><filter id="ta-rock" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="${f(1.4 * k)}"/></filter><filter id="ta-rockshade" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="${f(1.7 * k)}"/></filter>` +
       `<linearGradient id="ta-hill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${P.hill[0]}"/><stop offset=".35" stop-color="${P.hill[1]}"/><stop offset=".7" stop-color="${P.hill[1]}" stop-opacity=".5"/><stop offset="1" stop-color="${P.hill[1]}" stop-opacity="0"/></linearGradient></defs>`;
-    return defs + base + `<g filter="url(#ta-soft)">${tone}</g>` + forests + rest;
+    let relief = '', hillTex = '';
+    if (RELIEF_OPT.on && encodePNG) {
+      const lay = reliefLayer(m, S, center, theme, RELIEF_OPT.res || 2, RELIEF_OPT);
+      if (lay) relief = `<image href="${encodePNG(lay.pw, lay.ph, lay.data)}" x="${f(lay.x)}" y="${f(lay.y)}" width="${f(lay.w)}" height="${f(lay.h)}" preserveAspectRatio="none"/>`;
+      // hills get a light touch of the same relief texture, under their soft domes
+      if (HILL_TEX) {
+        const hl = reliefLayer(m, S, center, theme, RELIEF_OPT.res || 2, { ...RELIEF_OPT, ...HILL_TEX, terr: 'h', detailOnly: true });
+        if (hl) hillTex = `<image href="${encodePNG(hl.pw, hl.ph, hl.data)}" x="${f(hl.x)}" y="${f(hl.y)}" width="${f(hl.w)}" height="${f(hl.h)}" preserveAspectRatio="none"/>`;
+      }
+    }
+    return defs + base + `<g filter="url(#ta-soft)">${tone}</g>` + hillTex + (shades ? `<g filter="url(#ta-relief)">${shades}</g>` : '') + relief + forests + rest;
   }
 
-  return { render, PAL, LANDMARK };
+  if (typeof document !== 'undefined') encodePNG = (w, h, data) => {
+    const cv = document.createElement('canvas'); cv.width = w; cv.height = h;
+    cv.getContext('2d').putImageData(new ImageData(data, w, h), 0, 0); return cv.toDataURL('image/png');
+  };
+  return { render, PAL, LANDMARK, setHills: fn => { hillArt = fn; }, setHillShade: fn => { hillShade = fn; }, setMountShade: fn => { mountShade = fn; }, setMassifStyle: st => { MSTYLE = st; }, setRelief: o => { RELIEF_OPT = o; }, setHillTex: o => { HILL_TEX = o; }, setEncoder: fn => { encodePNG = fn; }, reliefLayer, setToneOff: b => { TONE_OFF = b; }, setReliefBlur: b => { RELIEF_BLUR = b; }, _hills: hills };
 })();
 
 
 // ===================== HEXFRONT UI =====================
 (() => {
   const E = Engine, K = E.K, P = E.P;
-  const VERSION = '0.23.0', BUILD = '2026-11-28';
+  const VERSION = '0.24.1', BUILD = '2026-11-28';
   const S = 30, SQ3 = Math.sqrt(3), SAVE_KEY = 'hexfront.v1';
   try { console.info(`Hexfront v${VERSION} (${BUILD})`); } catch (e) { /* ignore */ }
   const THEMES = {
