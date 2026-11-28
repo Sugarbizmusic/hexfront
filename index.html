@@ -536,8 +536,8 @@ table.crt th { color: var(--muted); font-weight: 600; }
 const EXTRA_SCEN = {
   fulda: {
     id: 'fulda', name: 'Fulda Gap', setting: 'Cold War 1985',
-    blurb: 'The Warsaw Pact storms through the Fulda Gap toward Frankfurt. NATO’s armored cavalry and attack helicopters must trade space for time. The Pact needs 9 victory points by turn 12, or wins at once by taking Frankfurt.',
-    maxTurns: 12, victory: { type: 'target', side: 'A', vp: 9 }, supplyRange: Infinity, theme: 'temperate',
+    blurb: 'The Warsaw Pact storms through the Fulda Gap toward Frankfurt. NATO’s armored cavalry and attack helicopters must trade space for time. The Pact needs 13 victory points by turn 12, or wins at once by taking Frankfurt.',
+    maxTurns: 12, victory: { type: 'target', side: 'A', vp: 13 }, supplyRange: Infinity, theme: 'temperate',
     sides: {
       A: { name: 'Warsaw Pact', short: 'Pact', color: '#a33b32', ink: '#f6efe4', edge: 'E', flag: 'soviet' },
       B: { name: 'NATO', short: 'NATO', color: '#4f6a46', ink: '#eef2e4', edge: 'W', flag: 'nato' },
@@ -586,7 +586,7 @@ const EXTRA_SCEN = {
       ['A', 'gtk', 19, 4, '79th GTD'], ['A', 'gtk', 20, 7, '11th GTD'], ['A', 'gtk', 22, 2, '9th GTD'],
       ['A', 'mech', 18, 3, '39th GMR'], ['A', 'mech', 18, 6, '57th GMR'], ['A', 'mech', 18, 8, '27th GMR'], ['A', 'mech', 21, 8, '20th GMR'],
       ['A', 'art', 20, 5, '43rd Art'], ['A', 'art', 21, 6, '34th Art'], ['A', 'hel', 21, 4, '336th Hel'],
-      ['A', 'mech', 21, 11, '4th MRD'], ['A', 'arm', 22, 9, '7th PzD'],
+      ['A', 'mech', 21, 11, '4th MRD'], ['A', 'arm', 22, 9, '7th PzD'], ['A', 'gtk', 22, 5, '10th GTD'],
       ['B', 'cav', 15, 4, '11th ACR'], ['B', 'cav', 16, 9, '2/11 ACR'],
       ['B', 'arm', 11, 6, '1/3 Armd'], ['B', 'arm', 11, 9, '2/3 Armd'],
       ['B', 'mech', 12, 8, '1/8 Inf', 'dug'], ['B', 'mech', 13, 3, '2/8 Inf', 'dug'], ['B', 'arm', 4, 12, '3/3 Armd'], ['B', 'mech', 2, 9, '3/8 Inf'], ['B', 'art', 6, 7, '41st FA Bde'],
@@ -1305,8 +1305,8 @@ const Engine = (() => {
     },
     desert: {
       id: 'desert', name: 'Gazala Line', setting: 'North Africa 1942',
-      blurb: 'The Afrika Korps strikes at the Gazala line. Supply runs only 8 hexes from a port or home edge. The Axis needs 11 victory points by turn 12 (Tobruk is the prize) or wins at once by taking Alexandria.',
-      maxTurns: 12, victory: { type: 'target', side: 'A', vp: 11 }, supplyRange: 8, selfSupplied: ['LRDG'], theme: 'desert',
+      blurb: 'The Afrika Korps strikes at the Gazala line. Supply runs only 8 hexes from a port or home edge. The Axis needs 10 victory points by turn 12 (Tobruk is the prize) or wins at once by taking Alexandria.',
+      maxTurns: 12, victory: { type: 'target', side: 'A', vp: 10 }, supplyRange: 8, selfSupplied: ['LRDG'], theme: 'desert',
       sides: {
         A: { name: 'Axis', short: 'Axis', color: '#8a96a0', ink: '#1b2024', edge: 'W', flag: 'axis' },
         B: { name: 'Allies', short: 'Allies', color: '#6e4526', ink: '#f4e7c9', edge: 'E', flag: 'allies' },
@@ -2372,7 +2372,7 @@ if (typeof module !== 'undefined') module.exports = Engine;
 const AI = (() => {
   // Test switches (Node only): NF=flag1,-flag2 turns features on/off, NK='{"knob":1}' overrides numbers.
   const ENV = (typeof process !== 'undefined' && process.env) ? process.env : {};
-  const AI_FLAGS = { noGuard: true, ghosts: true, camp: true };
+  const AI_FLAGS = { noGuard: true, ghosts: true, camp: true, rear: true };
   if (ENV.NF) for (const f of ENV.NF.split(',').filter(Boolean)) { if (f[0] === '-') delete AI_FLAGS[f.slice(1)]; else AI_FLAGS[f] = true; }
   const KN = { expW: 0.5, coverW: 1.0, armorSafe: 1.6, cutW: 0.3, minCol: 3, terrW: 1.2, passes: 1, campDecay: 0.85, tiredCost: 0.6, failK: 0.8, advW: 0.12, fatW: 0.8, restW: 0.8, vmIn: 1.8, vmOut: 0.6, vmHold: 0.5, samples: 2, vpW: 4, capW: 6 };
   if (ENV.NK) Object.assign(KN, JSON.parse(ENV.NK));
@@ -2383,9 +2383,9 @@ const AI = (() => {
   // Difficulty levels. cover: fill gaps in the line; terrW: value of defensive ground; noise: random error in
   // choosing hexes; idle: chance a spare unit just stays put. Randomness uses the AI's own seed, never the game's dice.
   const PROFILES = {
-    hard: { attackThresh: KN.attackThresh ?? 0.35, planThresh: KN.planThresh ?? 0.6, unitCost: KN.unitCost ?? 0.12, dangerW: KN.dangerW ?? 1.0, cover: true, terrW: KN.terrW, noise: 0, idle: 0 },
-    normal: { attackThresh: 0.5, planThresh: 0.9, unitCost: 0.12, dangerW: 0.5, cover: false, terrW: 0.25, noise: KN.nNoise ?? 2, idle: 0.12, stopP: 0.1 },
-    easy: { attackThresh: 1.0, planThresh: 1.8, unitCost: 0.12, dangerW: 0.15, cover: false, terrW: 0, noise: KN.eNoise ?? 5, idle: 0.35, stopP: 0.35 },
+    hard: { attackThresh: KN.attackThresh ?? 0.35, planThresh: KN.planThresh ?? 0.6, unitCost: KN.unitCost ?? 0.12, dangerW: KN.dangerW ?? 1.0, cover: true, terrW: KN.terrW, noise: 0, idle: 0, rear: 1 },
+    normal: { attackThresh: 0.5, planThresh: 0.9, unitCost: 0.12, dangerW: 0.5, cover: false, terrW: 0.25, noise: KN.nNoise ?? 2, idle: 0.12, stopP: 0.1, rear: 0.5 },
+    easy: { attackThresh: 1.0, planThresh: 1.8, unitCost: 0.12, dangerW: 0.15, cover: false, terrW: 0, noise: KN.eNoise ?? 5, idle: 0.35, stopP: 0.35, rear: 0 },
   };
   let seed = 1;
   const rnd = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
@@ -2526,6 +2526,8 @@ const AI = (() => {
     const supplyPen = E.supplyRange(sc, side) !== Infinity ? 9 : 5;
     const enemyPos = s.units.filter(u => u.side === enemy).map(u => [u.c, u.r]);
     const enemyAt = new Map(s.units.filter(u => u.side === enemy).map(u => [K(u.c, u.r), u]));
+    // test only: RAID=<side> makes that side hunt for cities behind the enemy line
+    if (ENV.RAID === side) objW = Math.max(objW, 1.25) * 2.5;
     const adv = camp && role === 'attacker' ? KN.advW : 0, toward = sc.sides[side].edge === 'W' ? 1 : -1;
     return { m, sc, side, enemy, role, ownPot, adv, toward, camp, enemyAt, enemyEnter, threatList, myCap, matRatio, objW, defW, threat, threatN, pot, guard, cityThreat, supply, supplyPen, enemyPos, cityDist };
   }
@@ -2789,6 +2791,93 @@ const AI = (() => {
           used.add(u.id); plan.set(u.id, best.k); taken.add(best.k);
           if (best.d <= 2) have++;
         }
+      }
+    }
+
+    // 4. Rear security: enemy units behind our line, or slipping past it, within reach of our cities or railheads.
+    //    Leave one or two units in front of each such group, on good ground between it and what it could take.
+    if (AI_FLAGS.rear && PR.rear && (!ENV.REAR_ONLY || ENV.REAR_ONLY === side)) rearScreen();
+    function rearScreen() {
+      const fwd = (c) => ctx.toward > 0 ? c : m.W - 1 - c;
+      const posOf = u => P(plan.get(u.id) || K(u.c, u.r));
+      const combat = s.units.filter(u => u.side === side && !E.TYPES[u.type].range && E.TYPES[u.type].d >= 2);
+      const assets = [];
+      for (const ct of ctx.sc.cities) { const ck = K(ct.c, ct.r); if (s.owner[ck] === side && (ct.vp || ct.rail || ct.supply)) assets.push({ k: ck, p: [ct.c, ct.r], w: (ct.vp || 0) + (ct.rail || ct.supply ? 1.5 : 0) + (ct.cap ? 4 : 0) }); }
+      if (!assets.length) return;
+      // an enemy is in our rear if, nearby, at least two of our units stand further forward than it does
+      const loose = [];
+      for (const e of enemies) {
+        const ep = [e.c, e.r], mv = E.TYPES[e.type].m, ex = fwd(e.c);
+        if (!E.TYPES[e.type].a) continue;
+        const ahead = combat.filter(u => Math.abs(u.r - e.r) <= 7 && fwd(u.c) > ex + 1).length;
+        if (ahead < 2) continue;
+        let risk = 0, worst = null;
+        for (const a of assets) { const d = E.dist(ep, a.p); if (d <= mv * 1.5 + 1) { const r = a.w / (1 + d * 0.3); risk += r; if (!worst || r > worst.r) worst = { ...a, r }; } }
+        if (risk > 0) loose.push({ e, risk, worst, mv });
+      }
+      if (!loose.length) return;
+      // group loose enemies that stand close together
+      loose.sort((a, b) => b.risk - a.risk);
+      const groups = [];
+      for (const l of loose) {
+        const g = groups.find(g => g.list.some(x => E.dist([x.e.c, x.e.r], [l.e.c, l.e.r]) <= 2));
+        if (g) { g.list.push(l); g.risk += l.risk; } else groups.push({ list: [l], risk: l.risk, worst: l.worst });
+      }
+      // first, put a unit in every city or railhead a loose enemy could walk into next turn
+      let budget = Math.max(PR.rear < 1 ? 1 : 2, Math.ceil(mine.length * (KN.rearB ?? 0.2) * PR.rear));
+      const held = new Set(s.units.filter(u => u.side === side).map(u => K(u.c, u.r)));
+      for (const a of assets.sort((x, y) => y.w - x.w)) {
+        if (budget <= 0) break;
+        if (held.has(a.k) || taken.has(a.k) || !ctx.enemyEnter.has(a.k)) continue;
+        const raiders = loose.filter(l => E.dist([l.e.c, l.e.r], a.p) <= l.mv + 1);
+        if (!raiders.length) continue;
+        let best = null;
+        for (const u of mine) {
+          if (used.has(u.id) || E.TYPES[u.type].range || E.TYPES[u.type].d < 2 || !reach.get(u.id).has(a.k)) continue;
+          const sc = E.factors(s, u).d * 2 - E.factors(s, u).a * 0.4 - E.dist([u.c, u.r], a.p) * 0.1;
+          if (!best || sc > best.sc) best = { u, sc };
+        }
+        if (best) { used.add(best.u.id); plan.set(best.u.id, a.k); taken.add(a.k); budget--; if (ENV.RDBG) console.log(`  [rear T${s.turn}] ${best.u.name} holds ${a.k}`); }
+      }
+      if (!ctx.camp) return; // small scenario maps: holding the cities is enough, screens cost more than they save
+      for (const g of groups.sort((a, b) => b.risk - a.risk)) {
+        if (budget <= 0) break;
+        // a pocket that is already cut off is withering: no need to tie units to it
+        if (g.list.every(x => (x.e.oosT || 0) >= (KN.rearOos ?? 2))) continue;
+        const n = g.list.length, atk = g.list.reduce((t, x) => t + E.factors(s, x.e).a, 0);
+        const need = PR.rear < 1 ? 1 : Math.min(3, n >= 3 || atk >= 9 ? 2 : 1);
+        const near = (p) => g.list.some(x => E.dist(p, [x.e.c, x.e.r]) <= 2);
+        // units already screening (within 2 hexes, and not further from the asset than the enemy) stay and dig in
+        const ap = g.worst.p, eD = Math.min(...g.list.map(x => E.dist([x.e.c, x.e.r], ap)));
+        let have = 0;
+        for (const u of combat) {
+          if (have >= need) break;
+          const p = posOf(u); if (!near(p) || E.dist(p, ap) > eD + 1) continue;
+          have++; if (!u.moved && !plan.has(u.id)) used.add(u.id);
+        }
+        // bring in the nearest spare units
+        const cands = mine.filter(u => !used.has(u.id) && !E.TYPES[u.type].range && E.TYPES[u.type].d >= 2)
+          .map(u => ({ u, d: Math.min(...g.list.map(x => E.dist([u.c, u.r], [x.e.c, x.e.r]))) }))
+          .filter(x => x.d <= 12).sort((a, b) => a.d - b.d || E.factors(s, b.u).d - E.factors(s, a.u).d);
+        for (const { u } of cands) {
+          if (have >= need || budget <= 0) break;
+          let best = null;
+          for (const [k, rr] of reach.get(u.id)) {
+            if (taken.has(k)) continue;
+            const p = P(k), de = Math.min(...g.list.map(x => E.dist(p, [x.e.c, x.e.r]))), da = E.dist(p, ap);
+            if (de < 1) continue;
+            // either stand between them and the prize, or hold the prize itself (or next to it)
+            const screen = de <= 2 && da <= eD, hold = da <= 1 && da < eD;
+            if (!screen && !hold) continue;
+            const fs = new Set([...taken]);
+            const sc = E.hexInfo(m, k).def * 4 + (da === 0 ? 2 : 0) + (de === 1 ? 1 : 0.6) - danger(ctx, u, k, 0, fs) * 1.2 - (ctx.supply.has(k) ? 0 : 3) - rr.cost * 0.05;
+            if (!best || sc > best.sc) best = { k, sc };
+          }
+          if (!best) continue;
+          used.add(u.id); plan.set(u.id, best.k); taken.add(best.k); have++; budget--;
+          if (ENV.RDBG) console.log(`  [rear T${s.turn}] ${u.name} -> ${best.k} vs ${g.list.map(x => x.e.name).join('/')} (asset ${g.worst.k})`);
+        }
+        if (ENV.RDBG) console.log(`  [rear T${s.turn}] group ${g.list.map(x => x.e.name + '@' + x.e.c + ',' + x.e.r).join('/')} asset ${g.worst.k} need ${need} have ${have}`);
       }
     }
 
@@ -3066,10 +3155,410 @@ if (typeof module !== 'undefined') module.exports = AI;
 
 </script>
 <script>
+// ===================== HEXFRONT TERRAIN ART =====================
+// Painted-relief vector terrain. Every hex draws one of four numbered variants of its terrain,
+// picked from its position (so the map never changes), and about half are mirrored.
+// Art is authored at a design hex size of 44 and scaled to the game's hex size.
+// Forests are edge-aware: they run across edges shared with other forest and pull back from open ground.
+const TerrainArt = (() => {
+  const D = 44, SQ3 = Math.sqrt(3);
+  const EDGE_A = [0, 1, 2, 3, 4, 5].map(i => (30 + 60 * i) * Math.PI / 180);
+  const f = v => v.toFixed(1);
+
+  // seeded random numbers: the same hex always draws the same picture
+  function rng(...k) {
+    let h = 2166136261;
+    const s = k.join('|');
+    for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
+    let a = h >>> 0;
+    const next = () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    return { random: next, uniform: (lo, hi) => lo + (hi - lo) * next() };
+  }
+
+  // ---------- palettes ----------
+  const SUMMER = {
+    base: { '.': '#ece7d2', f: '#ece7d2', h: '#dcd3b4', m: '#d6ccb4', s: '#cdd6b4', w: '#87a9ba', x: '#d2c7a8' },
+    con: ['#6e8a4a', '#3f5732'], dec: ['#7a9150', '#4a6234'], mass: '#6a7f46', massShade: '#3a4a26', shadow: '#34422a', trunk: '#5a4632',
+    rock: ['#c9b28d', '#6f5841'], rockLit: '#f2e7cf', snow: ['#ffffff', '#c9d3db'], snowLine: .7,
+    water: ['#b8d0d6', '#6f97a6'], reed: '#5e7a3e', tuft: '#a79b6c', hill: ['#e6d9b2', '#c9b385'], ridge: '#8a7350', ridgeLit: '#f6eed6',
+    bush: ['#55703c', '#7f9858'], cypress: ['#4f6535', '#71894c'], toneDark: '#4a3a1a', toneLight: '#ffffff', tone: [.12, .2],
+  };
+  const PAL = {
+    temperate: SUMMER,
+    europe: { ...SUMMER, base: { ...SUMMER.base, '.': '#e8e6cf', f: '#e8e6cf', s: '#c9d5b2' } },
+    steppe: { ...SUMMER, base: { ...SUMMER.base, '.': '#ece4c6', f: '#ece4c6', h: '#ded2ae' }, tuft: '#b0a06a' },
+    winter: {
+      ...SUMMER,
+      base: { '.': '#eef1f2', f: '#eef1f2', h: '#e3e8ea', m: '#dde2e5', s: '#dfe8ec', w: '#7f9bad', x: '#d6dadb' },
+      con: ['#5f7a63', '#33473a'], dec: ['#8b8576', '#5f574a'], mass: '#c9d3d4', massShade: '#8f9da3', shadow: '#3a4650',
+      rock: ['#c3c3c0', '#6d7277'], rockLit: '#ffffff', snowLine: .35,
+      water: ['#e6eef2', '#a9bfca'], reed: '#8a8a72', tuft: '#a9aea6', hill: ['#ffffff', '#cdd6dc'], ridge: '#7d8a92', ridgeLit: '#ffffff',
+      bush: ['#6f7465', '#9aa08e'], cypress: ['#4f5e52', '#7d8c80'], toneDark: '#3a4a5a', tone: [.08, .25],
+    },
+    desert: {
+      ...SUMMER,
+      base: { '.': '#efdcae', f: '#efdcae', h: '#e2c792', m: '#d8bf94', s: '#efe6cf', w: '#6b9cb1', x: '#ddc392' },
+      con: ['#8d9a5a', '#5b6638'], dec: ['#9aa462', '#636c3c'], mass: '#c9c28a', massShade: '#8a7f4c',
+      rock: ['#d4a774', '#7c5232'], rockLit: '#f7e3bf', snowLine: 9,
+      water: ['#e7e0c8', '#c9bc98'], reed: '#8a8450', tuft: '#b49a62', hill: ['#f2dfb0', '#d7b57a'], ridge: '#9a7444', ridgeLit: '#fbf0d2',
+      bush: ['#7c7c48', '#a3a364'], cypress: ['#6b7040', '#949a5c'], toneDark: '#6a4a1a', tone: [.1, .18],
+    },
+  };
+
+  // ---------- small drawn pieces ----------
+  const shadow = (P, x, y, w) => `<ellipse cx="${f(x + w * .35)}" cy="${f(y)}" rx="${f(w)}" ry="${f(w * .25)}" fill="${P.shadow}" opacity=".28"/>`;
+  function crown(cx, cy, rx, ry, ph, k = 7, amp = .1) {
+    let d = '';
+    for (let i = 0; i < 36; i++) {
+      const a = i / 36 * 2 * Math.PI, rr = 1 + amp * Math.cos(k * a + ph);
+      d += (i ? ' L' : 'M') + f(cx + Math.cos(a) * rx * rr) + ' ' + f(cy + Math.sin(a) * ry * rr * (Math.sin(a) < 0 ? 1.05 : .9));
+    }
+    return d + 'Z';
+  }
+  function pine(P, x, y, h) {
+    const [lt, dk] = P.con;
+    let o = shadow(P, x, y, h * .32) + `<path d="M${f(x)} ${f(y)}V${f(y - h * .18)}" stroke="${P.trunk}" stroke-width="${f(Math.max(1, h * .09))}"/>`;
+    for (let k = 0; k < 3; k++) {
+      const top = y - h + k * h * .22, bot = top + h * .44, hw = h * (.17 + .075 * k);
+      o += `<path d="M${f(x)} ${f(top)}L${f(x + hw)} ${f(bot)}Q${f(x)} ${f(bot - h * .05)} ${f(x - hw)} ${f(bot)}Z" fill="${dk}"/><path d="M${f(x)} ${f(top)}L${f(x - hw)} ${f(bot)}Q${f(x - hw * .4)} ${f(bot - h * .03)} ${f(x)} ${f(bot - h * .04)}Z" fill="${lt}"/>`;
+    }
+    return o;
+  }
+  function broadleaf(P, x, y, h, ph = 0) {
+    const [lt, dk] = P.dec;
+    let o = shadow(P, x, y, h * .36) + `<path d="M${f(x)} ${f(y)}V${f(y - h * .42)}M${f(x)} ${f(y - h * .3)}l${f(-h * .1)} ${f(-h * .12)}" stroke="${P.trunk}" stroke-width="${f(Math.max(1, h * .1))}" stroke-linecap="round"/>`;
+    o += `<path d="${crown(x, y - h * .66, h * .32, h * .3, ph)}" fill="${dk}"/><path d="${crown(x - h * .06, y - h * .71, h * .24, h * .22, ph + 1)}" fill="${lt}"/>`;
+    return o;
+  }
+  function bush(P, x, y, w, ph = 0) {
+    return `<ellipse cx="${f(x + w * .3)}" cy="${f(y)}" rx="${f(w * .9)}" ry="${f(w * .25)}" fill="${P.shadow}" opacity=".22"/>` +
+      `<path d="${crown(x, y - w * .42, w * .8, w * .5, ph, 5, .15)}" fill="${P.bush[0]}"/><path d="${crown(x - w * .15, y - w * .52, w * .55, w * .33, ph + 2, 5, .15)}" fill="${P.bush[1]}"/>`;
+  }
+  function swamptree(P, x, y, h, ph = 0) {
+    let o = shadow(P, x, y, h * .3);
+    o += `<path d="M${f(x - h * .08)} ${f(y)}Q${f(x - h * .02)} ${f(y - h * .2)} ${f(x - h * .015)} ${f(y - h * .7)}H${f(x + h * .015)}Q${f(x + h * .02)} ${f(y - h * .2)} ${f(x + h * .08)} ${f(y)}Z" fill="#5d4a36"/>`;
+    o += `<path d="${crown(x, y - h * .78, h * .3, h * .16, ph, 6, .14)}" fill="${P.cypress[0]}"/><path d="${crown(x - h * .05, y - h * .82, h * .2, h * .1, ph + 1, 6, .14)}" fill="${P.cypress[1]}"/>`;
+    for (let k = 0; k < 4; k++) { const dx = -h * .22 + k * h * .15; o += `<path d="M${f(x + dx)} ${f(y - h * .7)}q${f(h * .02)} ${f(h * .12)} 0 ${f(h * .22)}" stroke="${P.cypress[0]}" stroke-width="1.2" fill="none" stroke-linecap="round"/>`; }
+    return o;
+  }
+  const tuft = (P, x, y) => `<path d="M${f(x - 1.5)} ${f(y)}l-1 -2.5M${f(x)} ${f(y)}v-3M${f(x + 1.5)} ${f(y)}l1 -2.5" stroke="${P.tuft}" stroke-width=".8"/>`;
+
+  // ---------- terrain ----------
+  function forest(P, v, nb, seed) {
+    const S = D, r = rng('F', v, seed), ph = [0, 1, 2, 3, 4, 5].map(() => r.uniform(0, 6.28));
+    const margin = (i, along) => nb[i] ? -S * .12 : S * (.25 + .08 * Math.sin(along * .21 + ph[i]) + .05 * Math.sin(along * .53 + ph[i] * 2));
+    const inside = (x, y, extra = 0) => EDGE_A.every((a, i) => {
+      const n = [Math.cos(a), Math.sin(a)], along = -x * n[1] + y * n[0];
+      return S * SQ3 / 2 - (x * n[0] + y * n[1]) >= margin(i, along) + extra;
+    });
+    const glade = v === 4 ? [r.uniform(-6, 6), r.uniform(-4, 6), S * .3] : null;
+    const inGlade = (x, y, pad) => glade && (x - glade[0]) ** 2 + (y - glade[1]) ** 2 < (glade[2] + pad) ** 2;
+    const pts = [];
+    for (let gy = -7; gy < 8; gy++) for (let gx = -7; gx < 8; gx++) {
+      const x = gx * 8.5 + (((gy % 2) + 2) % 2) * 4.25 + r.uniform(-2.5, 2.5), y = gy * 7.3 + r.uniform(-2.5, 2.5);
+      if (!inGlade(x, y, 0) && inside(x, y)) pts.push([x, y]);
+    }
+    let o = '';
+    for (const [x, y] of pts) o += `<circle cx="${f(x + 2.5)}" cy="${f(y + 3)}" r="7.2" fill="${P.massShade}" opacity=".5"/>`;
+    for (const [x, y] of pts) o += `<circle cx="${f(x)}" cy="${f(y)}" r="7.2" fill="${P.mass}"/>`;
+    const trees = [];
+    for (let gy = -6; gy < 8; gy++) for (let gx = -6; gx < 7; gx++) {
+      const x = gx * 9.5 + (((gy % 2) + 2) % 2) * 4.75 + r.uniform(-2, 2), y = gy * 7.5 + r.uniform(-1.5, 1.5);
+      if (inGlade(x, y, 3)) continue;
+      if (inside(x, y - 4, 3.5) && inside(x, y - 15, 1) && r.random() < (v === 4 ? .62 : .88)) trees.push([x, y]);
+    }
+    trees.sort((a, b) => a[1] - b[1]);
+    for (const [x, y] of trees) {
+      const h = r.uniform(12, 17), q = r.random();
+      const kind = v === 1 ? 'c' : v === 2 ? 'd' : v === 3 ? (q < .55 ? 'c' : 'd') : (q < .4 ? 'c' : 'd');
+      o += kind === 'c' ? pine(P, x, y + 2, h) : broadleaf(P, x, y + 2, h * .95, r.uniform(0, 6));
+    }
+    return o;
+  }
+
+  // mountains: a tall back range reaching nearly to the top of the hex, small peaks along the bottom
+  const PEAKS = {
+    1: [[-.05, 1.0, .46, .1, 'hook'], [-.55, .55, .32, 0, 'jag'], [.55, .5, .3, -.05, 'plain'], [-.3, .32, .3, 0, 'plain'], [.3, .3, .28, 0, 'plain']],
+    2: [[-.32, .86, .44, .02, 'jag'], [.3, .98, .46, -.04, 'plain'], [-.7, .45, .26, 0, 'plain'], [.72, .42, .24, 0, 'jag'], [-.02, .36, .34, 0, 'plain']],
+    3: [[-.62, .62, .3, .03, 'jag'], [-.24, .86, .32, -.02, 'plain'], [.16, .74, .32, .04, 'jag'], [.52, .6, .28, 0, 'plain'], [-.42, .34, .28, 0, 'plain'], [.32, .32, .3, 0, 'plain']],
+    4: [[-.22, .7, .56, 0, 'flat'], [.42, 1.0, .24, .04, 'plain'], [.72, .5, .22, 0, 'plain'], [-.62, .4, .26, 0, 'jag'], [.1, .32, .36, 0, 'plain']],
+  };
+  const FRONT = { 1: [[-.55, .36], [-.12, .3], [.42, .38]], 2: [[-.48, .32], [.05, .38], [.52, .3]], 3: [[-.5, .38], [0, .3], [.48, .34]], 4: [[-.42, .3], [.12, .36], [.55, .28]] };
+  const poly = pts => 'M' + pts.map(([x, y]) => f(x) + ' ' + f(y)).join(' L') + 'Z';
+  function range(P, W, H, base, peaks, front) {
+    const S = D;
+    let o = `<ellipse cx="${f(S * .08)}" cy="${f(base + 2)}" rx="${f(W * (front ? .8 : 1.1))}" ry="${f(S * (front ? .07 : .12))}" fill="#3e3222" opacity=".25"/>`;
+    for (const [x0, hh, hw, lean, shape] of [...peaks].sort((a, b) => b[1] - a[1])) {
+      const cx = x0 * W, h = front ? H * hh / .38 : hh * H, w = hw * W * 2, b = base + (front ? 0 : (1 - hh) * S * .22);
+      let top = [cx + lean * W, b - h];
+      const Lf = [cx - w, b], Rf = [cx + w, b];
+      let left = [Lf], right = [Rf];
+      if (shape === 'jag') { left.push([cx - w * .45, b - h * .48], [cx - w * .36, b - h * .42]); right = [[cx + w * .3, b - h * .44], [cx + w * .38, b - h * .5], Rf]; }
+      if (shape === 'hook') { left.push([cx - w * .3, b - h * .55]); right = [[top[0] + w * .06, top[1] + h * .12], [top[0] + w * .04, top[1] + h * .2], [cx + w * .3, b - h * .4], Rf]; }
+      if (shape === 'flat') {
+        left.push([cx - w * .55, b - h * .8], [cx - w * .35, b - h * .95]);
+        right = [[cx - w * .05, b - h * .92], [cx + w * .08, b - h * .98], [cx + w * .3, b - h * .88], [cx + w * .55, b - h * .55], Rf];
+        top = [cx - w * .2, b - h];
+      }
+      const st0 = shape === 'flat' ? right[2] : top, rr = shape === 'flat' ? right.slice(3, -1) : right.slice(0, -1);
+      const ridge = [st0, [st0[0] + w * .08, st0[1] + h * .35], [st0[0] - w * .02, st0[1] + h * .62], [st0[0] + w * .18, b]];
+      o += `<path d="${poly([...left, top, ...right])}" fill="${P.rock[0]}"/><path d="${poly([st0, ...rr, Rf, ...ridge.slice(1).reverse()])}" fill="${P.rock[1]}"/>`;
+      o += `<path d="M${f(top[0])} ${f(top[1])}L${f(Lf[0] + w * .35)} ${f(b)}L${f(Lf[0] + w * .1)} ${f(b)}Z" fill="${P.rockLit}" opacity=".35"/>`;
+      if (!front ? hh >= P.snowLine : hh >= P.snowLine * 1.4 && P.snowLine < 1) {
+        const dd = h * (P.snowLine < .5 ? .4 : .24);
+        const sL = [top[0] - (top[0] - Lf[0]) * dd / h * 1.05, top[1] + dd], sR = [top[0] + (Rf[0] - top[0]) * dd / h, top[1] + dd * .9];
+        const pts = [top, sR, [top[0] + w * .12, top[1] + dd * .62], [top[0] + w * .03, top[1] + dd * 1.05], [top[0] - w * .1, top[1] + dd * .6], sL];
+        o += `<path d="${poly(pts)}" fill="${P.snow[0]}"/><path d="${poly(pts.slice(0, 4))}" fill="${P.snow[1]}"/>`;
+      }
+    }
+    return o;
+  }
+  const mountain = (P, v) => range(P, D * .86, D * 1.12, D * .3, PEAKS[v], false) +
+    range(P, D * .86, D * .42, D * .8, FRONT[v].map(([x, h], i) => [x, h, .2, 0, i % 2 ? 'plain' : 'jag']), true);
+
+  // hills: long rolling ridges layered back to front
+  function smooth(pts) {
+    let d = `M${f(pts[0][0])} ${f(pts[0][1])}`;
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[Math.max(0, i - 1)], p1 = pts[i], p2 = pts[i + 1], p3 = pts[Math.min(pts.length - 1, i + 2)];
+      d += ` C${f(p1[0] + (p2[0] - p0[0]) / 6)} ${f(p1[1] + (p2[1] - p0[1]) / 6)} ${f(p2[0] - (p3[0] - p1[0]) / 6)} ${f(p2[1] - (p3[1] - p1[1]) / 6)} ${f(p2[0])} ${f(p2[1])}`;
+    }
+    return d;
+  }
+  const HILLS = {
+    1: [[[-.78, -.05], [-.35, -.3], [0, -.42], [.3, -.3], [.48, -.22], [.62, -.25], [.75, -.2]], [[-.8, .1], [-.45, 0], [-.15, .08], [.1, .18]],
+      [[-.45, .25], [-.05, .14], [.3, .12], [.72, .24]], [[-.48, .52], [-.15, .5], [.05, .58]], [[-.05, .62], [.2, .54], [.5, .52]]],
+    2: [[[-.75, -.12], [-.4, -.32], [-.1, -.36], [.25, -.24], [.55, -.3], [.78, -.18]], [[-.7, .2], [-.3, .02], [.1, .08], [.4, -.02], [.75, .1]],
+      [[-.5, .5], [-.15, .36], [.25, .42], [.6, .36]]],
+    3: [[[-.7, -.2], [-.3, -.4], [.05, -.3]], [[-.1, -.28], [.25, -.42], [.55, -.32], [.75, -.25]], [[-.78, .12], [-.4, -.04], [0, .02], [.35, .12]],
+      [[.05, .2], [.4, .06], [.72, .14]], [[-.45, .5], [-.1, .38], [.3, .48], [.55, .44]]],
+    4: [[[-.8, -.02], [-.5, -.18], [-.15, -.38], [.2, -.4], [.5, -.22], [.78, -.1]], [[-.55, .18], [-.2, .1], [.15, .2]], [[0, .3], [.3, .18], [.7, .3]],
+      [[-.6, .52], [-.25, .44], [.1, .5]]],
+  };
+  function hills(P, v) {
+    let o = '';
+    for (const line of HILLS[v]) {
+      const pts = line.map(([x, y]) => [x * D, y * D]), ridge = smooth(pts), n = pts.length;
+      const low = pts.map(([x, y], i) => [x, y + D * .3 * Math.sin(Math.PI * i / (n - 1)) ** .7]).reverse();
+      o += `<path d="${smooth([...pts, ...low.slice(1)])}Z" fill="url(#ta-hill)"/>`;
+      o += `<path d="${ridge}" fill="none" stroke="${P.ridgeLit}" stroke-width="2.4" stroke-linecap="round" transform="translate(-.6,-1.4)" opacity=".85"/><path d="${ridge}" fill="none" stroke="${P.ridge}" stroke-width="1.5" stroke-linecap="round"/>`;
+    }
+    return o;
+  }
+
+  function marsh(P, v, seed) {
+    const S = D, r = rng('S', v, seed);
+    const pools = { 1: [[-9, -6, 10, 4.5], [9, 9, 12, 5]], 2: [[0, 2, 16, 7.5]], 3: [[-13, 9, 8, 3.5], [5, -10, 9, 4], [13, 6, 7, 3.2]], 4: [[-5, -3, 13, 5], [12, 12, 6, 2.6]] }[v];
+    const inPool = (x, y, pad) => pools.some(([a, c, b, d]) => ((x - a) / (b + pad)) ** 2 + ((y - c) / (d + pad)) ** 2 < 1);
+    let o = '';
+    for (const [x, y, rx, ry] of pools) o += `<ellipse cx="${x}" cy="${y}" rx="${rx}" ry="${ry}" fill="${P.water[1]}"/><ellipse cx="${x + 1}" cy="${y + .8}" rx="${f(rx * .82)}" ry="${f(ry * .7)}" fill="${P.water[0]}"/><path d="M${f(x - rx * .5)} ${f(y - ry * .2)}h${f(rx * .5)}" stroke="#eef5f2" stroke-width=".9" opacity=".8"/>`;
+    const things = [];
+    for (let i = 0; i < 18; i++) {
+      const x = r.uniform(-S * .72, S * .72), y = r.uniform(-S * .6, S * .66);
+      if (!inPool(x, y, 3) && Math.abs(x) <= S * .8 - Math.abs(y) * .5) things.push([y, x, 'reed']);
+    }
+    for (let i = 0; i < 2 + (v % 2); i++) { const x = r.uniform(-S * .55, S * .55), y = r.uniform(-S * .45, S * .55); if (!inPool(x, y, 5)) things.push([y, x, 'bush']); }
+    if (v !== 2) for (let k = 0; k < (v === 3 ? 2 : 1); k++) things.push([r.uniform(-S * .25, S * .5), r.uniform(-S * .45, S * .45), 'tree']);
+    things.sort((a, b) => a[0] - b[0]);
+    for (const [y, x, kind] of things) {
+      if (kind === 'reed') {
+        const hg = r.uniform(5, 8);
+        o += `<path d="M${f(x)} ${f(y)}q-.5 ${f(-hg * .6)} -2.5 ${f(-hg)}M${f(x)} ${f(y)}v${f(-hg * 1.1)}M${f(x)} ${f(y)}q1 ${f(-hg * .5)} 3 ${f(-hg * .85)}" stroke="${P.reed}" stroke-width=".95" fill="none" stroke-linecap="round"/>`;
+        if (r.random() < .3) o += `<ellipse cx="${f(x)}" cy="${f(y - hg * 1.1)}" rx=".9" ry="2" fill="#6b4a2a"/>`;
+      } else if (kind === 'bush') o += bush(P, x, y, r.uniform(4.5, 6), r.uniform(0, 6));
+      else o += swamptree(P, x, y, r.uniform(19, 23), r.uniform(0, 6));
+    }
+    return o;
+  }
+
+  function clear(P, v, seed) {
+    const S = D, r = rng('C', v, seed), things = [];
+    const items = v === 2 ? [['tree', 2]] : v === 3 ? [['bush', 3]] : v === 4 ? [['tree', 1], ['bush', 2]] : [];
+    for (const [kind, n] of items) for (let i = 0; i < n; i++) things.push([r.uniform(-S * .4, S * .5), r.uniform(-S * .5, S * .5), kind]);
+    for (let i = 0; i < 5; i++) things.push([r.uniform(-S * .5, S * .6), r.uniform(-S * .6, S * .6), 'tuft']);
+    things.sort((a, b) => a[0] - b[0]);
+    let o = '';
+    for (const [y, x, kind] of things) o += kind === 'tree' ? broadleaf(P, x, y, r.uniform(12, 15), r.uniform(0, 6)) : kind === 'bush' ? bush(P, x, y, r.uniform(4, 5.5), r.uniform(0, 6)) : tuft(P, x, y);
+    return o;
+  }
+  function sea(P, seed) {
+    const r = rng('W', seed); let o = '';
+    for (let i = 0; i < 3; i++) { const x = r.uniform(-D * .5, D * .3), y = r.uniform(-D * .5, D * .5); o += `<path d="M${f(x)} ${f(y)}q3 -3 6 0t6 0t6 0" fill="none" stroke="#ffffff" stroke-width="1.2" opacity=".35"/>`; }
+    return o;
+  }
+
+  // ---------- settlements ----------
+  const WALLS = ['#efe6d2', '#e6dccb', '#ead8b0', '#dcd6cc', '#f1ead9'], ROOFS = ['#9b4a35', '#8a3f2e', '#6e5a4a', '#5d6670', '#a5583c'];
+  const pick = (r, a) => a[Math.floor(r.random() * a.length)];
+  const gshadow = (x, y, w, o = .25) => `<ellipse cx="${f(x + 3)}" cy="${f(y + .5)}" rx="${f(w)}" ry="2" fill="#2f2a1e" opacity="${o}"/>`;
+  function house(r, x, y, sc = 1) {
+    const kind = pick(r, ['gable', 'gable', 'wide', 'two', 'hip', 'L']), wall = pick(r, WALLS), roof = pick(r, ROOFS);
+    const w = { gable: 7, wide: 11, two: 7, hip: 9, L: 10 }[kind] * sc, hh = { gable: 5, wide: 5, two: 9, hip: 6, L: 5 }[kind] * sc;
+    let o = gshadow(x, y, w * .75);
+    if (kind === 'L') {
+      o += `<rect x="${f(x - w / 2)}" y="${f(y - hh)}" width="${f(w * .55)}" height="${f(hh)}" fill="${wall}"/><path d="M${f(x - w / 2 - 1)} ${f(y - hh)}L${f(x - w / 2 + w * .275)} ${f(y - hh - 5 * sc)}L${f(x + w * .05 + 1)} ${f(y - hh)}Z" fill="${roof}"/>`;
+      o += `<rect x="${f(x + w * .05)}" y="${f(y - hh * .8)}" width="${f(w * .45)}" height="${f(hh * .8)}" fill="${wall}" opacity=".92"/><path d="M${f(x + w * .05)} ${f(y - hh * .8)}H${f(x + w / 2 + 1)}L${f(x + w / 2 - 1)} ${f(y - hh * .8 - 3 * sc)}H${f(x + w * .1)}Z" fill="${roof}"/>`;
+      return o;
+    }
+    o += `<rect x="${f(x - w / 2)}" y="${f(y - hh)}" width="${f(w)}" height="${f(hh)}" fill="${wall}"/>`;
+    if (kind === 'hip') o += `<path d="M${f(x - w / 2 - 1)} ${f(y - hh)}L${f(x - w * .2)} ${f(y - hh - 4 * sc)}H${f(x + w * .2)}L${f(x + w / 2 + 1)} ${f(y - hh)}Z" fill="${roof}"/>`;
+    else if (kind === 'wide') o += `<path d="M${f(x - w / 2 - 1)} ${f(y - hh)}L${f(x - w * .3)} ${f(y - hh - 4.5 * sc)}H${f(x + w * .3)}L${f(x + w / 2 + 1)} ${f(y - hh)}Z" fill="${roof}"/>`;
+    else o += `<path d="M${f(x - w / 2 - 1)} ${f(y - hh)}L${f(x)} ${f(y - hh - 5 * sc)}L${f(x + w / 2 + 1)} ${f(y - hh)}Z" fill="${roof}"/>`;
+    if (kind === 'two') o += `<rect x="${f(x - w * .3)}" y="${f(y - hh * .75)}" width="1.6" height="1.8" fill="#6a5a48"/><rect x="${f(x + w * .12)}" y="${f(y - hh * .75)}" width="1.6" height="1.8" fill="#6a5a48"/>`;
+    if (r.random() < .4) o += `<rect x="${f(x + w * .18)}" y="${f(y - hh - 4.5 * sc)}" width="1.6" height="3" fill="#6a5a48"/>`;
+    return o + `<path d="M${f(x + w * .05)} ${f(y - hh)}V${f(y)}" stroke="#000" stroke-width="${f(w * .45)}" opacity=".06"/>`;
+  }
+  function block(r, x, y, tall) {
+    const w = r.uniform(7, 11), hh = tall ? r.uniform(13, 21) : r.uniform(8, 13), wall = pick(r, ['#e3d9c4', '#d8cfbe', '#cfc4ad', '#e9e1cf']);
+    let o = gshadow(x + 1, y, w * .8, .28) + `<rect x="${f(x - w / 2)}" y="${f(y - hh)}" width="${f(w)}" height="${f(hh)}" fill="${wall}"/><rect x="${f(x + w * .05)}" y="${f(y - hh)}" width="${f(w * .45)}" height="${f(hh)}" fill="#000" opacity=".1"/>`;
+    o += `<rect x="${f(x - w / 2 - .5)}" y="${f(y - hh - 1.6)}" width="${f(w + 1)}" height="1.8" fill="${pick(r, ['#6e5a4a', '#5d6670', '#8a3f2e'])}"/>`;
+    for (let row = 0; row < Math.floor(hh / 4); row++) for (let col = 0; col < Math.floor(w / 3); col++) o += `<rect x="${f(x - w / 2 + 1.2 + col * 3)}" y="${f(y - hh + 2 + row * 4)}" width="1.3" height="1.7" fill="#7d8790" opacity=".75"/>`;
+    return o;
+  }
+  const church = (x, y) => gshadow(x + 1, y, 7, .28) + `<rect x="${f(x - 4)}" y="${f(y - 9)}" width="8" height="9" fill="#efe6d2"/><path d="M${f(x - 5)} ${f(y - 9)}L${f(x)} ${f(y - 13)}L${f(x + 5)} ${f(y - 9)}Z" fill="#8a3f2e"/>` +
+    `<rect x="${f(x + 2)}" y="${f(y - 17)}" width="4" height="17" fill="#e6dccb"/><path d="M${f(x + 1.5)} ${f(y - 17)}L${f(x + 4)} ${f(y - 27)}L${f(x + 6.5)} ${f(y - 17)}Z" fill="#5d6670"/>`;
+  function eiffel(x, y, h) {
+    const w = h * .32, c = '#5b4a3a';
+    return `<ellipse cx="${f(x + 5)}" cy="${f(y + 1)}" rx="${f(w * 1.2)}" ry="2.5" fill="#2f2a1e" opacity=".3"/>` +
+      `<path d="M${f(x - w)} ${f(y)}Q${f(x - w * .35)} ${f(y - h * .35)} ${f(x - w * .12)} ${f(y - h * .72)}L${f(x - .6)} ${f(y - h * .95)}H${f(x + .6)}L${f(x + w * .12)} ${f(y - h * .72)}Q${f(x + w * .35)} ${f(y - h * .35)} ${f(x + w)} ${f(y)}H${f(x + w * .55)}Q${f(x)} ${f(y - h * .24)} ${f(x - w * .55)} ${f(y)}Z" fill="${c}"/>` +
+      `<path d="M${f(x - w * .62)} ${f(y - h * .28)}H${f(x + w * .62)}M${f(x - w * .3)} ${f(y - h * .55)}H${f(x + w * .3)}M${f(x - w * .48)} ${f(y - h * .12)}L${f(x + w * .3)} ${f(y - h * .45)}M${f(x + w * .48)} ${f(y - h * .12)}L${f(x - w * .3)} ${f(y - h * .45)}" stroke="${c}" stroke-width="1.3"/><path d="M${f(x)} ${f(y - h * .95)}V${f(y - h * 1.05)}" stroke="${c}" stroke-width="1"/>`;
+  }
+  const onion = (x, y, h, col) => `<rect x="${f(x - h * .1)}" y="${f(y - h * .62)}" width="${f(h * .2)}" height="${f(h * .62)}" fill="#e9dfca"/><rect x="${f(x)}" y="${f(y - h * .62)}" width="${f(h * .1)}" height="${f(h * .62)}" fill="#000" opacity=".1"/>` +
+    `<path d="M${f(x)} ${f(y - h)}C${f(x + h * .05)} ${f(y - h * .88)} ${f(x + h * .2)} ${f(y - h * .82)} ${f(x + h * .16)} ${f(y - h * .68)}Q${f(x + h * .12)} ${f(y - h * .6)} ${f(x)} ${f(y - h * .6)}Q${f(x - h * .12)} ${f(y - h * .6)} ${f(x - h * .16)} ${f(y - h * .68)}C${f(x - h * .2)} ${f(y - h * .82)} ${f(x - h * .05)} ${f(y - h * .88)} ${f(x)} ${f(y - h)}Z" fill="${col}"/><path d="M${f(x)} ${f(y - h)}v${f(-h * .08)}" stroke="#c9a23a" stroke-width="1"/>`;
+  function kremlin(x, y) {
+    let o = `<g transform="translate(${f(x)},${f(y)}) scale(1.25)"><ellipse cx="5" cy="1" rx="20" ry="2.5" fill="#2f2a1e" opacity=".3"/><rect x="-18" y="-6" width="36" height="6" fill="#a5433a"/>`;
+    for (let i = 0; i < 11; i++) o += `<rect x="${f(-18 + i * 3.4)}" y="-7.6" width="2" height="1.8" fill="#a5433a"/>`;
+    o += `<rect x="-3" y="-15" width="6" height="15" fill="#a5433a"/><path d="M-3.5 -15L0 -23L3.5 -15Z" fill="#3f6b4e"/><path d="M0 -23v-2" stroke="#c9a23a" stroke-width="1.2"/>`;
+    return o + onion(-11, -4, 20, '#3f6b8a') + onion(11, -4, 22, '#c9a23a') + onion(-5, -2, 16, '#4f8a4a') + onion(5, -2, 15, '#b8473a') + '</g>';
+  }
+  function factory(r, x, y) {
+    // long sheds with saw-tooth roofs and chimneys
+    let o = gshadow(x + 2, y, 14, .3);
+    const w = 26, hh = 8;
+    o += `<rect x="${f(x - w / 2)}" y="${f(y - hh)}" width="${w}" height="${hh}" fill="#b9ab95"/><rect x="${f(x)}" y="${f(y - hh)}" width="${f(w / 2)}" height="${hh}" fill="#000" opacity=".1"/>`;
+    let saw = `M${f(x - w / 2)} ${f(y - hh)}`;
+    for (let i = 0; i < 5; i++) saw += `L${f(x - w / 2 + i * w / 5 + w / 10)} ${f(y - hh - 4)}V${f(y - hh)}L${f(x - w / 2 + (i + 1) * w / 5)} ${f(y - hh)}`;
+    o += `<path d="${saw}Z" fill="#6e665c"/>`;
+    for (let i = 0; i < 6; i++) o += `<rect x="${f(x - w / 2 + 1.5 + i * 4.2)}" y="${f(y - hh + 3)}" width="2" height="2.4" fill="#5d6670" opacity=".8"/>`;
+    for (const [dx, ch] of [[-8, 18], [5, 22]]) o += `<rect x="${f(x + dx)}" y="${f(y - ch)}" width="2.6" height="${f(ch - hh)}" fill="#7a5a48"/><rect x="${f(x + dx - .3)}" y="${f(y - ch)}" width="3.2" height="1.4" fill="#4f3a2e"/><ellipse cx="${f(x + dx + 4)}" cy="${f(y - ch - 3)}" rx="4" ry="2" fill="#9b958c" opacity=".45"/>`;
+    return o;
+  }
+  function station(x, y) {
+    return gshadow(x + 2, y, 14, .3) + `<rect x="-14" y="-9" width="28" height="9" fill="#e6dccb" transform="translate(${f(x)},${f(y)})"/>` +
+      `<path d="M${f(x - 15)} ${f(y - 9)}Q${f(x)} ${f(y - 19)} ${f(x + 15)} ${f(y - 9)}Z" fill="#6e5a4a"/><rect x="${f(x - 2)}" y="${f(y - 17)}" width="4" height="8" fill="#e6dccb"/><circle cx="${f(x)}" cy="${f(y - 14.5)}" r="1.4" fill="#5b4a3a"/>` +
+      [-10, -6, 6, 10].map(dx => `<rect x="${f(x + dx - 1)}" y="${f(y - 6)}" width="2" height="4" fill="#5d6670" opacity=".8"/>`).join('');
+  }
+
+  function elevator(x, y) {
+    let o = gshadow(x + 3, y, 14, .3);
+    for (let i = 0; i < 4; i++) o += `<rect x="${f(x - 12 + i * 5)}" y="${f(y - 24)}" width="4.6" height="24" fill="#e3dccb"/><rect x="${f(x - 9.6 + i * 5)}" y="${f(y - 24)}" width="2.2" height="24" fill="#000" opacity=".1"/>`;
+    o += `<rect x="${f(x + 8)}" y="${f(y - 30)}" width="7" height="30" fill="#d8cfbe"/><rect x="${f(x + 11.5)}" y="${f(y - 30)}" width="3.5" height="30" fill="#000" opacity=".1"/><path d="M${f(x + 7.5)} ${f(y - 30)}h8l-1.5 -3h-5z" fill="#6e5a4a"/>`;
+    return o;
+  }
+  // which picture a city gets: by name for landmarks, otherwise by its value
+  const LANDMARK = { paris: 'eiffel', moscow: 'kremlin', 'tractor factory': 'factory', 'red october': 'factory', barrikady: 'factory', 'central station': 'station', 'mamayev kurgan': 'kurgan', 'grain elevator': 'elevator' };
+  function settlement(ct, seed) {
+    const S = D, r = rng('town', seed), lm = LANDMARK[(ct.name || '').toLowerCase()];
+    const kind = lm === 'eiffel' || lm === 'kremlin' ? 'capital' : lm ? lm : ct.vp >= 3 || ct.cap ? 'city' : 'town';
+    if (kind === 'kurgan') return null; // drawn as its hill
+    const things = [];
+    const fits = (x, y) => Math.abs(x) <= S * .78 - Math.abs(y) * .55;
+    if (kind === 'town') {
+      const n = ct.vp >= 2 ? 15 : 11;
+      for (let i = 0; i < 80 && things.length < n; i++) {
+        const x = r.uniform(-S * .6, S * .6), y = r.uniform(-S * .5, S * .62);
+        if (fits(x, y) && things.every(([b, a]) => Math.abs(x - a) > 10 || Math.abs(y - b) > 7)) things.push([y, x, 'house']);
+      }
+      if (ct.vp >= 2) things.push([-S * .1, 0, 'church']);
+      for (let i = 0; i < 3; i++) things.push([r.uniform(-S * .55, S * .6), r.uniform(-S * .6, S * .6), 'tree']);
+    } else if (kind === 'factory' || kind === 'station' || kind === 'elevator') {
+      things.push([S * .1, 0, kind]);
+      for (let i = 0; i < 60 && things.length < 9; i++) {
+        const x = r.uniform(-S * .66, S * .66), y = r.uniform(-S * .45, S * .68);
+        if (fits(x, y) && Math.abs(y - S * .1) > 12 && things.every(([b, a]) => Math.abs(x - a) > 9 || Math.abs(y - b) > 7)) things.push([y, x, 'block']);
+      }
+    } else {
+      const reserve = kind === 'capital' ? [0, S * .18, S * .52] : null;
+      if (!reserve) things.push([-S * .02, S * .05, 'church']);
+      for (let i = 0; i < 160 && things.length < (kind === 'capital' ? 18 : 20); i++) {
+        const x = r.uniform(-S * .66, S * .66), y = r.uniform(-S * .45, S * .68);
+        if (!fits(x, y)) continue;
+        if (reserve && (x - reserve[0]) ** 2 + ((y - reserve[1]) * 1.4) ** 2 < reserve[2] ** 2) continue;
+        if (things.every(([b, a]) => Math.abs(x - a) > 9 || Math.abs(y - b) > 7)) {
+          const core = x * x + y * y < (S * .4) ** 2;
+          things.push([y, x, core && r.random() < .7 ? 'tall' : r.random() < .6 ? 'block' : 'house']);
+        }
+      }
+      if (reserve) things.push([S * .5, 0, lm]);
+    }
+    things.sort((a, b) => a[0] - b[0]);
+    let o = '';
+    const P = PAL.temperate;
+    for (const [y, x, k] of things) {
+      if (k === 'house') o += house(r, x, y, kind === 'town' ? 1.15 : 1);
+      else if (k === 'tree') o += broadleaf(P, x, y, 11, r.uniform(0, 6));
+      else if (k === 'tall' || k === 'block') o += block(r, x, y, k === 'tall');
+      else if (k === 'church') o += church(x, y);
+      else if (k === 'eiffel') o += eiffel(x, y, S * 1.25);
+      else if (k === 'kremlin') o += kremlin(x, y);
+      else if (k === 'factory') o += factory(r, x - 6, y) + factory(r, x + 10, y + 14);
+      else if (k === 'station') o += station(x, y);
+      else if (k === 'elevator') o += elevator(x, y);
+    }
+    return o;
+  }
+
+  // ---------- whole map ----------
+  // Returns SVG markup (no outer <svg>) for the terrain of map m, in game units with hex size S.
+  // center(c, r) gives a hex centre; cities are drawn as settlements in place of their terrain.
+  function render(m, cities, theme, S, center) {
+    const P = PAL[theme] || PAL.temperate, k = S / D, hp = (s, x = 0, y = 0) => [0, 1, 2, 3, 4, 5].map(i => f(x + s * Math.cos(Math.PI / 3 * i)) + ',' + f(y + s * Math.sin(Math.PI / 3 * i))).join(' ');
+    const cityAt = new Map(cities.map(ct => [ct.c + ',' + ct.r, ct]));
+    const at = (c, r) => (c >= 0 && r >= 0 && c < m.W && r < m.H ? m.terr[c + ',' + r] : null);
+    const nbr = (c, r, i) => { const odd = c & 1; const d = [[1, odd], [0, 1], [-1, odd], [-1, odd - 1], [0, -1], [1, odd - 1]][i]; return [c + d[0], r + d[1]]; };
+    let base = '', tone = '', forests = '', rest = '';
+    for (let r = 0; r < m.H; r++) for (let c = 0; c < m.W; c++) {
+      const t = m.terr[c + ',' + r], [x, y] = center(c, r), ct = cityAt.get(c + ',' + r);
+      const lm = ct && LANDMARK[(ct.name || '').toLowerCase()];
+      const bt = ct && lm !== 'kurgan' ? '.' : t;
+      base += `<polygon points="${hp(S + .5, x, y)}" fill="${P.base[bt] || P.base['.']}"/>`;
+      if (t !== 'w') {
+        const q = rng('T', c, r);
+        for (let i = 0; i < 4; i++) tone += `<ellipse cx="${f(x + q.uniform(-.6, .6) * S)}" cy="${f(y + q.uniform(-.6, .6) * S)}" rx="${f(q.uniform(.3, .55) * S)}" ry="${f(q.uniform(.2, .4) * S)}" fill="${i % 2 ? P.toneLight : P.toneDark}" opacity="${P.tone[i % 2]}"/>`;
+      }
+      const vr = rng('v', c, r).random();
+      // open ground is plain more often than not; other terrain picks its four variants evenly
+      const v = t === '.' ? (vr < .4 ? 1 : vr < .6 ? 2 : vr < .8 ? 3 : 4) : 1 + Math.floor(vr * 4), flip = rng('flip', c, r).random() < .5;
+      const g = (body, clip) => `<g transform="translate(${f(x)},${f(y)}) scale(${(flip && !ct ? -k : k).toFixed(4)},${k.toFixed(4)})"${clip ? ' clip-path="url(#ta-clip)"' : ''}>${body}</g>`;
+      if (ct && lm !== 'kurgan') {
+        // bigger places fill more of their hex
+        const s = settlement(ct, c + ',' + r), z = lm === 'eiffel' || lm === 'kremlin' || ct.vp >= 5 ? 1.32 : ct.vp >= 3 || ct.cap ? 1.2 : ct.vp >= 2 ? 1.1 : 1;
+        if (s) rest += g(`<g transform="scale(${z})">${s}</g>`, true);
+        continue;
+      }
+      if (lm === 'kurgan') { rest += g(hills(P, 2), true); continue; }
+      if (t === 'f') {
+        const nb = [0, 1, 2, 3, 4, 5].map(i => { const q = at(...nbr(c, r, i)); return q === null || q === 'f' ? 1 : 0; });
+        forests += `<g transform="translate(${f(x)},${f(y)}) scale(${k.toFixed(4)})">${forest(P, v, nb, c + ',' + r)}</g>`;
+      } else if (t === 'm') rest += g(mountain(P, v), true);
+      else if (t === 'h') rest += g(hills(P, v), true);
+      else if (t === 's') rest += g(marsh(P, v, c + ',' + r), true);
+      else if (t === '.') rest += g(clear(P, v, c + ',' + r), true);
+      else if (t === 'w') rest += g(sea(P, c + ',' + r), true);
+    }
+    const defs = `<defs><clipPath id="ta-clip"><polygon points="${hp(D + .3)}"/></clipPath><filter id="ta-soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${f(7 * k)}"/></filter>` +
+      `<linearGradient id="ta-hill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${P.hill[0]}"/><stop offset=".35" stop-color="${P.hill[1]}"/><stop offset=".7" stop-color="${P.hill[1]}" stop-opacity=".5"/><stop offset="1" stop-color="${P.hill[1]}" stop-opacity="0"/></linearGradient></defs>`;
+    return defs + base + `<g filter="url(#ta-soft)">${tone}</g>` + forests + rest;
+  }
+
+  return { render, PAL, LANDMARK };
+})();
+
+
 // ===================== HEXFRONT UI =====================
 (() => {
   const E = Engine, K = E.K, P = E.P;
-  const VERSION = '0.21.0', BUILD = '2026-11-27';
+  const VERSION = '0.23.0', BUILD = '2026-11-28';
   const S = 30, SQ3 = Math.sqrt(3), SAVE_KEY = 'hexfront.v1';
   try { console.info(`Hexfront v${VERSION} (${BUILD})`); } catch (e) { /* ignore */ }
   const THEMES = {
@@ -3079,17 +3568,9 @@ if (typeof module !== 'undefined') module.exports = AI;
     steppe: { '.': '#dfd9ad', f: '#9fae6e', h: '#d2bd86', m: '#b3a184', s: '#c1cba5', w: '#7d9db0', x: '#c8b285', frame: '#cfc8a0', tree: '#5d703d', hill: '#8f6c3d', mount: '#5f513f', marsh: '#5a8494', grid: 'rgba(64,58,30,.30)', road: '#6c4a2b', river: '#4a7fa6', label: '#2a2516' },
     desert: { '.': '#ebd29b', f: '#bcc27c', h: '#d8ab6b', m: '#bb905f', s: '#ede4cb', w: '#6b9cb1', x: '#d8bf8b', frame: '#d9bf88', tree: '#6a7b47', hill: '#925f2d', mount: '#62513d', marsh: '#a39b82', grid: 'rgba(110,78,36,.26)', road: '#7a542f', river: '#4a82a9', label: '#2f220f' },
   };
-  // Terrain textures: square seamless JPGs in images/, named {set}_{terrain}_{variant}.jpg.
-  const TEX = {
-    base: { clear: 3, forest: 3, hills: 3, mountains: 3, marsh: 3, sea: 3 },
-    europe: { clear: 3, forest: 3, hills: 3, mountains: 3, marsh: 3, sea: 3 },
-    desert: { clear: 3, hills: 3, marsh: 3, sea: 3, impassable: 3 },
-  };
-  const TEX_SET = { temperate: 'base', europe: 'europe', desert: 'desert', steppe: 'europe', winter: 'europe' };
-  // Winter re-uses the summer textures, screened right back over the snow colours, with the drawn terrain symbols kept.
-  const TEX_OPACITY = { winter: 0.12 }, TEX_GLYPHS = { winter: true };
-  const TEX_NAME = { '.': 'clear', f: 'forest', h: 'hills', m: 'mountains', s: 'marsh', w: 'sea', x: 'impassable' };
-  const TEX_SIZE = 170, TEX_MARGIN = 16;
+  // Terrain art: painted vector terrain (terrain.js), rendered once per map and theme into a cached image.
+  const ART = new Map(); // key -> object URL of the rendered image
+  let artPending = null;
   const FONT = 'Barlow Condensed, Arial Narrow, sans-serif';
   let useTex = true;
   try { useTex = localStorage.getItem('hexfront.tex') !== '0'; } catch (e) { /* default on */ }
@@ -3114,7 +3595,8 @@ if (typeof module !== 'undefined') module.exports = AI;
     if (!humans.length) return null;
     return state.active;
   }
-  const V = () => (state.fog && viewer() ? E.fogView(state, viewer()) : state);
+  // once the game is over the fog lifts: every unit is shown as it really is
+  const V = () => (state.fog && viewer() && !state.winner ? E.fogView(state, viewer()) : state);
 
   // ---------- icons ----------
   const ic = d => `<svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${d}</svg>`;
@@ -3307,21 +3789,15 @@ if (typeof module !== 'undefined') module.exports = AI;
     const m = E.getMap(state.scen), th = THEMES[themeKey()];
     mapW = S * 2 + 1.5 * S * (m.W - 1); mapH = S * SQ3 * (m.H + 0.5);
     let o = `<rect x="-22" y="-22" width="${mapW + 44}" height="${mapH + 44}" rx="6" fill="${th.frame}" stroke="#0d0f0b" stroke-width="3"/>`;
-    let hexes = '', glyph = '', ids = '', tex = '', grid = '';
-    const set = TEX_SET[themeKey()];
+    let hexes = '', glyph = '', ids = '', grid = '';
+    const artKey = state.scen + '|' + themeKey(), artURL = useTex ? ART.get(artKey) : null;
+    if (useTex && !artURL) buildArt(artKey, m);
     for (let r = 0; r < m.H; r++) for (let c = 0; c < m.W; c++) {
       const k = K(c, r), ch = m.terr[k], [x, y] = center(c, r);
       hexes += `<polygon points="${hexPts(x, y)}" fill="${th[ch]}"/>`;
       grid += `<polygon points="${hexPts(x, y)}"/>`;
       if (ch !== 'w') ids += `<text x="${x.toFixed(1)}" y="${(y - S * 0.62).toFixed(1)}" text-anchor="middle" font-size="6.5" font-family="${FONT}" fill="${th.label}" opacity=".38">${hexId(c, r)}</text>`;
-      const tname = TEX_NAME[ch], nv = useTex && set && TEX[set] && TEX[set][tname];
-      if (nv) {
-        const v = 1 + Math.floor(hash(c, r, 21) * nv);
-        const px = TEX_MARGIN + S + hash(c, r, 22) * (TEX_SIZE - 2 * TEX_MARGIN - 2 * S);
-        const py = TEX_MARGIN + S + hash(c, r, 23) * (TEX_SIZE - 2 * TEX_MARGIN - 2 * S);
-        tex += `<g transform="translate(${x.toFixed(1)},${y.toFixed(1)})" clip-path="url(#hexclip)"><image href="images/${set}_${tname}_${v}.jpg" x="${(-px).toFixed(1)}" y="${(-py).toFixed(1)}" width="${TEX_SIZE}" height="${TEX_SIZE}" preserveAspectRatio="none"/></g>`;
-        if (!TEX_GLYPHS[themeKey()]) continue;
-      }
+      if (useTex && ch !== 'x') continue; // the painted art draws this hex
       if (ch === 'f') for (let i = 0; i < 4; i++) { const a = hash(c, r, i) * 6.28, d = 6 + hash(c, r, i + 9) * 9; glyph += `<circle cx="${(x + Math.cos(a) * d).toFixed(1)}" cy="${(y + Math.sin(a) * d * 0.8).toFixed(1)}" r="${(4.5 + hash(c, r, i + 3) * 2.5).toFixed(1)}" fill="${th.tree}" opacity=".75"/>`; }
       if (ch === 'h') for (let i = 0; i < 2; i++) { const ox = x - 12 + i * 12 + hash(c, r, i) * 6, oy = y - 6 + i * 9 + hash(c, r, i + 4) * 4; glyph += `<path d="M${(ox - 8).toFixed(1)} ${oy.toFixed(1)}q8 -11 16 0" fill="none" stroke="${th.hill}" stroke-width="1.8" stroke-linecap="round" opacity=".8"/>`; }
       if (ch === 'm') for (let i = 0; i < 2; i++) { const ox = x - 9 + i * 14, oy = y + 4 - i * 9 + hash(c, r, i) * 4; glyph += `<path d="M${ox - 9} ${oy + 6}L${ox} ${oy - 9}L${ox + 9} ${oy + 6}Z" fill="${th.mount}" opacity=".55"/><path d="M${ox - 3} ${oy - 4}L${ox} ${oy - 9}L${ox + 3} ${oy - 4}" fill="#f4efe0" opacity=".7"/>`; }
@@ -3333,7 +3809,8 @@ if (typeof module !== 'undefined') module.exports = AI;
     for (const p of m.riverPaths) rivers += `<path d="${curvePath(p, true)}"/>`;
     for (const p of m.roadPaths) roads += `<path d="${curvePath(p, false)}"/>`;
     o += `<defs><clipPath id="hexclip"><polygon points="${hexPts(0, 0, S + 0.6)}"/></clipPath></defs>`;
-    o += hexes + `<g opacity="${TEX_OPACITY[themeKey()] ?? 0.5}">${tex}</g>` + glyph + `<g fill="none" stroke="${useTex && !TEX_GLYPHS[themeKey()] ? 'rgba(30,26,16,.38)' : th.grid}" stroke-width="1">${grid}</g>`;
+    const art = artURL ? `<image href="${artURL}" x="0" y="0" width="${mapW.toFixed(1)}" height="${mapH.toFixed(1)}" preserveAspectRatio="none"/>` : '';
+    o += hexes + art + glyph + `<g fill="none" stroke="${useTex ? 'rgba(64,52,30,.22)' : th.grid}" stroke-width="1">${grid}</g>`;
     o += `<g fill="none" stroke-linecap="round" stroke-linejoin="round"><g stroke="rgba(30,50,70,.25)" stroke-width="8.5">${rivers}</g><g stroke="${th.river}" stroke-width="6" opacity=".95">${rivers}</g><g stroke="rgba(255,255,255,.22)" stroke-width="1.6" transform="translate(-1,-1)">${rivers}</g></g>`;
     o += `<g fill="none" stroke-linecap="round" stroke-linejoin="round"><g stroke="rgba(255,250,230,.55)" stroke-width="5.5">${roads}</g><g stroke="${th.road}" stroke-width="2.6" stroke-dasharray="7 3">${roads}</g></g>`;
     if (m.railPaths.length) { // railways: dark line with cross ties
@@ -3345,7 +3822,34 @@ if (typeof module !== 'undefined') module.exports = AI;
     const edgeLbl = (side, x) => `<text transform="translate(${x},${mapH / 2}) rotate(-90)" text-anchor="middle" font-family="${FONT}" font-weight="700" font-size="11" letter-spacing="2" fill="${th.label}" opacity=".7">${esc(side.name.toUpperCase())} SUPPLY EDGE</text>`;
     o += edgeLbl(A.edge === 'W' ? A : B, -9) + edgeLbl(A.edge === 'W' ? B : A, mapW + 15);
     gStatic.innerHTML = o;
-    staticFor = state.scen + '|' + themeKey() + '|' + useTex;
+    staticFor = state.scen + '|' + themeKey() + '|' + useTex + '|' + !!artURL;
+  }
+  // Draw the terrain art off-screen and keep it as one image, so a big map pans and zooms smoothly.
+  function buildArt(key, m) {
+    if (artPending === key) return;
+    artPending = key;
+    const w = mapW, h = mapH, R = Math.min(3, Math.sqrt(12e6 / (w * h)));
+    const inner = TerrainArt.render(m, sc().cities, key.split('|')[1], S, center);
+    const W = Math.round(w * R), H = Math.round(h * R);
+    const src = URL.createObjectURL(new Blob([`<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${w.toFixed(1)} ${h.toFixed(1)}">${inner}</svg>`], { type: 'image/svg+xml' }));
+    const img = new Image();
+    const done = url => {
+      URL.revokeObjectURL(src);
+      if (artPending === key) artPending = null;
+      if (!url) return;
+      ART.set(key, url);
+      while (ART.size > 4) { const [k0, u0] = ART.entries().next().value; URL.revokeObjectURL(u0); ART.delete(k0); }
+      if (state && state.scen + '|' + themeKey() === key) { renderStatic(); }
+    };
+    img.onload = () => {
+      try {
+        const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+        const g = cv.getContext('2d'); g.drawImage(img, 0, 0, W, H);
+        cv.toBlob(b => done(b ? URL.createObjectURL(b) : null), 'image/png');
+      } catch (e) { done(null); }
+    };
+    img.onerror = () => done(null);
+    img.src = src;
   }
 
   // City markers scale with value: 1 = small block, 2 = a town, 3 = a city filling the hex.
@@ -3424,6 +3928,19 @@ if (typeof module !== 'undefined') module.exports = AI;
     }
     return `<g class="terr" fill="none" stroke-linecap="round"><path d="${d}" stroke="rgba(20,16,10,.55)" stroke-width="7"/><path d="${d}" stroke="#d8452f" stroke-width="3.2"/></g>`;
   }
+  // Where the drawn river passes through hex k, and the angle (degrees) of a bridge deck crossing it.
+  function riverSpot(m, k) {
+    const [c, r] = P(k);
+    for (const p of m.riverPaths) {
+      const i = p.findIndex(([pc, pr]) => pc === c && pr === r);
+      if (i < 0) continue;
+      const pt = j => { const [pc, pr] = p[j]; let [x, y] = center(pc, pr); if (j > 0 && j < p.length - 1) { x += (hash(pc, pr, 31) - 0.5) * 14; y += (hash(pc, pr, 32) - 0.5) * 14; } return [x, y]; };
+      const [x, y] = pt(i), a = pt(Math.max(0, i - 1)), b = pt(Math.min(p.length - 1, i + 1));
+      // the deck runs across the river, so perpendicular to its flow: rotate(0) is vertical, so use the flow angle
+      return [x, y, Math.atan2(b[1] - a[1], b[0] - a[0]) * 180 / Math.PI];
+    }
+    const [x, y] = center(c, r); return [x, y, 0];
+  }
   // Campaign map overlays: mud, engineer works, recon flights, Intel shading, HQ range.
   function campOverlay(v, who, vis) {
     const cp = state.camp, m = E.getMap(state.scen); let o = '';
@@ -3431,8 +3948,8 @@ if (typeof module !== 'undefined') module.exports = AI;
     if (E.weather(state) === 'mud') o += `<rect x="-22" y="-22" width="${mapW + 44}" height="${mapH + 44}" fill="rgba(96,66,30,.16)"/>`;
     const at = k => center(...P(k));
     for (const k of Object.keys(cp.forts)) { const [x, y] = at(k); o += `<polygon points="${hexPts(x, y, S - 4)}" fill="none" stroke="#4a3b2b" stroke-width="3.2" stroke-dasharray="5 3"/>`; }
-    for (const k of Object.keys(cp.bridges)) { const [x, y] = at(k); o += `<g transform="translate(${x},${y + 13})"><rect x="-9" y="-3" width="18" height="6" rx="1" fill="#7a5a36" stroke="#2a1e12" stroke-width="1"/><path d="M-6 -3v6M0 -3v6M6 -3v6" stroke="#2a1e12" stroke-width=".8"/></g>`; }
-    for (const k of Object.keys(cp.blown)) { const [x, y] = at(k); o += `<g transform="translate(${x},${y + 13})"><path d="M-7 -5l14 10M7 -5l-14 10" stroke="#c0392b" stroke-width="3" stroke-linecap="round"/></g>`; }
+    for (const k of Object.keys(cp.bridges)) { const [x, y, a] = riverSpot(m, k); o += `<g transform="translate(${x.toFixed(1)},${y.toFixed(1)}) rotate(${a.toFixed(0)})"><rect x="-5" y="-12" width="10" height="24" rx="1.5" fill="#7a5a36" stroke="#2a1e12" stroke-width="1.2"/><path d="M-5 -6h10M-5 0h10M-5 6h10" stroke="#2a1e12" stroke-width=".8"/><path d="M-7 -12v24M7 -12v24" stroke="#2a1e12" stroke-width="1.6" stroke-linecap="round"/></g>`; }
+    for (const k of Object.keys(cp.blown)) { const [x, y, a] = riverSpot(m, k); o += `<g transform="translate(${x.toFixed(1)},${y.toFixed(1)}) rotate(${a.toFixed(0)})"><rect x="-5" y="-12" width="10" height="7" fill="#7a5a36" stroke="#2a1e12" stroke-width="1"/><rect x="-5" y="5" width="10" height="7" fill="#7a5a36" stroke="#2a1e12" stroke-width="1"/><path d="M-7 -5l14 10M7 -5l-14 10" stroke="#c0392b" stroke-width="3" stroke-linecap="round"/></g>`; }
     for (const [k, sd] of Object.entries(cp.mines)) { const [x, y] = at(k); o += `<g transform="translate(${x - 14},${y + 10})"><path d="M0 -6l6 10h-12z" fill="#e9c22e" stroke="#1a1e18" stroke-width="1"/><text y="3" text-anchor="middle" font-family="${FONT}" font-weight="700" font-size="7" fill="#1a1e18">M</text></g>`; }
     for (const k of Object.keys(cp.cord)) { const [x, y] = at(k); o += `<path d="M${x - 8} ${y + 16}h16M${x - 8} ${y + 19}h16" stroke="#6b4a24" stroke-width="2"/>`; }
     // this turn's recon flights by the side whose eyes we use
@@ -3463,7 +3980,7 @@ if (typeof module !== 'undefined') module.exports = AI;
   const ring = (x, y, color, w, extra = '') => `<rect ${extra} x="${x - 24}" y="${y - 24}" width="48" height="48" rx="5" fill="none" stroke="${color}" stroke-width="${w}"/>`;
   function renderDyn() {
     const m = E.getMap(state.scen), th = THEMES[sc().theme], v = V(), who = viewer();
-    const vis = state.fog && who ? E.visibleHexes(state, who) : null;
+    const vis = state.fog && who && !state.winner ? E.visibleHexes(state, who) : null;
     let o = '';
     if (showZoc) {
       const z = E.zocOf(v, E.other(state.active));
@@ -3484,9 +4001,9 @@ if (typeof module !== 'undefined') module.exports = AI;
     }
     for (const ct of sc().cities) {
       const k = K(ct.c, ct.r), [x, y] = center(ct.c, ct.r), own = state.owner[k], col = own ? sideOf(own).color : '#8a8572';
-      o += cityMark(ct, x, y, col);
+      o += useTex ? `<polygon points="${hexPts(x, y, S - 2.5)}" fill="none" stroke="rgba(20,16,10,.45)" stroke-width="4.5"/><polygon points="${hexPts(x, y, S - 2.5)}" fill="none" stroke="${col}" stroke-width="2.6"/>` : cityMark(ct, x, y, col);
       o += `<text x="${x}" y="${(y + S * 0.72).toFixed(1)}" text-anchor="middle" font-family="${FONT}" font-weight="700" font-size="9.5" letter-spacing=".6" fill="${th.label}" stroke="${th['.']}" stroke-width="3" paint-order="stroke">${esc((ct.cap ? '★ ' : '') + ct.name.toUpperCase())}</text>`;
-      const bo = ct.vp >= 3 ? 21 : ct.vp === 2 ? 18 : 12;
+      const bo = useTex ? 17 : ct.vp >= 3 ? 21 : ct.vp === 2 ? 18 : 12;
       if (ct.vp) o += `<g transform="translate(${x + bo},${y - bo})"><circle r="7" fill="${col}" stroke="#1a1e18" stroke-width="1.2"/><text y="3.5" text-anchor="middle" font-family="${FONT}" font-weight="700" font-size="10" fill="#fff">${ct.vp}</text></g>`;
     }
     if (state.camp) o += campOverlay(v, who, vis);
@@ -3537,7 +4054,7 @@ if (typeof module !== 'undefined') module.exports = AI;
     const eligT = target ? E.eligibleAttackers(state, target) : [];
     for (const u of v.units) {
       const [x, y] = center(u.c, u.r), k = K(u.c, u.r), mine = u.side === state.active;
-      const dim = mine && ((state.phase === 'move' && u.moved) || (state.phase === 'combat' && u.attacked));
+      const dim = !state.winner && mine && ((state.phase === 'move' && u.moved) || (state.phase === 'combat' && u.attacked));
       let rg = '';
       if (sel === u.id) rg = ring(x, y, '#e8a83a', 3);
       if (pop && pop.unit === u.id) rg = ring(x, y, '#f2ead2', 2.5);
@@ -3784,7 +4301,7 @@ if (typeof module !== 'undefined') module.exports = AI;
     if (state.camp) return renderCampObjectives(s, who);
     $('score').innerHTML = ['A', 'B'].map(sd => {
       const sdd = sideOf(sd), n = state.units.filter(u => u.side === sd).length;
-      const hide = state.fog && who && sd !== who;
+      const hide = state.fog && who && sd !== who && !state.winner;
       return `<div style="border-left-color:${sdd.color}"><small>${esc(sdd.name)}</small><b>${E.vp(state, sd)}</b> <em>points · ${hide ? '?' : n} units</em></div>`;
     }).join('');
     const v = s.victory;
@@ -3807,7 +4324,7 @@ if (typeof module !== 'undefined') module.exports = AI;
   }
   function renderCampObjectives(s, who) {
     const v = s.victory, cp = state.camp, score = E.campScore(state), net = cp.lost[E.other(v.side)] - cp.lost[v.side];
-    $('score').innerHTML = ['A', 'B'].map(sd => { const sdd = sideOf(sd), n = state.units.filter(u => u.side === sd).length, hide = state.fog && who && sd !== who;
+    $('score').innerHTML = ['A', 'B'].map(sd => { const sdd = sideOf(sd), n = state.units.filter(u => u.side === sd).length, hide = state.fog && who && sd !== who && !state.winner;
       return `<div style="border-left-color:${sdd.color}"><small>${esc(sdd.name)}</small><b>${E.vp(state, sd)}</b> <em>points · ${hide ? '?' : n} units · ${cp.lost[sd]} steps lost</em></div>`; }).join('');
     const g = v.grades.find(x => score >= x.min) || v.grades[v.grades.length - 1];
     const bonus = (cp.bonus && cp.bonus[v.side]) || 0;
@@ -3939,7 +4456,7 @@ if (typeof module !== 'undefined') module.exports = AI;
   }
   function render() {
     if (!staticFor || staticFor.split('|')[0] !== state.scen) { renderStatic(); smartFit(); $('charts').innerHTML = chartsHTML(); }
-    else if (staticFor !== state.scen + '|' + themeKey() + '|' + useTex) renderStatic();
+    else if (!(staticFor || '').startsWith(state.scen + '|' + themeKey() + '|' + useTex + '|')) renderStatic();
     renderDyn(); renderStatus(); renderObjectives(); renderDetail(); renderCombat(); renderForces();
     if (pop) renderPop();
   }
