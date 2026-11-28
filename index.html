@@ -295,9 +295,22 @@ dialog::backdrop { background: rgba(8,10,7,.72); }
 .ntabs { margin-top: 12px; width: 100%; }
 .ntabs button { flex: 1; }
 .slist { display: grid; gap: 6px; margin-top: 12px; }
-.srow { display: grid; grid-template-columns: 30px 1fr auto; align-items: center; gap: 10px; text-align: left; text-transform: none; letter-spacing: 0; padding: 9px 12px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; font: inherit; color: var(--ink); cursor: pointer; }
+.srow { display: grid; grid-template-columns: 34px 1fr auto; align-items: center; gap: 10px; text-align: left; text-transform: none; letter-spacing: 0; padding: 9px 12px; background: var(--panel-2); border: 1px solid var(--line); border-radius: 6px; font: inherit; color: var(--ink); cursor: pointer; }
 .srow:hover { border-color: var(--signal); }
-.srow .sw { display: grid; grid-template-columns: 1fr 1fr; width: 26px; height: 18px; border-radius: 3px; overflow: hidden; border: 1px solid rgba(0,0,0,.4); }
+.srow .sw { display: flex; flex-direction: column; gap: 3px; width: 30px; }
+.mflag { width: 30px; height: 20px; display: block; border-radius: 2px; }
+.mflag.big { width: 42px; height: 28px; flex: none; }
+.sides2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.sidecard { display: grid; gap: 12px; align-content: start; background: var(--panel); border: 1px solid var(--line); border-top: 4px solid; border-radius: 6px; padding: 12px; }
+.sidecard .nm { display: flex; align-items: center; gap: 10px; font: 700 18px/1.1 var(--ui); }
+.sidecard .nm small { display: block; font: 500 13px/1.3 var(--ui); color: var(--muted); }
+.sidecard .seg { justify-self: start; }
+.bwmap { display: grid; grid-template-columns: 1fr 260px; gap: 14px; align-items: start; padding: 10px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.bwopts { display: grid; gap: 10px; }
+.bwnew { justify-self: start; }
+.bwprev { width: 100%; height: auto; border-radius: 4px; border: 1px solid var(--line); background: #1a1712; }
+@media (max-width: 560px) { .bwmap { grid-template-columns: 1fr; } }
+@media (max-width: 560px) { .sides2 { grid-template-columns: 1fr; } }
 .srow .t b { display: block; font: 700 16px/1.15 var(--ui); }
 .srow .t small { color: var(--muted); font-size: 12.5px; }
 .srow .chev { color: var(--muted); font-size: 22px; line-height: 1; }
@@ -995,7 +1008,257 @@ const CAMP_SCEN = {
     },
   },
 };
-const CAMP_ORDER = ['moscow', 'typhoon'];
+const CAMP_ORDER = ['bw-12-n-n-1', 'bw-27-n-n-1', 'moscow', 'typhoon']; // Border War entries: a fresh map is made when chosen
+
+
+// ===================== HEXFRONT: Border War random maps =====================
+// Every Border War campaign plays on a freshly generated map. The scenario id carries everything needed to
+// rebuild it exactly (so a game sent by email opens on the same map):  bw-<turns>-<theme>-<density>-<seed>
+//   turns 12 | 27 · theme n (normal) | d (desert) | w (winter) · density o (open) | n (normal) | d (dense)
+// The map has three avenues of advance (north, centre, south lanes) split by broken barriers of mountains,
+// forest, marsh or lakes, a winding border river, and chokepoints placed at random on each side.
+// Both sides get the same cities (by value) and the same army, placed by the same rules, so the ground is
+// comparable but never identical.
+const BorderGen = (() => {
+  const W = 33, H = 24;
+  const K = (c, r) => c + ',' + r;
+  function rngOf(str) {
+    let h = 2166136261; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+    let a = h >>> 0;
+    const next = () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    return { f: next, int: (lo, hi) => lo + Math.floor(next() * (hi - lo + 1)), pick: a2 => a2[Math.floor(next() * a2.length)], chance: p => next() < p };
+  }
+  const cube = (c, r) => { const x = c, z = r - (c - (c & 1)) / 2; return [x, -x - z, z]; };
+  const dist = (a, b) => { const p = cube(...a), q = cube(...b); return Math.max(Math.abs(p[0] - q[0]), Math.abs(p[1] - q[1]), Math.abs(p[2] - q[2])); };
+  const nbrs = (c, r) => {
+    const d = c & 1 ? [[0, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0]] : [[0, -1], [1, -1], [1, 0], [0, 1], [-1, 0], [-1, -1]];
+    return d.map(([dc, dr]) => [c + dc, r + dr]).filter(([x, y]) => x >= 0 && y >= 0 && x < W && y < H);
+  };
+  const inMap = (c, r) => c >= 0 && r >= 0 && c < W && r < H;
+
+  const NAMES = {
+    A: ['Valdor', 'Kessa', 'Brenn', 'Orlan', 'Tarvik', 'Hollen', 'Mira', 'Dunmoor', 'Selby', 'Ravel', 'Ostry', 'Linden', 'Corwick', 'Haldane', 'Merrow', 'Ashby', 'Fenwick', 'Rothe', 'Galen', 'Weyland', 'Tamsin', 'Elmhurst', 'Pellam', 'Brightwater'],
+    B: ['Krasnov', 'Drevo', 'Zarech', 'Molva', 'Tesna', 'Varga', 'Lisk', 'Borov', 'Selin', 'Ruza', 'Petra', 'Dolgo', 'Kamensk', 'Yarsk', 'Ostrog', 'Vetka', 'Gorin', 'Tulsk', 'Morava', 'Belska', 'Rodna', 'Chern', 'Lyuban', 'Sosna'],
+  };
+  const VALUES = [3, 3, 2, 2, 2, 1, 1, 1, 1, 1]; // plus the capital (6): 23 VP a side
+  const DENS = { o: { blobs: 14, thick: [1, 1], choke: .35, gaps: 3 }, n: { blobs: 26, thick: [1, 2], choke: .55, gaps: 2 }, d: { blobs: 40, thick: [2, 3], choke: .75, gaps: 2 } };
+
+  function parse(id) {
+    const [, turns, theme, dens, seed] = id.split('-');
+    return { turns: +turns === 12 ? 12 : 27, theme: 'ndw'.includes(theme) ? theme : 'n', dens: 'ond'.includes(dens) ? dens : 'n', seed: seed || '1' };
+  }
+
+  function make(id) {
+    const o = parse(id), R = rngOf(id), D = DENS[o.dens];
+    const g = Array.from({ length: H }, () => Array(W).fill('.'));
+    const set = (c, r, t) => { if (inMap(c, r)) g[r][c] = t; };
+    const get = (c, r) => (inMap(c, r) ? g[r][c] : null);
+    const side = c => (c < W / 2 ? 'A' : 'B');
+
+    // 1. scattered terrain, by density and theatre
+    const mix = o.theme === 'd' ? [['h', .45], ['m', .15], ['f', .12], ['s', .08], ['.', .2]] : [['f', .45], ['h', .3], ['s', .12], ['m', .05], ['.', .08]];
+    const pickT = () => { let x = R.f(); for (const [t, p] of mix) { if ((x -= p) <= 0) return t; } return 'f'; };
+    for (let i = 0; i < D.blobs; i++) {
+      const t = pickT(), c0 = R.int(1, W - 2), r0 = R.int(0, H - 1), rad = t === 'm' ? R.int(0, 1) : R.int(0, 2);
+      for (let r = r0 - rad - 1; r <= r0 + rad + 1; r++) for (let c = c0 - rad - 1; c <= c0 + rad + 1; c++) {
+        if (!inMap(c, r)) continue; const d = dist([c, r], [c0, r0]);
+        if (d < rad || (d === rad && R.chance(.6))) set(c, r, t);
+      }
+    }
+
+    // 2. two broken barriers split the map into three lanes
+    const lanes = [Math.round(H / 6) + R.int(-1, 1), Math.round(H / 2) + R.int(-1, 1), Math.round(5 * H / 6) + R.int(-1, 1)];
+    const barrierT = o.theme === 'd' ? ['m', 'm', 'h', 's'] : o.theme === 'w' ? ['m', 'f', 'f', 's', 'w'] : ['m', 'f', 'f', 's', 'w', 'h'];
+    const barrierRows = [];
+    for (const yb of [Math.round(H / 3) + R.int(-1, 1), Math.round(2 * H / 3) + R.int(-1, 1)]) {
+      const rowAt = []; let y = yb, t = R.pick(barrierT), seg = 0;
+      const gaps = new Set();
+      for (let k = 0; k < D.gaps + 1; k++) { const gx = R.int(3, W - 4); for (let w = 0; w < R.int(1, 2); w++) gaps.add(gx + w); }
+      for (let c = 1; c < W - 1; c++) {
+        if (--seg <= 0) { t = R.pick(barrierT); seg = t === 'w' ? R.int(1, 2) : R.int(3, 7); }
+        if (R.chance(.35)) y = Math.max(yb - 2, Math.min(yb + 2, y + R.pick([-1, 1])));
+        rowAt[c] = y;
+        if (gaps.has(c)) continue;
+        const th = R.int(D.thick[0], D.thick[1]);
+        for (let k = 0; k < (t === 'w' ? 1 : th); k++) set(c, y + k - (th > 2 ? 1 : 0), t);
+      }
+      barrierRows.push(rowAt);
+    }
+
+    // 3. chokepoints: a defile across a lane, leaving a narrow gap, on each side; roughly as many each
+    const chokes = { A: [], B: [] };
+    const laneBounds = (li, c) => [li === 0 ? 0 : barrierRows[0][c] + 1, li === 2 ? H - 1 : barrierRows[li][c] - 1];
+    for (const sd of ['A', 'B']) for (let li = 0; li < 3; li++) if (R.chance(D.choke)) chokes[sd].push(li);
+    while (Math.abs(chokes.A.length - chokes.B.length) > 1 || !chokes.A.length || !chokes.B.length) {
+      const poor = chokes.A.length <= chokes.B.length ? 'A' : 'B', free = [0, 1, 2].filter(l => !chokes[poor].includes(l));
+      if (!free.length) break; chokes[poor].push(R.pick(free));
+    }
+    for (const sd of ['A', 'B']) for (const li of chokes[sd]) {
+      const c = sd === 'A' ? R.int(5, 12) : R.int(W - 13, W - 6), [lo, hi] = laneBounds(li, Math.min(W - 2, Math.max(1, c)));
+      const t = o.theme === 'd' ? R.pick(['m', 'm', 'h']) : R.pick(['m', 'm', 's', 'f', 'h']);
+      const gapAt = R.int(lo + 1, Math.max(lo + 1, hi - 1)), gw = R.int(1, 2);
+      for (let r = lo; r <= hi; r++) if (r < gapAt || r >= gapAt + gw) { set(c, r, t); if (R.chance(.5)) set(c + R.pick([-1, 1]), r, t); }
+      for (let r = gapAt; r < gapAt + gw; r++) set(c, r, '.');
+    }
+
+    // 4. the border river, winding down the middle, and a tributary or two on each side
+    const rivers = [], river = [];
+    let x = Math.floor(W / 2) + R.int(-1, 1);
+    for (let r = 0; r < H; r++) { if (r && R.chance(.45)) x = Math.max(14, Math.min(18, x + R.pick([-1, 1]))); river.push([x, r]); }
+    rivers.push(river);
+    for (const sd of ['A', 'B']) for (let k = 0; k < R.int(1, 2); k++) {
+      const r0 = R.int(2, H - 3), c0 = sd === 'A' ? R.int(3, 9) : R.int(W - 10, W - 4), join = river[Math.min(H - 1, Math.max(0, r0 + R.int(-3, 3)))];
+      rivers.push([[c0, r0], [Math.round((c0 + join[0]) / 2), Math.round((r0 + join[1]) / 2) + R.int(-1, 1)], join]);
+    }
+    for (const rv of rivers) for (let i = 0; i < rv.length; i++) { const [c, r] = rv[i]; if ('mw'.includes(get(c, r))) set(c, r, '.'); }
+
+    // 5. cities: the same values on each side, spread over the three lanes
+    const cities = [], taken = [], used = { A: new Set(), B: new Set() };
+    const nameFor = sd => { let n; do n = R.pick(NAMES[sd]); while (used[sd].has(n)); used[sd].add(n); return n; };
+    const okCity = (c, r) => inMap(c, r) && !'mws'.includes(get(c, r)) && !river.some(([a, b]) => a === c && b === r) && taken.every(p => dist(p, [c, r]) >= 3);
+    const place = (sd, cMin, cMax, rMin, rMax) => {
+      for (let t = 0; t < 400; t++) {
+        let c = R.int(cMin, cMax), r = R.int(rMin, rMax);
+        if (sd === 'B') c = W - 1 - c;
+        if (okCity(c, r)) { taken.push([c, r]); set(c, r, get(c, r) === 'f' ? '.' : get(c, r)); return [c, r]; }
+      }
+      return null;
+    };
+    const caps = {};
+    for (const sd of ['A', 'B']) {
+      const cap = place(sd, 1, 2, lanes[1] - 2, lanes[1] + 2) || place(sd, 1, 3, 4, H - 5);
+      set(cap[0], cap[1], '.');
+      caps[sd] = { name: nameFor(sd), c: cap[0], r: cap[1], vp: 6, owner: sd, cap: true, supply: true, rail: true };
+      cities.push(caps[sd]);
+      const laneOrder = [0, 1, 2].sort(() => R.f() - .5);
+      VALUES.forEach((vp, i) => {
+        const li = i < 3 ? laneOrder[i] : i < 6 ? laneOrder[i - 3] : R.int(0, 2);
+        const lr = lanes[li], depth = vp === 3 ? [5, 9] : vp === 2 ? [8, 13] : [3, 13];
+        const at = place(sd, depth[0], depth[1], Math.max(0, lr - 3), Math.min(H - 1, lr + 3)) || place(sd, 3, 13, 0, H - 1);
+        if (at) cities.push({ name: nameFor(sd), c: at[0], r: at[1], vp, owner: sd, ...(vp >= 2 ? { rail: true } : {}) });
+      });
+    }
+
+    // 6. roads along the easiest ground: every city joined to its side's network, and each lane joined across the river
+    const isRiver = new Set(river.map(([c, r]) => K(c, r)));
+    const cost = (c, r) => ({ '.': 1, h: 2, f: 2.4, s: 4, m: 14, w: 60 }[get(c, r)] || 1) + (isRiver.has(K(c, r)) ? 3 : 0);
+    function route(a, b) {
+      const open = [[0, a, 0]], best = new Map([[K(...a), 0]]), from = new Map();
+      while (open.length) {
+        open.sort((p, q) => p[0] - q[0]); const [, cur, g0] = open.shift();
+        if (cur[0] === b[0] && cur[1] === b[1]) break;
+        if (g0 > best.get(K(...cur))) continue;
+        for (const n of nbrs(...cur)) {
+          const d = best.get(K(...cur)) + cost(...n), k = K(...n);
+          if (d < (best.get(k) ?? Infinity)) { best.set(k, d); from.set(k, cur); open.push([d + dist(n, b) * .9, n, d]); }
+        }
+      }
+      const out = [b]; let k = K(...b);
+      while (from.has(k)) { const p = from.get(k); out.push(p); k = K(...p); }
+      return out.reverse();
+    }
+    const roads = [], rails = [];
+    for (const sd of ['A', 'B']) {
+      const mine = cities.filter(ct => ct.owner === sd), net = [caps[sd]];
+      for (const ct of mine.filter(ct => !ct.cap).sort((p, q) => dist([p.c, p.r], [caps[sd].c, caps[sd].r]) - dist([q.c, q.r], [caps[sd].c, caps[sd].r]))) {
+        const near = net.reduce((m, n) => (dist([n.c, n.r], [ct.c, ct.r]) < dist([m.c, m.r], [ct.c, ct.r]) ? n : m));
+        const p = route([near.c, near.r], [ct.c, ct.r]); roads.push(p);
+        if (ct.rail && near.rail) rails.push(p);
+        net.push(ct);
+      }
+      // the capital's own road and rail to its home edge
+      const edge = sd === 'A' ? [0, caps[sd].r] : [W - 1, caps[sd].r];
+      roads.push(route(edge, [caps[sd].c, caps[sd].r])); rails.push(route(edge, [caps[sd].c, caps[sd].r]));
+    }
+    for (let li = 0; li < 3; li++) {
+      // the most forward city of each side in this lane, joined across the border: one avenue of advance per lane
+      const front = sd => cities.filter(ct => ct.owner === sd && Math.abs(ct.r - lanes[li]) <= 4).sort((p, q) => (sd === 'A' ? q.c - p.c : p.c - q.c))[0] || caps[sd];
+      const a = front('A'), b = front('B');
+      roads.push(route([a.c, a.r], [b.c, b.r]));
+    }
+    for (const p of roads) for (const [c, r] of p) if (get(c, r) === 'w') set(c, r, 's');
+
+    // 7. armies: the same order of battle for both, placed by the same rules
+    const occ = new Set(cities.filter(ct => false).map(ct => K(ct.c, ct.r)));
+    const okUnit = (c, r) => inMap(c, r) && !'mw'.includes(get(c, r)) && !occ.has(K(c, r)) && !isRiver.has(K(c, r));
+    function spot(sd, c, r) {
+      for (let rad = 0; rad < 8; rad++) for (let t = 0; t < 30; t++) {
+        let cc = c + R.int(-rad, rad), rr = r + R.int(-rad, rad);
+        if (sd === 'A' && cc > riverAt(rr) - 1) cc = riverAt(rr) - 1 - R.int(0, 1);
+        if (sd === 'B' && cc < riverAt(rr) + 1) cc = riverAt(rr) + 1 + R.int(0, 1);
+        if (okUnit(cc, rr)) { occ.add(K(cc, rr)); return [cc, rr]; }
+      }
+      return null;
+    }
+    const riverAt = r => river[Math.max(0, Math.min(H - 1, r))][0];
+    const ORD = ['1st', '2nd', '3rd', '4th', '5th', '6th', '7th', '8th', '9th', '10th', '11th', '12th', '14th', '15th', '16th', '17th', '18th', '19th', '20th'];
+    const units = [];
+    for (const sd of ['A', 'B']) {
+      const fwd = d => (sd === 'A' ? d : W - 1 - d), n = {};
+      const add = (type, c, r, pat, st) => {
+        n[pat] = (n[pat] || 0) + 1;
+        const at = spot(sd, c, r); if (!at) return;
+        units.push([sd, type, at[0], at[1], pat.replace('{n}', ORD[n[pat] - 1])].concat(st ? [st] : []));
+      };
+      lanes.forEach((lr, li) => {
+        // four divisions on the line in each lane, two of them dug in somewhere
+        for (let k = 0; k < 4; k++) add('inf', sd === 'A' ? riverAt(lr) - 2 : riverAt(lr) + 2, lr - 3 + k * 2, '{n} Div', R.chance(.2) ? 'dug' : '');
+        add('arm', fwd(9), lr - 1, '{n} Armd'); if (li !== 1) add('arm', fwd(8), lr + 1, '{n} Armd'); else add('mech', fwd(8), lr + 1, '{n} Mot');
+        add('art', fwd(11), lr, '{n} Art'); add('hq', fwd(7), lr, ['North Army', 'Center Army', 'South Army'][li]);
+      });
+      add('mech', fwd(10), lanes[1] - 2, '{n} Mot'); add('eng', fwd(11), lanes[0] + 2, '{n} Engr'); add('eng', fwd(11), lanes[2] - 2, '{n} Engr');
+      add('rcn', fwd(10), lanes[1] + 2, '{n} Recon');
+      const cap = caps[sd]; occ.delete(K(cap.c, cap.r)); add('inf', cap.c, cap.r, 'Guards Div', 'dug');
+      for (const ct of cities.filter(c2 => c2.owner === sd && c2.vp === 3)) { occ.delete(K(ct.c, ct.r)); add('inf', ct.c, ct.r, '{n} Res Div'); }
+    }
+
+    // 8. theatre, season and reinforcements
+    const start = o.theme === 'w' ? (o.turns === 12 ? '1940-12-02' : '1940-11-04') : (o.turns === 12 ? '1940-08-19' : '1940-05-06');
+    const weather = o.theme === 'd' ? [{ w: 'summer' }]
+      : o.theme === 'w' ? (o.turns === 12 ? [{ w: 'frost' }, { w: 'winter', from: '1940-12-16', shift: true }] : [{ w: 'frost' }, { w: 'winter', from: '1940-12-02', shift: true }, { w: 'frost', from: '1941-03-10' }, { w: 'mud', from: '1941-04-07', shift: true }])
+      : (o.turns === 12 ? [{ w: 'summer' }, { w: 'mud', from: '1940-10-07', shift: true }] : [{ w: 'summer' }, { w: 'mud', from: '1940-10-07', shift: true }, { w: 'frost', from: '1940-11-04' }]);
+    const d0 = new Date(start + 'T00:00:00Z');
+    const dateOf = t => new Date(d0.getTime() + 7 * 864e5 * (t - 1)).toISOString().slice(0, 10);
+    const reinf = [];
+    const waves = [[4, 0, [['inf', '21st Div', 0], ['inf', '22nd Div', 0]]], [7, 1, [['arm', '5th Armd', 1], ['mech', '3rd Mot', 1]]], [10, 0, [['inf', '23rd Div', 0], ['art', '4th Art', 1]]],
+      [14, 2, [['arm', '6th Armd', 1], ['inf', '24th Div', 0]]], [18, 1, [['mech', '4th Mot', 1], ['inf', '25th Div', 0]]], [22, 0, [['inf', '26th Div', 1], ['arm', '7th Armd', 1]]]];
+    for (const [t, where, us] of waves) {
+      if (t > o.turns - 1) continue;
+      for (const sd of ['A', 'B']) {
+        const majors = cities.filter(ct => ct.owner === sd && ct.vp === 3);
+        const at = where === 0 || !majors.length ? caps[sd].name : majors[(where - 1) % majors.length].name;
+        reinf.push({ side: sd, date: dateOf(t), at, then: [caps[sd].name], units: us });
+      }
+    }
+    const T = 23, shift = o.turns === 12 ? 0 : -7, // measured over many random maps (Hard vs Hard): the first mover gains about 7 in the long war
+      [maj, min] = o.turns === 12 ? [6, 3] : [8, 4];
+    const grades = [{ min: T - shift + maj, side: 'A', name: 'Azure major victory' }, { min: T - shift + min, side: 'A', name: 'Azure minor victory' },
+      { min: T - shift - min + 1, side: null, name: 'Draw: the border holds' }, { min: T - shift - maj + 1, side: 'B', name: 'Crimson minor victory' }, { min: -99, side: 'B', name: 'Crimson major victory' }];
+    const themeName = { n: 'Normal', d: 'Desert', w: 'Winter' }[o.theme], densName = { o: 'Open', n: 'Normal', d: 'Dense' }[o.dens];
+    return {
+      id, name: o.turns === 12 ? 'Border War: Summer Offensive' : 'Border War: The Long War', setting: `Random map · ${themeName} · ${densName}`, campaign: true,
+      random: { turns: o.turns, theme: o.theme, dens: o.dens, seed: o.seed },
+      blurb: `The Azure League and the Crimson Pact go to war across the border river, on a map drawn fresh for this game: three avenues of advance, broken ridges, forests and marshes between them, and chokepoints on both sides. Equal armies and equal cities, placed differently. Taking the enemy capital wins at once; otherwise victory is graded on cities held and enemy steps destroyed after ${o.turns} weeks.`,
+      maxTurns: o.turns, theme: o.theme === 'd' ? 'desert' : o.theme === 'w' ? 'winter' : 'temperate',
+      victory: { type: 'grades', side: 'A', symmetric: true, material: 4, grades },
+      sides: {
+        A: { name: 'Azure League', short: 'Azure', color: '#3f6ea5', ink: '#f6f1e2', edge: 'W', flag: 'azure' },
+        B: { name: 'Crimson Pact', short: 'Crimson', color: '#a6423a', ink: '#f6f1e2', edge: 'E', flag: 'crimson' },
+      },
+      campaign: {
+        start, weather,
+        supply: { A: { range: 10, mud: 6 }, B: { range: 10, mud: 6 } },
+        recon: { A: { summer: 2, mud: 1, frost: 1, winter: 1 }, B: { summer: 2, mud: 1, frost: 1, winter: 1 } },
+        rp: { A: [[1, 1]], B: [[1, 1]] }, xp: { A: { _: 1 }, B: { _: 1 } },
+        forts: [], rails, reinf,
+      },
+      rows: g.map(row => row.join('')), rivers, roads, cities, units,
+    };
+  }
+  // a new random id for a Border War game
+  const newId = (turns, theme, dens, seed) => `bw-${turns}-${theme}-${dens}-${seed ?? Math.floor(Math.random() * 1e9)}`;
+  return { make, newId, parse };
+})();
 
 
 // ===================== HEXFRONT ENGINE =====================
@@ -1191,7 +1454,9 @@ const Engine = (() => {
   }
 
   // ---------- scenarios ----------
-  const SCEN = {
+  // Border War campaigns are generated: any 'bw-…' id builds its map on first use (see border.js)
+  const BG = typeof BorderGen !== 'undefined' ? BorderGen : (typeof require !== 'undefined' ? require('./border.js') : null);
+  const SCEN_BASE = {
     generic: {
       id: 'generic', name: 'Border War', setting: 'Base game',
       blurb: 'Two evenly matched powers race for the river crossing at Midbridge. Capture the enemy capital to win at once, or hold the most victory points after 12 turns.',
@@ -1357,6 +1622,10 @@ const Engine = (() => {
     },
   };
   const EXTRA = typeof EXTRA_SCEN !== 'undefined' ? { EXTRA_SCEN, EXTRA_ORDER } : (typeof require !== 'undefined' ? require('./scen2.js') : { EXTRA_SCEN: {}, EXTRA_ORDER: [] });
+  const SCEN = new Proxy(SCEN_BASE, {
+    get(t, k) { if (typeof k === 'string' && k.startsWith('bw-') && !(k in t) && BG) t[k] = BG.make(k); return t[k]; },
+    has(t, k) { return (typeof k === 'string' && k.startsWith('bw-') && !!BG) || k in t; },
+  });
   Object.assign(SCEN, EXTRA.EXTRA_SCEN);
   const SCEN_ORDER = ['generic', 'europe', 'desert', ...EXTRA.EXTRA_ORDER];
   // Campaigns live in camp1.js; they share SCEN for lookups but have their own menu order.
@@ -3182,7 +3451,7 @@ const TerrainArt = (() => {
     rock: ['#c9b28d', '#6f5841'], rockLit: '#f2e7cf', snow: ['#ffffff', '#c9d3db'], snowLine: .7,
     water: ['#b8d0d6', '#6f97a6'], reed: '#5e7a3e', tuft: '#a79b6c', hill: ['#e6d9b2', '#c9b385'], ridge: '#8a7350', ridgeLit: '#f6eed6',
     bush: ['#55703c', '#7f9858'], cypress: ['#4f6535', '#71894c'], toneDark: '#4a3a1a', toneLight: '#ffffff', tone: [.12, .2],
-    relief: { mid: '#cecbc4', dark: '#928e9c', light: '#f6f4ea' }, massif: { base: '#bcb3a3', edge: '#9c9282', light: '#e9e3d6', dark: '#3f3833' },
+    relief: { mid: '#cecbc4', dark: '#928e9c', light: '#f6f4ea' }, lake: { shore: '#b9ad86', shade: '#6f93a3', shallow: '#9fc0cb', mid: '#8cb2c1' }, massif: { base: '#bcb3a3', edge: '#9c9282', light: '#e9e3d6', dark: '#3f3833' },
   };
   const PAL = {
     temperate: SUMMER,
@@ -3195,7 +3464,7 @@ const TerrainArt = (() => {
       rock: ['#c3c3c0', '#6d7277'], rockLit: '#ffffff', snowLine: .35,
       water: ['#e6eef2', '#a9bfca'], reed: '#8a8a72', tuft: '#a9aea6', hill: ['#ffffff', '#cdd6dc'], ridge: '#7d8a92', ridgeLit: '#ffffff',
       bush: ['#6f7465', '#9aa08e'], cypress: ['#4f5e52', '#7d8c80'], toneDark: '#3a4a5a', tone: [.08, .25],
-      relief: { mid: '#dce2e9', dark: '#8a98ac', light: '#ffffff' }, massif: { base: '#d9dfe4', edge: '#b4bec7', light: '#ffffff', dark: '#46525e' },
+      relief: { mid: '#dce2e9', dark: '#8a98ac', light: '#ffffff' }, lake: { shore: '#b8c3cb', shade: '#a4bccb', shallow: '#d6e4eb', mid: '#c6d8e2' }, massif: { base: '#d9dfe4', edge: '#b4bec7', light: '#ffffff', dark: '#46525e' },
     },
     desert: {
       ...SUMMER, kind: 'desert',
@@ -3204,7 +3473,7 @@ const TerrainArt = (() => {
       rock: ['#d4a774', '#7c5232'], rockLit: '#f7e3bf', snowLine: 9,
       water: ['#e7e0c8', '#c9bc98'], reed: '#8a8450', tuft: '#b49a62', hill: ['#f2dfb0', '#d7b57a'], ridge: '#9a7444', ridgeLit: '#fbf0d2',
       bush: ['#7c7c48', '#a3a364'], cypress: ['#6b7040', '#949a5c'], toneDark: '#6a4a1a', tone: [.1, .18],
-      relief: { mid: '#dcc49e', dark: '#a28068', light: '#faeed4' }, massif: { base: '#cdae84', edge: '#a8875c', light: '#f3e1bf', dark: '#4e341e' },
+      relief: { mid: '#dcc49e', dark: '#a28068', light: '#faeed4' }, lake: { shore: '#c4a874', shade: '#6d97a6', shallow: '#9ec3c9', mid: '#88b2bd' }, massif: { base: '#cdae84', edge: '#a8875c', light: '#f3e1bf', dark: '#4e341e' },
     },
   };
 
@@ -3466,6 +3735,51 @@ const TerrainArt = (() => {
       else o += tuft(P, x, y);
     }
     return o;
+  }
+  // lakes and sea, like forests: one body of water across neighbouring water hexes, an irregular shore elsewhere
+  function waterMass(P, nb, seed) {
+    // one ragged shoreline per hex: it runs past edges shared with other water (so bodies join) and pulls back
+    // from land with a wobbly, uneven line; drawn as a smooth outline rather than a cluster of discs
+    const S = D, r = rng('Wm', seed), ph = [0, 1, 2, 3, 4, 5].map(() => r.uniform(0, 6.28)), ph2 = [0, 1, 2, 3, 4, 5].map(() => r.uniform(0, 6.28));
+    const margin = (i, along) => nb[i] ? -S * .16 : S * (.2 + .08 * Math.sin(along * .15 + ph[i]) + .045 * Math.sin(along * .38 + ph[i] * 2) + .03 * Math.sin(along * .55 + ph2[i]));
+    const inside = (x, y, extra) => EDGE_A.every((a, i) => {
+      const n = [Math.cos(a), Math.sin(a)], along = -x * n[1] + y * n[0];
+      return S * SQ3 / 2 - (x * n[0] + y * n[1]) >= margin(i, along) + (nb[i] ? 0 : extra);
+    });
+    const outline = extra => {
+      if (!inside(0, 0, extra)) return null;
+      const pts = [];
+      for (let k = 0; k < 60; k++) {
+        const a = k / 60 * 2 * Math.PI, ca = Math.cos(a), sa = Math.sin(a);
+        let lo = 0, hi = S * 1.25;
+        for (let it = 0; it < 14; it++) { const m = (lo + hi) / 2; if (inside(ca * m, sa * m, extra)) lo = m; else hi = m; }
+        pts.push([ca, sa, lo]);
+      }
+      // round off the hex corners: smooth the shoreline distance around the circle
+      for (let pass = 0; pass < 3; pass++) {
+        const rr = pts.map(p => p[2]);
+        pts.forEach((p, k) => { p[2] = (rr[(k + 59) % 60] + rr[k] * 2 + rr[(k + 1) % 60]) / 4; });
+      }
+      for (const p of pts) { p[0] *= p[2]; p[1] *= p[2]; }
+      let d = '';
+      for (let k = 0; k < pts.length; k++) {
+        const p0 = pts[(k + pts.length - 1) % pts.length], p1 = pts[k], p2 = pts[(k + 1) % pts.length], p3 = pts[(k + 2) % pts.length];
+        if (!k) d += `M${f(p1[0])} ${f(p1[1])}`;
+        d += ` C${f(p1[0] + (p2[0] - p0[0]) / 6)} ${f(p1[1] + (p2[1] - p0[1]) / 6)} ${f(p2[0] - (p3[0] - p1[0]) / 6)} ${f(p2[1] - (p3[1] - p1[1]) / 6)} ${f(p2[0])} ${f(p2[1])}`;
+      }
+      return d + 'Z';
+    };
+    const body = outline(0), deep = outline(9);
+    let ripples = '';
+    for (let i = 0; i < 3; i++) { const x = r.uniform(-S * .4, S * .2), y = r.uniform(-S * .4, S * .4); if (inside(x, y, 8) && inside(x + 14, y, 8)) ripples += `<path d="M${f(x)} ${f(y)}q3.5 -2.2 7 0t7 0" fill="none" stroke="#ffffff" stroke-width="1" opacity=".45"/>`; }
+    if (!body) return ['', '', '', '', ''];
+    return [
+      `<path d="${body}" fill="none" stroke-width="3.2" stroke-linejoin="round"/>`,
+      `<path d="${body}"/>`,
+      `<path d="${body}" transform="translate(2.6,3)"/>`,
+      deep ? `<path d="${deep}" transform="translate(2,2.4)"/>` : '',
+      ripples,
+    ];
   }
   function sea(P, seed) {
     const r = rng('W', seed); let o = '';
@@ -3817,10 +4131,11 @@ const TerrainArt = (() => {
     const at = (c, r) => (c >= 0 && r >= 0 && c < m.W && r < m.H ? m.terr[c + ',' + r] : null);
     const nbr = (c, r, i) => { const odd = c & 1; const d = [[1, odd], [0, 1], [-1, odd], [-1, odd - 1], [0, -1], [1, odd - 1]][i]; return [c + d[0], r + d[1]]; };
     let base = '', tone = '', forests = '', rest = '', shades = '';
+    const WL = ['', '', '', '', ''];
     for (let r = 0; r < m.H; r++) for (let c = 0; c < m.W; c++) {
       const t = m.terr[c + ',' + r], [x, y] = center(c, r), ct = cityAt.get(c + ',' + r);
       const lm = ct && LANDMARK[(ct.name || '').toLowerCase()];
-      const bt = (ct && lm !== 'kurgan') || t === 'm' || t === 'h' ? '.' : t;
+      const bt = (ct && lm !== 'kurgan') || t === 'm' || t === 'h' || t === 'w' ? '.' : t;
       base += `<polygon points="${hp(S + .5, x, y)}" fill="${P.base[bt] || P.base['.']}"/>`;
       if (t !== 'w' && t !== '.' && t !== 'f' && t !== 'h' && t !== 'm' && !ct) {
         const q = rng('T', c, r);
@@ -3862,7 +4177,11 @@ const TerrainArt = (() => {
       }
       else if (t === 's') rest += g(marsh(P, v, c + ',' + r), true);
       else if (t === '.') rest += g(clear(P, v, c + ',' + r), true);
-      else if (t === 'w') rest += g(sea(P, c + ',' + r), true);
+      else if (t === 'w') {
+        const nb = [0, 1, 2, 3, 4, 5].map(i => { const q = at(...nbr(c, r, i)); return q === null || q === 'w' ? 1 : 0; });
+        const tr = `<g transform="translate(${f(x)},${f(y)}) scale(${k.toFixed(4)})">`;
+        waterMass(P, nb, c + ',' + r).forEach((part, i) => { WL[i] += tr + part + '</g>'; });
+      }
     }
     const defs = `<defs><clipPath id="ta-clip"><polygon points="${hp(D + .3)}"/></clipPath><filter id="ta-soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${f(7 * k)}"/></filter><filter id="ta-relief" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="${f(RELIEF_BLUR * k)}"/></filter><filter id="ta-rock" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="${f(1.4 * k)}"/></filter><filter id="ta-rockshade" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="${f(1.7 * k)}"/></filter>` +
       `<linearGradient id="ta-hill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${P.hill[0]}"/><stop offset=".35" stop-color="${P.hill[1]}"/><stop offset=".7" stop-color="${P.hill[1]}" stop-opacity=".5"/><stop offset="1" stop-color="${P.hill[1]}" stop-opacity="0"/></linearGradient></defs>`;
@@ -3876,7 +4195,7 @@ const TerrainArt = (() => {
         if (hl) hillTex = `<image href="${encodePNG(hl.pw, hl.ph, hl.data)}" x="${f(hl.x)}" y="${f(hl.y)}" width="${f(hl.w)}" height="${f(hl.h)}" preserveAspectRatio="none"/>`;
       }
     }
-    return defs + base + `<g filter="url(#ta-soft)">${tone}</g>` + hillTex + (shades ? `<g filter="url(#ta-relief)">${shades}</g>` : '') + relief + forests + rest;
+    return defs + base + `<g filter="url(#ta-soft)">${tone}</g>` + (WL[1] ? `<mask id="ta-water" maskUnits="userSpaceOnUse"><g fill="#fff">${WL[1]}</g></mask><g stroke="${P.lake.shore}">${WL[0]}</g><g fill="${P.lake.shade}">${WL[1]}</g><g mask="url(#ta-water)"><g fill="${P.lake.shallow}">${WL[2]}</g><g fill="${P.lake.mid}">${WL[3]}</g></g>${WL[4]}` : '') + hillTex + (shades ? `<g filter="url(#ta-relief)">${shades}</g>` : '') + relief + forests + rest;
   }
 
   if (typeof document !== 'undefined') encodePNG = (w, h, data) => {
@@ -3890,7 +4209,7 @@ const TerrainArt = (() => {
 // ===================== HEXFRONT UI =====================
 (() => {
   const E = Engine, K = E.K, P = E.P;
-  const VERSION = '0.24.1', BUILD = '2026-11-28';
+  const VERSION = '0.27.2', BUILD = '2026-11-28';
   const S = 30, SQ3 = Math.sqrt(3), SAVE_KEY = 'hexfront.v1';
   try { console.info(`Hexfront v${VERSION} (${BUILD})`); } catch (e) { /* ignore */ }
   const THEMES = {
@@ -3912,6 +4231,7 @@ const TerrainArt = (() => {
   const svg = $('map'), gStatic = $('gStatic'), gDyn = $('gDyn');
 
   let state = null, sel = null, target = null, atk = new Set(), info = null, undo = [];
+  let pickBW = { theme: 'n', dens: 'n' }, pickMode = 'screen', pickMe = 'A';
   let aiBusy = false, aiToken = 0, pickScen = null, pickWho = { A: 'human', B: 'ai' }, pickFog = false, pickLevel = 'hard';
   try { pickLevel = localStorage.getItem('hexfront.level') || 'hard'; } catch (e) { /* default hard */ }
   const LEVELS = [['easy', 'Easy'], ['normal', 'Normal'], ['hard', 'Hard']];
@@ -3920,8 +4240,14 @@ const TerrainArt = (() => {
   const isAI = side => !!(state && state.players && state.players[side] === 'ai');
   const hasAI = () => isAI('A') || isAI('B');
   // Whose eyes the map is drawn through (matters under fog of war).
+  // Play by email: each device commands one side. The side is kept on this device (not in the shared code).
+  const ME_KEY = 'hexfront.me';
+  function mySide() { if (!state || state.mode !== 'email') return null; try { const m = JSON.parse(localStorage.getItem(ME_KEY) || 'null'); if (m && m.gid === state.gid) return m.side; } catch (e) { /* none */ } return null; }
+  function setMySide(side) { try { localStorage.setItem(ME_KEY, JSON.stringify({ gid: state.gid, side })); } catch (e) { /* ignore */ } }
+  const waiting = () => state && state.mode === 'email' && !state.winner && mySide() && mySide() !== state.active;
   function viewer() {
     if (!state) return null;
+    if (state.mode === 'email' && mySide()) return mySide();
     const humans = ['A', 'B'].filter(s => !isAI(s));
     if (humans.length === 1) return humans[0];
     if (!humans.length) return null;
@@ -3983,6 +4309,14 @@ const TerrainArt = (() => {
   };
   function natFlagSVG(code, cls = 'natflag') {
     const body = NATFLAG[code] ? NATFLAG[code]() : '';
+    return `<svg class="${cls}" viewBox="-1 -1 32 22" aria-hidden="true">${body}<rect width="30" height="20" fill="none" stroke="rgba(0,0,0,.55)" stroke-width="1"/></svg>`;
+  }
+  function sideFlagSVG(scenId, side, cls = 'flag') {
+    const sc2 = E.SCEN[scenId], sd = sc2.sides[side];
+    const count = {};
+    for (const u of sc2.units) if (u[0] === side) { const n = E.nation(scenId, { side, name: u[4] || '' }); if (n) count[n.flag] = (count[n.flag] || 0) + 1; }
+    const top = Object.entries(count).sort((a, b) => b[1] - a[1])[0];
+    const body = top && NATFLAG[top[0]] ? NATFLAG[top[0]]() : FLAGS[sd.flag] ? FLAGS[sd.flag]() : `<rect width="30" height="20" fill="${sd.color}"/>`;
     return `<svg class="${cls}" viewBox="-1 -1 32 22" aria-hidden="true">${body}<rect width="30" height="20" fill="none" stroke="rgba(0,0,0,.55)" stroke-width="1"/></svg>`;
   }
   function flagSVG(side, big) {
@@ -4660,7 +4994,7 @@ const TerrainArt = (() => {
       return `<div style="border-left-color:${sdd.color}"><small>${esc(sdd.name)}</small><b>${E.vp(state, sd)}</b> <em>points · ${hide ? '?' : n} units · ${cp.lost[sd]} steps lost</em></div>`; }).join('');
     const g = v.grades.find(x => score >= x.min) || v.grades[v.grades.length - 1];
     const bonus = (cp.bonus && cp.bonus[v.side]) || 0;
-    $('objective').textContent = `${s.sides[v.side].name} score ${score} (${E.vp(state, v.side)} VP ${net >= 0 ? '+' : '−'} ${Math.abs(Math.trunc(net / v.material))} for ${Math.abs(net)} net enemy steps destroyed${bonus ? ` + ${bonus} Kiev` : ''}). If the campaign ended now: ${g.name}. Taking Moscow (★) wins at once.`;
+    $('objective').textContent = `${s.sides[v.side].name} score ${score} (${E.vp(state, v.side)} VP ${net >= 0 ? '+' : '−'} ${Math.abs(Math.trunc(net / v.material))} for ${Math.abs(net)} net enemy steps destroyed${bonus ? ` + ${bonus} Kiev` : ''}). If the campaign ended now: ${g.name}. ${(() => { const caps = s.cities.filter(c => c.cap); return caps.length ? `Taking ${caps.map(c => c.name).join(' or ')} (★) wins at once.` : ''; })()}`;
     const grades = v.grades.map((x, i) => `<li${x === g ? ' class="now"' : ''}><span>${esc(x.name)}</span><span class="vp">${i === v.grades.length - 1 ? `under ${v.grades[i - 1].min}` : i === 0 ? `${x.min}+` : `${x.min}–${v.grades[i - 1].min - 1}`}</span></li>`).join('');
     const wx = cp.wx.map((p, i) => { const to = cp.wx[i + 1] ? cp.wx[i + 1].from - 1 : s.maxTurns; return p.from > s.maxTurns || to < p.from ? '' : `<li${E.weather(state) === p.w ? ' class="now"' : ''}><span>${esc(E.CAMP.wxName[p.w])}</span><span class="vp">turns ${p.from}–${to} · ${esc(E.dateOf(state, p.from))}</span></li>`; }).join('');
     const C = E.CAMP, rules = [
@@ -4672,7 +5006,7 @@ const TerrainArt = (() => {
       `Railheads: German supply reaches ${s.campaign.supply.A.range} hexes from the west edge or a railhead. A captured rail city becomes a railhead 2 turns later (1 with engineers there), if the rail back west is unbroken.`,
       `Reinforcements arrive at rail cities linked by rail to the east edge or Moscow. Cut the line and they are delayed a turn, then come in further back.`,
       state.fog ? `Air recon: tap Intel, then a hex, to reveal everything within ${C.reconR} hexes this turn. Units in forest or entrenched in cities show only as unknown.` : 'Fog of war is off: all units are visible.',
-      `Score: VP held, plus 1 for every ${v.material} enemy steps destroyed beyond your own losses. Germany also loses at once if it holds under ${v.fail.vp} VP after turn ${v.fail.turn}.`,
+      `Score: ${esc(s.sides[v.side].name)} VP held, plus 1 for every ${v.material} enemy steps destroyed beyond its own losses.${v.symmetric ? ` A high score favours ${esc(s.sides[v.side].name)}, a low one ${esc(s.sides[E.other(v.side)].name)}.` : ''}${v.fail ? ` ${esc(s.sides[v.side].name)} also loses at once if it holds under ${v.fail.vp} VP after turn ${v.fail.turn}.` : ''}`,
     ];
     $('objExtra').innerHTML = `<section><h3>Results</h3><ul class="citylist grades">${grades}</ul></section>
       ${(v.checkpoints || []).length ? `<section><h3>Historical pace</h3><ul class="citylist grades">${E.checkpoints(state).map(c => `<li${!c.held && state.turn > c.turn ? '' : c.held ? ' class="now"' : ''}><span>${esc(c.city)} by turn ${c.turn}</span><span class="vp">${c.held ? 'Taken' : state.turn > c.turn ? 'Behind' : 'Not yet'}</span></li>`).join('')}</ul></section>` : ''}
@@ -4839,7 +5173,7 @@ const TerrainArt = (() => {
     if (a.t === 'attack' && tray !== 'battle') { openTray('battle'); render(); }
     if (a.t === 'advance' && PHONE.matches && tray === 'battle') closeTray();
     if (state.winner) showWinner();
-    else if (a.t === 'endTurn') { if (isAI(state.active)) runAI(); else if (hasAI()) { smartFit(); const kv = state.camp && sc().campaign.kiev; toast2(kv && kv.side === state.active && !state.camp.kievDone && state.turn >= kv.from && state.turn <= kv.to ? `Your turn. The Kiev decision is open until turn ${kv.to}: see Orders on Panzer Group 2's HQ.` : `Your turn: ${sideOf(state.active).name}`); } else showHandoff(); }
+    else if (a.t === 'endTurn') { if (isAI(state.active)) runAI(); else if (state.mode === 'email') { persist(); showWaiting(true); } else if (hasAI()) { smartFit(); const kv = state.camp && sc().campaign.kiev; toast2(kv && kv.side === state.active && !state.camp.kievDone && state.turn >= kv.from && state.turn <= kv.to ? `Your turn. The Kiev decision is open until turn ${kv.to}: see Orders on Panzer Group 2's HQ.` : `Your turn: ${sideOf(state.active).name}`); } else showHandoff(); }
     return r;
   }
   function onHex(c, r) {
@@ -5192,8 +5526,15 @@ const TerrainArt = (() => {
     const side = sideOf(state.active), oos = state.units.filter(u => u.side === state.active && u.oos).length;
     cover(`<div class="kicker">${esc(kicker || `Turn ${state.turn} of ${sc().maxTurns}`)}</div><div class="flagbig">${flagSVG(state.active, true)}</div><h2>${esc(side.name)}</h2>
       ${kicker ? '' : `<div class="ts-wrap">${summaryHTML(turnSummary())}</div>`}
-      <p>Playing on one screen? Hand it over${state.fog ? ' (the map stays hidden until the next player starts)' : ''}. Playing by email? Send the turn code instead.${oos ? ` ${oos} of your units are out of supply.` : ''}</p>
-      <div class="row"><button type="button" class="primary" data-cv="start">Start ${esc(side.short)} turn</button><button type="button" data-cv="send">Send turn by email</button></div>`, state.fog && !hasAI());
+      <p>${state.mode === 'email' ? 'Your turn.' : `Pass the device to ${esc(side.name)}${state.fog ? ' (the map stays hidden until they start)' : ''}.`}${oos ? ` ${oos} of your units are out of supply.` : ''}</p>
+      <div class="row"><button type="button" class="primary" data-cv="start">Start ${esc(side.short)} turn</button></div>`, state.fog && !hasAI());
+  }
+  function showWaiting(justSent) {
+    const opp = sideOf(state.active), me = sideOf(mySide());
+    cover(`<div class="kicker">Play by email · you command ${esc(me.name)}</div><div class="flagbig">${flagSVG(state.active, true)}</div><h2>${esc(opp.name)} to play</h2>
+      <p>${justSent ? 'Your turn is done. Send the turn code to your opponent, then load their reply when it comes back.' : `Waiting for ${esc(opp.name)}'s turn. Load their reply when it arrives.`} The map stays hidden in the meantime.</p>
+      <div class="row"><button type="button" class="primary" data-cv="send">Send turn by email</button><button type="button" data-cv="load">Load reply</button><button type="button" data-cv="new">New game</button></div>`, true);
+    if (justSent) openSend();
   }
   function showWinner() {
     const w = state.winner, side = w.side ? sideOf(w.side) : null;
@@ -5244,6 +5585,11 @@ const TerrainArt = (() => {
       const s = await decode($('loadText').value);
       setState(s); persist();
       $('loadDlg').close(); $('loadText').value = '';
+      if (state.mode === 'email' && !state.winner) {
+        const mine = mySide();
+        if (mine && mine !== state.active) { showWaiting(); return; } // our own code came back: nothing new
+        setMySide(state.active); render();
+      }
       if (state.winner) showWinner(); else showHandoff(`Loaded · Turn ${state.turn}`);
     } catch (e) { $('loadErr').textContent = e.message || 'That code could not be read.'; }
   }
@@ -5258,16 +5604,40 @@ const TerrainArt = (() => {
   function renderNewList() {
     $('newTabs').querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-pressed', b.dataset.tab === newTab));
     const list = newTab === 'camp' ? E.CAMP_ORDER : E.SCEN_ORDER;
-    $('scenCards').innerHTML = (newTab === 'camp' ? `<p class="empty" style="margin:0 0 4px">Long battles with weather, reinforcements, fatigue, morale, experience, headquarters and engineers. The Road to Moscow is coming next.</p>` : '') + list.map(id => {
+    $('scenCards').innerHTML = `<p class="empty" style="margin:0 0 4px">${newTab === 'camp'
+      ? 'Long battles of 12 to 27 weekly turns on big maps, with weather, reinforcements, replacements, fatigue, morale, experience, headquarters, engineers and air recon. Best played over several sittings: save to a slot from the menu.'
+      : 'Short battles of 12 to 14 turns on one front, about an hour each. Every scenario uses the same core rules: terrain, zones of control, supply, combat odds and victory cities.'}</p>` + list.map(id => {
       const s2 = E.SCEN[id];
-      return `<button type="button" class="srow" data-scen="${id}"><span class="sw"><i style="background:${s2.sides.A.color}"></i><i style="background:${s2.sides.B.color}"></i></span>
-        <span class="t"><b>${esc(s2.name)}</b><small>${esc(s2.setting)} · ${s2.maxTurns} turns${s2.campaign ? ' · weekly' : ''}</small></span><span class="chev">›</span></button>`;
+      return `<button type="button" class="srow" data-scen="${id}"><span class="sw">${sideFlagSVG(id, 'A', 'mflag')}${sideFlagSVG(id, 'B', 'mflag')}</span>
+        <span class="t"><b>${esc(s2.name)}</b><small>${esc(id.startsWith('bw-') ? 'Base game · a new random map every game' : s2.setting)} · ${s2.maxTurns} turns${s2.campaign ? ' · weekly' : ''}</small></span><span class="chev">›</span></button>`;
     }).join('');
   }
   function victoryText(s2) {
     const v2 = s2.victory, cap = s2.cities.filter(c => c.cap);
     const capTxt = cap.length ? ` Capturing the enemy capital (${cap.map(c => esc(c.name)).join(' / ')}) wins at once.` : '';
     return (v2.type === 'target' ? `${esc(s2.sides[v2.side].name)} need ${v2.vp} victory points by turn ${s2.maxTurns}.` : `Most victory points after turn ${s2.maxTurns} wins.`) + capTxt;
+  }
+  // Border War: terrain and density pickers, plus a small preview of this game's map
+  function bwOptions() {
+    const o = BorderGen.parse(pickScen), seg = (k, label, opts) => `<div class="who"><span class="nm">${label}</span><div class="seg" role="group" aria-label="${label}">${opts.map(([v, n]) => `<button type="button" data-bw="${k}:${v}" aria-pressed="${o[k] === v}">${n}</button>`).join('')}</div></div>`;
+    return `<div class="bwmap"><div class="bwopts">${seg('theme', 'Terrain', [['n', 'Normal'], ['d', 'Desert'], ['w', 'Winter']])}${seg('dens', 'Density', [['o', 'Open'], ['n', 'Normal'], ['d', 'Dense']])}
+      <p style="margin:0;font-size:13px;color:var(--muted)">Open has more clear ground; dense more forest, hills and mountains to defend. Every game gets its own map.</p>
+      <button type="button" data-bw="new:1" class="bwnew">New map</button></div>${bwPreview(pickScen)}</div>`;
+  }
+  function bwPreview(id) {
+    const m = E.getMap(id), sc2 = E.SCEN[id], s0 = 7, sq = Math.sqrt(3), th = THEMES[sc2.theme] || THEMES.temperate;
+    const cx = c => s0 + c * s0 * 1.5, cy = (c, r) => s0 * sq / 2 + r * s0 * sq + (c & 1) * s0 * sq / 2;
+    const w = s0 * 2 + (m.W - 1) * s0 * 1.5, h = s0 * sq * (m.H + .5);
+    const col = { '.': { desert: '#ecd9a8', winter: '#eef1f2' }[sc2.theme] || '#e8e2c8', f: '#6f8a4a', h: '#c9bfa4', m: '#9a948e', s: '#a9bd9a', w: '#7fa3b6' };
+    let o = '';
+    for (let r = 0; r < m.H; r++) for (let c = 0; c < m.W; c++) {
+      const x = cx(c), y = cy(c, r), t = m.terr[c + ',' + r];
+      o += `<polygon points="${[0, 1, 2, 3, 4, 5].map(i => (x + s0 * 1.02 * Math.cos(Math.PI / 3 * i)).toFixed(1) + ',' + (y + s0 * 1.02 * Math.sin(Math.PI / 3 * i)).toFixed(1)).join(' ')}" fill="${col[t] || col['.']}"/>`;
+    }
+    const line = (p, st, wd) => `<path d="M${p.map(([c, r]) => cx(c).toFixed(1) + ' ' + cy(c, r).toFixed(1)).join(' L')}" fill="none" stroke="${st}" stroke-width="${wd}" stroke-linejoin="round" stroke-linecap="round"/>`;
+    o += m.roadPaths.map(p => line(p, '#7a5634', 1.2)).join('') + m.riverPaths.map(p => line(p, '#3f78a6', 2.2)).join('');
+    for (const ct of sc2.cities) o += `<circle cx="${cx(ct.c).toFixed(1)}" cy="${cy(ct.c, ct.r).toFixed(1)}" r="${ct.cap ? 5 : 2.4 + ct.vp * .6}" fill="${sc2.sides[ct.owner].color}" stroke="#1a1712" stroke-width="1"/>`;
+    return `<svg class="bwprev" viewBox="0 0 ${w.toFixed(0)} ${h.toFixed(0)}" role="img" aria-label="Preview of this game's map">${o}</svg>`;
   }
   function renderSetup() {
     const box = $('setup'), row = $('newRow');
@@ -5281,11 +5651,16 @@ const TerrainArt = (() => {
       <div class="vs">${mini('A')}${esc(sc2.sides.A.name)} <span style="color:var(--muted)">vs</span> ${mini('B')}${esc(sc2.sides.B.name)}</div>
       <p>${esc(sc2.blurb)}</p>
       <p class="facts">${sc2.maxTurns} turns${sc2.campaign ? ` (one a week, ${esc(E.dateOf({ scen: pickScen }, 1))} to ${esc(E.dateOf({ scen: pickScen }, sc2.maxTurns))}) · about ${Math.round(sc2.maxTurns * 7 / 60 * 2) / 2}–${Math.round(sc2.maxTurns * 10 / 60 * 2) / 2} hours · fog of war recommended` : ''}${special.length ? ` · Special units: ${esc(special.join(', '))}` : ''}${typeof sc2.supplyRange === 'number' && sc2.supplyRange !== Infinity ? ` · Supply range ${sc2.supplyRange}${sc2.supplySide ? ` (${esc(sc2.sides[sc2.supplySide].name)} only)` : ''}` : ''}</p></div>
-      <div class="setup"><h3>Who commands each side?</h3>${['A', 'B'].map(sd => `<div class="who"><span class="nm"><i style="background:${sc2.sides[sd].color}"></i>${esc(sc2.sides[sd].name)}${sd === 'A' ? ' <small style="color:var(--muted);font-weight:500">moves first</small>' : ''}</span>
-      <div class="seg" role="group" aria-label="${esc(sc2.sides[sd].name)}"><button type="button" data-who="${sd}:human" aria-pressed="${pickWho[sd] === 'human'}">Human</button><button type="button" data-who="${sd}:ai" aria-pressed="${pickWho[sd] === 'ai'}">Computer</button></div></div>`).join('')}
+      <div class="setup"><h3>Who commands each side?</h3><div class="sides2">${['A', 'B'].map(sd => `<div class="sidecard" style="border-top-color:${sc2.sides[sd].color}">
+      <div class="nm">${sideFlagSVG(pickScen, sd, 'mflag big')}<span>${esc(sc2.sides[sd].name)}<small>${sd === 'A' ? 'moves first' : 'moves second'}</small></span></div>
+      <div class="seg" role="group" aria-label="${esc(sc2.sides[sd].name)}"><button type="button" data-who="${sd}:human" aria-pressed="${pickWho[sd] === 'human'}">Human</button><button type="button" data-who="${sd}:ai" aria-pressed="${pickWho[sd] === 'ai'}">Computer</button></div></div>`).join('')}</div>
+      ${pickWho.A === 'human' && pickWho.B === 'human' ? `<div class="who"><span class="nm">Two players</span><div class="seg" role="group" aria-label="Two players"><button type="button" data-pm="screen" aria-pressed="${pickMode === 'screen'}">Share this device</button><button type="button" data-pm="email" aria-pressed="${pickMode === 'email'}">Play by email</button></div></div>
+      ${pickMode === 'email' ? `<div class="who"><span class="nm">You command</span><div class="seg" role="group" aria-label="You command">${['A', 'B'].map(sd => `<button type="button" data-me="${sd}" aria-pressed="${pickMe === sd}">${esc(sc2.sides[sd].short)}</button>`).join('')}</div></div>
+      <p style="margin:0;font-size:13px;color:var(--muted)">This device only ever shows your side. After each turn the turn code is ready to email; your opponent loads it in Hexfront and sends theirs back.${pickMe === 'B' ? ` ${esc(sc2.sides.A.name)} moves first, so you'll send the opening code straight away.` : ''}</p>` : ''}` : ''}
+      ${pickScen.startsWith('bw-') ? bwOptions() : ''}
       <div class="who"><span class="nm">Fog of war</span><div class="seg" role="group" aria-label="Fog of war"><button type="button" data-fog="0" aria-pressed="${!pickFog}">Off</button><button type="button" data-fog="1" aria-pressed="${pickFog}">On</button></div></div>
       ${pickWho.A === 'ai' || pickWho.B === 'ai' ? `<div class="who"><span class="nm">Computer skill</span><div class="seg" role="group" aria-label="Computer skill">${LEVELS.map(([k, n]) => `<button type="button" data-lvl="${k}" aria-pressed="${pickLevel === k}">${n}</button>`).join('')}</div></div>` : ''}
-      <p style="margin:0;font-size:13.5px">${pickWho.A === 'ai' || pickWho.B === 'ai' ? 'Easy makes mistakes and leaves openings; Hard plays its best. The computer only sees what fog of war lets it see.' : 'Two humans can share this screen or play by email.'}</p></div>`;
+      <p style="margin:0;font-size:13.5px">${pickWho.A === 'ai' || pickWho.B === 'ai' ? 'Easy makes mistakes and leaves openings; Hard plays its best. The computer only sees what fog of war lets it see.' : ''}</p></div>`;
     row.innerHTML = `<button type="button" class="primary" data-nr="start">Start</button><button type="button" data-nr="back">‹ Back</button>`;
   }
   // Named save slots (campaigns span several sittings; scenarios can use them too).
@@ -5489,12 +5864,21 @@ const TerrainArt = (() => {
   document.querySelectorAll('dialog [data-close]').forEach(b => b.addEventListener('click', () => b.closest('dialog').close()));
   $('scenCards').addEventListener('click', e => {
     const card = e.target.closest('[data-scen]'); if (!card) return;
-    pickScen = card.dataset.scen; if (E.SCEN[pickScen].campaign) pickFog = true; renderSetup();
+    pickScen = card.dataset.scen;
+    if (pickScen.startsWith('bw-')) pickScen = BorderGen.newId(BorderGen.parse(pickScen).turns, pickBW.theme, pickBW.dens);
+    if (E.SCEN[pickScen].campaign) pickFog = true; renderSetup();
     $('newDlg').querySelector('.dlg').scrollTop = 0;
   });
   $('newTabs').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (!b) return; newTab = b.dataset.tab; renderNewList(); });
   $('setup').addEventListener('click', e => {
-    const b = e.target.closest('[data-who],[data-fog],[data-lvl]'); if (!b) return;
+    const b = e.target.closest('[data-who],[data-fog],[data-lvl],[data-bw],[data-pm],[data-me]'); if (!b) return;
+    if (b.dataset.pm) { pickMode = b.dataset.pm; if (pickMode === 'email') pickFog = true; }
+    if (b.dataset.me) pickMe = b.dataset.me;
+    if (b.dataset.bw) {
+      // Border War map options: a new map whenever terrain, density or "New map" is chosen
+      const [k, v] = b.dataset.bw.split(':'); if (k !== 'new') pickBW[k] = v;
+      pickScen = BorderGen.newId(BorderGen.parse(pickScen).turns, pickBW.theme, pickBW.dens);
+    }
     if (b.dataset.lvl) { pickLevel = b.dataset.lvl; try { localStorage.setItem('hexfront.level', pickLevel); } catch (err) { /* ignore */ } }
     if (b.dataset.who) { const [sd, who] = b.dataset.who.split(':'); pickWho[sd] = who; }
     if (b.dataset.fog) pickFog = b.dataset.fog === '1';
@@ -5507,8 +5891,11 @@ const TerrainArt = (() => {
     const g = E.newGame(pickScen, seed(), { fog: pickFog });
     g.players = { A: pickWho.A, B: pickWho.B };
     g.level = { A: pickLevel, B: pickLevel };
+    const email = pickWho.A === 'human' && pickWho.B === 'human' && pickMode === 'email';
+    if (email) { g.mode = 'email'; g.gid = seed().toString(36); }
     $('newDlg').close(); closeTray();
     setState(g); persist();
+    if (email) { setMySide(pickMe); render(); if (pickMe !== 'A') { showWaiting(true); return; } smartFit(); toast2(`Your turn: ${sideOf('A').name}`); return; }
     if (!isAI('A')) { if (hasAI()) { smartFit(); toast2(`Your turn: ${sideOf('A').name}`); } else showHandoff('Turn 1 · New game'); }
   });
   $('combat').addEventListener('click', e => {
@@ -5523,8 +5910,9 @@ const TerrainArt = (() => {
   $('coverBox').addEventListener('click', e => {
     const b = e.target.closest('[data-cv]'); if (!b) return;
     hideCover();
-    if (b.dataset.cv === 'send') openSend();
+    if (b.dataset.cv === 'send') { openSend(); if (waiting()) $('sendDlg').addEventListener('close', () => { if (waiting()) showWaiting(); }, { once: true }); }
     if (b.dataset.cv === 'new') openNew();
+    if (b.dataset.cv === 'load') { $('loadErr').textContent = ''; $('loadDlg').showModal(); $('loadDlg').addEventListener('close', () => { if (waiting()) showWaiting(); }, { once: true }); }
   });
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape' && !document.querySelector('dialog[open]')) { sel = null; target = null; atk.clear(); mode = null; closePop(); closeTray(); render(); }
@@ -5564,6 +5952,7 @@ const TerrainArt = (() => {
     const tpl = E.SCEN[s.scen].units;
     s.units.forEach(u => { if (u.name == null && tpl[u.id - 1]) u.name = tpl[u.id - 1][4] || ''; if (!u.full) u.full = E.fullName(u.name); if (u.nat == null) u.nat = E.natOf(s.scen, u.name); });
     setState(s);
+    if (waiting()) showWaiting();
   }
   window.claude?.hot?.snapshot?.(() => ({ state }));
   window.claude?.hot?.ready ? window.claude.hot.ready(start) : start(window.claude?.hot?.data ?? {});
